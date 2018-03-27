@@ -179,6 +179,7 @@ class AccountFactoryTest extends TestCase
             [ ['sign' => $signSecret, 'encrypt' => $encryptSecret, 'address' => $address], true, true ],
             [ ['sign' => $signSecret, 'encrypt' => $encryptSecret], true, true ],
             [ ['sign' => $signSecret], true, true ],
+            [ $sign['secretkey'], true, true ],
             [ ['encrypt' => $encryptSecret], false, true ]
         ];
     }
@@ -186,11 +187,11 @@ class AccountFactoryTest extends TestCase
     /**
      * @dataProvider createSecretProvider
      * 
-     * @param array   $data
-     * @param boolean $hasSign
-     * @param boolean $hasEncrypt
+     * @param array|string $data
+     * @param boolean      $hasSign
+     * @param boolean      $hasEncrypt
      */
-    public function testCreateFull(array $data, $hasSign, $hasEncrypt)
+    public function testCreateFull($data, $hasSign, $hasEncrypt)
     {
         $this->markAsRisky();
         $base58 = new \StephenHill\Base58();

@@ -228,10 +228,14 @@ class AccountFactory
     /**
      * Create an account from base58 encoded keys.
      * 
-     * @param array $data
+     * @param array|string $data
      */
     public function create($data)
     {
+        if (is_string($data)) {
+            $data = ['sign' => ['secretkey' => $data]];
+        }
+        
         $account = new Account();
         
         $account->sign = isset($data['sign']) ? $this->calcKeys($data['sign'], 'sign') : null;
