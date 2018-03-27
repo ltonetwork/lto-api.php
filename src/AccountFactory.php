@@ -19,21 +19,21 @@ class AccountFactory
     protected $network;
     
     /**
-     * Incrementing nonce
-     * @var int 
+     * Incrementing nonce (4 bytes)
+     * @var string 
      */
     protected $nonce;
     
     /**
      * Class constructor
      * 
-     * @param int|string $network
-     * @param int        $nonce
+     * @param int|string $network 'W' or 'T' (1 byte)
+     * @param int        $nonce   (4 bytes)
      */
-    public function __construct($network, $nonce = 0)
+    public function __construct($network, $nonce = null)
     {
         $this->network = is_int($network) ? chr($network) : substr($network, 0, 1);
-        $this->nonce = $nonce;
+        $this->nonce = isset($nonce) ? $nonce : random_int(0, 0xFFFF);
     }
     
     /**

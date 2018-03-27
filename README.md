@@ -31,7 +31,7 @@ $accountInfo = [
   ]
 ];
 
-$factory = new LTO\AccountFactory('W', rand(rand, 0xFFF));
+$factory = new LTO\AccountFactory('T'); // 'T' for testnet and 'W' for mainnet
 $account = $factory->create($accountInfo);
 ```
 
@@ -40,7 +40,7 @@ $account = $factory->create($accountInfo);
 ```php
 $secretKey = 'wJ4WH8dD88fSkNdFQRjaAhjFUZzZhV5yiDLDwNUnp6bYwRXrvWV8MJhQ9HL9uqMDG1n7XpTGZx7PafqaayQV8Rp';
 
-$factory = new LTO\AccountFactory('W', rand(rand, 0xFFF));
+$factory = new LTO\AccountFactory('T');
 $account = $factory->create($secretKey);
 ```
 
@@ -51,7 +51,7 @@ _Currently the seeded keyset doesn't match when seeded using the Waves API. Seed
 ```php
 $seedText = "manage manual recall harvest series desert melt police rose hollow moral pledge kitten position add";
 
-$factory = new LTO\AccountFactory('W', rand(rand, 0xFFF));
+$factory = new LTO\AccountFactory('T');
 $account = $factory->seed($seedText);
 ```
 
@@ -85,4 +85,3 @@ $message = $account->decryptFrom($sender, $cyphertext);
 ```
 
 You can use `$account->decryptFrom($account, $message);` to decrypt a message from yourself.
-
