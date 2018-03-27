@@ -1,0 +1,31 @@
+{
+    "name": "legalthings/lto-api",
+    "description": "LegalThings One client",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "LegalThings",
+            "email": "info@legalthings.io"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/jasny/lto-api/issues",
+        "source": "https://github.com/jasny/lto-api"
+    },
+    "require": {
+        "php": "~5.6",
+        "ext-json": "*",
+        "ext-libsodium": "1.*",
+        "stephenhill/base58": "^1.1",
+        "guzzlehttp/guzzle": "^6.3"
+    },
+    "require-dev": {
+        "jasny/php-code-quality": "^2.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "LTO\\": "src/"
+        }
+    }
+}
