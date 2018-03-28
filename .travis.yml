@@ -6,7 +6,13 @@ php:
 branches:
   only:
     - master
-    
+
+before_install:
+  - sudo add-apt-repository ppa:ondrej/php -y
+  - sudo apt-get -qq update
+  - sudo apt-get install libsodium-dev
+  - pecl install libsodium-1.0.7
+
 install:
   - composer install
   - wget https://scrutinizer-ci.com/ocular.phar -O "$HOME/ocular.phar"
