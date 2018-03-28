@@ -153,4 +153,33 @@ class AccountTest extends TestCase
         
         $this->account->decryptFrom($this->account, $cyphertext);
     }
+
+
+    /**
+     * Assert that the chain has a valid id for this account
+     * 
+     * @param string     $signkey
+     * @param EventChain $chain
+     */
+    protected function assertValidId($signkey, $chain)
+    {
+        $signkeyHashed = substr(Keccak::hash(\sodium\crypto_generichash($signkey, null, 32), 256), 0, 40);
+        
+        $base58 = new \StephenHill\Base58();
+        $decodedId = $base58->decode($chain->id);
+        
+        $vars = (object)unpack('Cversion/H16random/H40keyhash/H8checksum', $decodedId);
+        
+        $this->assertAttributeEquals(EventChain::ADDRESS_VERSION, 'version', $vars);
+        $this->assertAttributeEquals(substr($signkeyHashed, 0, 40), 'keyhash', $vars);
+        $this->assertAttributeEquals(substr(bin2hex($decodedId), -8), 'checksum', $vars);
+    }
+    
+    public function testCreateEventChain()
+    {
+        $chain = $this->account->createEventChain();
+        
+        $this->assertInstanceOf(EventChain::class, $chain);
+        $this->assertValidId($this->account->sign->publickey, $chain);
+    }
 }

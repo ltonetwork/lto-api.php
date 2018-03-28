@@ -55,14 +55,18 @@ class Event
     /**
      * Class constructor
      * 
-     * @param object $body
+     * @param object|array $body
+     * @param string       $previous
      */
-    public function __construct($body, $previous)
+    public function __construct($body = null, $previous = null)
     {
-        $base58 = new \StephenHill\Base58();
+        if (isset($body)) {
+            $base58 = new \StephenHill\Base58();
+
+            $this->body = $base58->encode(json_encode($body));
+            $this->timestamp = new \DateTime();
+        }
         
-        $this->body = $base58->encode(json_encode($body));
-        $this->timestamp = new \DateTime();
         $this->previous = $previous;
     }
     
@@ -73,6 +77,10 @@ class Event
      */
     public function getMessage()
     {
+        if (!isset($this->body)) {
+            throw new \BadMethodCallException("Body unknown");
+        }
+        
         if (!isset($this->signkey)) {
             throw new \BadMethodCallException("First set signkey before creating message");
         }

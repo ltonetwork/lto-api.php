@@ -30,6 +30,7 @@ class Account
     
     /**
      * Get a random nonce
+     * @codeCoverageIgnore
      * 
      * @return string
      */
@@ -161,6 +162,19 @@ class Account
         return $message;
     }
     
+    /**
+     * Create a new event chain for this account
+     * 
+     * @return EventChain
+     * @throws \BadMethodCallException
+     */
+    public function createEventChain()
+    {
+        $chain = new EventChain();
+        $chain->initFor($this);
+        
+        return $chain;
+    }
     
     /**
      * Base58 encode a string

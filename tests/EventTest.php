@@ -4,6 +4,7 @@ namespace LTO;
 
 use PHPUnit_Framework_TestCase as TestCase;
 use LTO\Account;
+use LTO\Event;
 
 /**
  * @covers LTO\Event

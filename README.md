@@ -106,6 +106,12 @@ $body = [
   "content": "Hello world!"
 ];
 
-$chain = new EventChain($chainId, $lastHash); // You must know both the id and last hash of the chain
-$chain->addEvent($body)->signWith($account);
+$chainId = "JEKNVnkbo3jqSHT8tfiAKK4tQTFK7jbx8t18wEEnygya";
+$chainLastHash" = "3yMApqCuCjXDWPrbjfR5mjCPTHqFG8Pux1TxQrEM35jj";
+
+$chain = new EventChain($chainId, $chainLastHash);
+
+$chain->add(new Event($body))->signWith($account);
 ```
+
+You need the chain id and the hash of the last event to use an existing chain.
