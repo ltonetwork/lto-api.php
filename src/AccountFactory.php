@@ -228,7 +228,8 @@ class AccountFactory
     /**
      * Create an account from base58 encoded keys.
      * 
-     * @param array|string $data
+     * @param array|string $data  All keys (array) or private sign key (string)
+     * @return Account
      */
     public function create($data)
     {
@@ -248,5 +249,22 @@ class AccountFactory
         $account->address = $this->calcAddress($address, $account->sign, $account->encrypt);
         
         return $account;
+    }
+    
+    /**
+     * Create an account from public keys
+     * 
+     * @param string $sign
+     * @param string $encrypt
+     * @return Account
+     */
+    public function createPublic($sign = null, $encrypt = null)
+    {
+        $data = [
+            'sign' => ['publickey' => $sign],
+            'encrypt' => ['publickey' => $encrypt]
+        ];
+        
+        return $this->create($data);
     }
 }

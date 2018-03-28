@@ -65,9 +65,9 @@ $signature = $account->sign('hello world'); // Base58 encoded signature
 
 ```php
 $message = 'hello world';
-$recipientPublicKey = "HBqhfdFASRQ5eBBpu2y6c6KKi1az6bMx8v1JxX4iW1Q8";
 
-$recipient = $factory->create(['encrypt' => [ 'publickey' => $recipientPublicKey ]]);
+$recipientPublicKey = "HBqhfdFASRQ5eBBpu2y6c6KKi1az6bMx8v1JxX4iW1Q8"; // base58 encoded X25519 public key
+$recipient = $factory->createPublic(null, $recipientPublicKey);
 
 $cyphertext = $account->encryptFor($recipient, $message); // Raw binary, not encoded
 ```
@@ -77,11 +77,35 @@ You can use `$account->encryptFor($account, $message);` to encrypt a message for
 ### Decrypt a message received from another account
 
 ```php
-$senderPublicKey = "HBqhfdFASRQ5eBBpu2y6c6KKi1az6bMx8v1JxX4iW1Q8";
-
-$sender = $factory->create(['encrypt' => [ 'publickey' => $senderPublicKey ]]);
+$senderPublicKey = "HBqhfdFASRQ5eBBpu2y6c6KKi1az6bMx8v1JxX4iW1Q8"; // base58 encoded X25519 public key
+$sender = $factory->createPublic(null, $senderPublicKey);
 
 $message = $account->decryptFrom($sender, $cyphertext);
 ```
 
 You can use `$account->decryptFrom($account, $message);` to decrypt a message from yourself.
+
+### Create a new event chain
+
+```php
+$chain = $account->createEventChain(); // Creates an empty event chain with a valid id and last hash
+```
+
+_Note: You need to add an identity as first event on the chain. This is **not** done automatically._
+
+### Create and sign an event and add it to an existing event chain
+
+```php
+$body = [
+  "$schema": "http://specs.livecontracts.io/01-draft/12-comment/schema.json#",
+  "identity": {
+    "$schema": "http://specs.livecontracts.io/01-draft/02-identity/schema.json#",
+    "id": "1bb5a451-d496-42b9-97c3-e57404d2984f"
+  },
+  "content_media_type": "text/plain",
+  "content": "Hello world!"
+];
+
+$chain = new EventChain($chainId, $lastHash); // You must know both the id and last hash of the chain
+$chain->addEvent($body)->signWith($account);
+```

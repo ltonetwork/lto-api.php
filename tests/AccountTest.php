@@ -73,6 +73,27 @@ class AccountTest extends TestCase
         
         $account->sign("hello");
     }
+    
+    public function testSignEvent()
+    {
+        $message = join("\n", [
+            "HeFMDcuveZQYtBePVUugLyWtsiwsW4xp7xKdv",
+            '2018-03-01T00:00:00+00:00',
+            "72gRWx4C1Egqz9xvUBCYVdgh7uLc5kmGbjXFhiknNCTW",
+            "FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y"
+        ]);
+        
+        $event = $this->createMock(Event::class);
+        $event->expects($this->once())->method('getMessage')->willReturn($message);
+        $event->expects($this->once())->method('getHash')->willReturn('47FmxvJ4v1Bnk4SGSwrHcncX5t5u3eAjmc6QJgbR5nn8');
+        
+        $ret = $this->account->signEvent($event);
+        $this->assertSame($event, $ret);
+        
+        $this->assertAttributeEquals('FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y', 'signkey', $event);
+        $this->assertAttributeEquals('Szr7uLhwirqEuVJ9SBPuAgvFAbuiMG23FbCsVNbptLbMH7uzrR5R23Yze83YGe98HawMzjvEMWgsJhdRQDXw8Br', 'signature', $event);
+        $this->assertAttributeEquals('47FmxvJ4v1Bnk4SGSwrHcncX5t5u3eAjmc6QJgbR5nn8', 'hash', $event);
+    }
 
 
     public function createSecondaryAccount()

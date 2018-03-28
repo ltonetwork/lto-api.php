@@ -87,6 +87,20 @@ class Account
         return static::base58($signature);
     }
     
+    /**
+     * Sign an event
+     * 
+     * @param Event $event
+     * @return $event
+     */
+    public function signEvent($event)
+    {
+        $event->signkey = $this->getPublicSignKey();
+        $event->signature = $this->sign($event->getMessage());
+        $event->hash = $event->getHash();
+        
+        return $event;
+    }
     
     /**
      * Encrypt a message for another account.
