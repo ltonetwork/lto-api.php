@@ -1,17 +1,17 @@
 LegalThings One client for PHP
 ===
 
-[![Build Status](https://travis-ci.org/legalthings/lto-client.php.svg?branch=master)](https://travis-ci.org/legalthings/lto-client.php)
-[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/legalthings/lto-client.php/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/legalthings/lto-client.php/?branch=master)
-[![Code Coverage](https://scrutinizer-ci.com/g/legalthings/lto-client.php/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/legalthings/lto-client.php/?branch=master)
-[![Packagist Stable Version](https://img.shields.io/packagist/v/legalthings/lto-client.php.svg)](https://packagist.org/packages/legalthings/lto-client.php)
-[![Packagist License](https://img.shields.io/packagist/l/legalthings/lto-client.php.svg)](https://packagist.org/packages/legalthings/lto-client.php)
+[![Build Status](https://travis-ci.org/legalthings/lto-api.php.svg?branch=master)](https://travis-ci.org/legalthings/lto-api.php)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/legalthings/lto-api.php/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/legalthings/lto-api.php/?branch=master)
+[![Code Coverage](https://scrutinizer-ci.com/g/legalthings/lto-api.php/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/legalthings/lto-api.php/?branch=master)
+[![Packagist Stable Version](https://img.shields.io/packagist/v/legalthings/lto-api.php.svg)](https://packagist.org/packages/legalthings/lto-api.php)
+[![Packagist License](https://img.shields.io/packagist/l/legalthings/lto-api.php.svg)](https://packagist.org/packages/legalthings/lto-api.php)
 
 
 Installation
 ---
 
-    composer require legalthings/lto-client
+    composer require legalthings/lto-api
 
 Usage
 ---
