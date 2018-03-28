@@ -4,8 +4,8 @@ LegalThings One client for PHP
 [![Build Status](https://travis-ci.org/legalthings/lto-api.php.svg?branch=master)](https://travis-ci.org/legalthings/lto-api.php)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/legalthings/lto-api.php/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/legalthings/lto-api.php/?branch=master)
 [![Code Coverage](https://scrutinizer-ci.com/g/legalthings/lto-api.php/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/legalthings/lto-api.php/?branch=master)
-[![Packagist Stable Version](https://img.shields.io/packagist/v/legalthings/lto-api.php.svg)](https://packagist.org/packages/legalthings/lto-api.php)
-[![Packagist License](https://img.shields.io/packagist/l/legalthings/lto-api.php.svg)](https://packagist.org/packages/legalthings/lto-api.php)
+[![Packagist Stable Version](https://img.shields.io/packagist/v/legalthings/lto-api.svg)](https://packagist.org/packages/legalthings/lto-api)
+[![Packagist License](https://img.shields.io/packagist/l/legalthings/lto-api.svg)](https://packagist.org/packages/legalthings/lto-api)
 
 
 Installation
