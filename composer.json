@@ -10,8 +10,8 @@
         }
     ],
     "support": {
-        "issues": "https://github.com/jasny/lto-api/issues",
-        "source": "https://github.com/jasny/lto-api"
+        "issues": "https://github.com/legalthings/lto-api.php/issues",
+        "source": "https://github.com/legalthings/lto-api.php"
     },
     "require": {
         "php": "~5.6",
