@@ -203,6 +203,7 @@ class AccountFactoryTest extends TestCase
         $this->assertInstanceOf(Account::class, $account);
 
         if ($hasSign) {
+            $this->assertInternalType('object', $account->sign);
             $this->assertEquals("wJ4WH8dD88fSkNdFQRjaAhjFUZzZhV5yiDLDwNUnp6bYwRXrvWV8MJhQ9HL9uqMDG1n7XpTGZx7PafqaayQV8Rp",
                 $base58->encode($account->sign->secretkey));
             $this->assertEquals("FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y", $base58->encode($account->sign->publickey));
@@ -211,6 +212,7 @@ class AccountFactoryTest extends TestCase
         }
         
         if ($hasEncrypt) {
+            $this->assertInternalType('object', $account->encrypt);
             $this->assertEquals("BnjFJJarge15FiqcxrB7Mzt68nseBXXR4LQ54qFBsWJN", $base58->encode($account->encrypt->secretkey));
             $this->assertEquals("BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6", $base58->encode($account->encrypt->publickey));
         } else {

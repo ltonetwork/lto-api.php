@@ -53,13 +53,11 @@ class AccountTest extends TestCase
     
     public function testSign()
     {
-        $base58 = new \StephenHill\Base58();
-        
         $signature = $this->account->sign("hello");
         
         $this->assertSame(
-            'QTMso5awML5XXfhrCgjmJCxGpm85PEEAK3WdBuQjKF4zuDtzVKCrGC2PcjZc5fjjREczg1sMaApP5yCZX3Z3WNBzzLcYeRbVxyGa8TvNBfFxeTgPMD52gMbS',
-            $base58->encode($signature)
+            '2DDGtVHrX66Ae8C4shFho4AqgojCBTcE4phbCRTm3qXCKPZZ7reJBXiiwxweQAkJ3Tsz6Xd3r5qgnbA67gdL5fWE',
+            $signature
         );
     }
     
@@ -95,6 +93,31 @@ class AccountTest extends TestCase
         $this->assertAttributeEquals('47FmxvJ4v1Bnk4SGSwrHcncX5t5u3eAjmc6QJgbR5nn8', 'hash', $event);
     }
 
+    public function testVerify()
+    {
+        $signature = '2DDGtVHrX66Ae8C4shFho4AqgojCBTcE4phbCRTm3qXCKPZZ7reJBXiiwxweQAkJ3Tsz6Xd3r5qgnbA67gdL5fWE';
+        
+        $this->assertTrue($this->account->verify($signature, 'hello'));
+    }
+
+    public function testVerifyFail()
+    {
+        $signature = '2DDGtVHrX66Ae8C4shFho4AqgojCBTcE4phbCRTm3qXCKPZZ7reJBXiiwxweQAkJ3Tsz6Xd3r5qgnbA67gdL5fWE';
+        
+        $this->assertFalse($this->account->verify($signature, 'not this'));
+    }
+
+    /**
+     * @expectedException \InvalidArgumentException
+     */
+    public function testVerifyInvalid()
+    {
+        $signature = 'not a real signature';
+        
+        $this->assertTrue($this->account->verify($signature, 'hello'));
+    }
+    
+    
 
     public function createSecondaryAccount()
     {

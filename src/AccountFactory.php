@@ -171,19 +171,17 @@ class AccountFactory
      */
     protected function calcKeys($keys, $type)
     {
-        $base58 = new \StephenHill\Base58();
-        
         if (!isset($keys['secretkey'])) {
-            return (object)['publickey' => $base58->decode($keys['publickey'])];
+            return (object)['publickey' => $keys['publickey']];
         }
         
-        $secretkey = $base58->decode($keys['secretkey']);
+        $secretkey = $keys['secretkey'];
         
         $publickey = $type === 'sign' ?
             \sodium\crypto_sign_publickey_from_secretkey($secretkey) :
             \sodium\crypto_box_publickey_from_secretkey($secretkey);
         
-        if (isset($keys['publickey']) && $base58->decode($keys['publickey']) !== $publickey) {
+        if (isset($keys['publickey']) && $keys['publickey'] !== $publickey) {
             throw new InvalidAccountException("Public {$type} key doesn't match private {$type} key");
         }
         
@@ -193,7 +191,7 @@ class AccountFactory
     /**
      * Get and verify raw address.
      * 
-     * @param string $address  Base58 encoded address
+     * @param string $address  Raw address
      * @param object $sign     Sign keys
      * @param object $encrypt  Encrypt keys
      * @return string
@@ -201,38 +199,34 @@ class AccountFactory
      */
     protected function calcAddress($address, $sign, $encrypt)
     {
-        $addressSign = isset($sign->publickey) ? $this->createAddress($sign->publickey, 'sign') : null;
-        $addressEncrypt = isset($encrypt->publickey) ? $this->createAddress($encrypt->publickey, 'encrypt') : null;
+        $addrSign = isset($sign->publickey) ? $this->createAddress($sign->publickey, 'sign') : null;
+        $addrEncrypt = isset($encrypt->publickey) ? $this->createAddress($encrypt->publickey, 'encrypt') : null;
         
-        if (isset($addressSign) && isset($addressEncrypt) && $addressSign !== $addressEncrypt) {
+        if (isset($addrSign) && isset($addrEncrypt) && $addrSign !== $addrEncrypt) {
             throw new InvalidAccountException("Sign key doesn't match encrypt key");
         }
         
         if (isset($address)) {
-            $base58 = new \StephenHill\Base58();
-            $rawAddress = $base58->decode($address);
-        
-            if (
-                (isset($addressSign) && $rawAddress !== $addressSign) ||
-                (isset($addressEncrypt) && $rawAddress !== $addressEncrypt)
-            ) {
+            if ((isset($addrSign) && $address !== $addrSign) || (isset($addrEncrypt) && $address !== $addrEncrypt)) {
                 throw new InvalidAccountException("Address doesn't match keypair; possible network mismatch");
             }
         } else {
-            $rawAddress = $addressSign ?: $addressEncrypt;
+            $address = $addrSign ?: $addrEncrypt;
         }
         
-        return $rawAddress;
+        return $address;
     }
      
     /**
      * Create an account from base58 encoded keys.
      * 
-     * @param array|string $data  All keys (array) or private sign key (string)
+     * @param array|string $keys  All keys (array) or private sign key (string)
      * @return Account
      */
-    public function create($data)
+    public function create($keys, $encoding = 'base58')
     {
+        $data = self::decode($keys, $encoding);
+        
         if (is_string($data)) {
             $data = ['sign' => ['secretkey' => $data]];
         }
@@ -252,13 +246,14 @@ class AccountFactory
     }
     
     /**
-     * Create an account from public keys
+     * Create an account from public keys.
      * 
      * @param string $sign
      * @param string $encrypt
+     * @param string $encoding  Encoding of keys 'raw', 'base58' or 'base64'
      * @return Account
      */
-    public function createPublic($sign = null, $encrypt = null)
+    public function createPublic($sign = null, $encrypt = null, $encoding = 'base58')
     {
         $data = [
             'sign' => ['publickey' => $sign],
@@ -266,5 +261,35 @@ class AccountFactory
         ];
         
         return $this->create($data);
+    }
+    
+    
+    /**
+     * Base58 or base64 decode, recursively
+     * 
+     * @param string|array $data
+     * @param string       $encoding  'raw', 'base58' or 'base64'
+     * @return string|array
+     */
+    protected static function decode($data, $encoding = 'base58')
+    {
+        if ($encoding === 'raw') {
+            return $data;
+        }
+        
+        if (is_array($data)) {
+            return array_map(function ($item) use ($encoding) { return self::decode($item, $encoding); }, $data);
+        }
+        
+        if ($encoding === 'base58') {
+            $base58 = new \StephenHill\Base58();
+            $data = $base58->decode($data);
+        }
+        
+        if ($encoding === 'base64') {
+            $data = base64_decode($data);
+        }
+
+        return $data;
     }
 }

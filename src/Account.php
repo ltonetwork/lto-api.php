@@ -2,6 +2,7 @@
 
 namespace LTO;
 
+use StephenHill\Base58;
 use LTO\DecryptException;
 
 /**
@@ -43,41 +44,45 @@ class Account
     /**
      * Get base58 encoded address
      * 
+     * @param string $encoding  'raw', 'base58' or 'base64'
      * @return string
      */
-    public function getAddress()
+    public function getAddress($encoding = 'base58')
     {
-        return $this->address ? static::base58($this->address) : null;
+        return $this->address ? static::encode($this->address, $encoding) : null;
     }
     
     /**
      * Get base58 encoded public sign key
      * 
+     * @param string $encoding  'raw', 'base58' or 'base64'
      * @return string
      */
-    public function getPublicSignKey()
+    public function getPublicSignKey($encoding = 'base58')
     {
-        return $this->sign ? static::base58($this->sign->publickey) : null;
+        return $this->sign ? static::encode($this->sign->publickey, $encoding) : null;
     }
     
     /**
      * Get base58 encoded public encryption key
      * 
+     * @param string $encoding  'raw', 'base58' or 'base64'
      * @return string
      */
-    public function getPublicEncryptKey()
+    public function getPublicEncryptKey($encoding = 'base58')
     {
-        return $this->encrypt ? static::base58($this->encrypt->publickey) : null;
+        return $this->encrypt ? static::encode($this->encrypt->publickey, $encoding) : null;
     }
     
     
     /**
-     * Create a base58 encoded signature of a message.
+     * Create an encoded signature of a message.
      * 
      * @param string $message
+     * @param string $encoding  'raw', 'base58' or 'base64'
      * @return string
      */
-    public function sign($message)
+    public function sign($message, $encoding = 'base58')
     {
         if (!isset($this->sign->secretkey)) {
             throw new \RuntimeException("Unable to sign message; no secret sign key");
@@ -85,7 +90,7 @@ class Account
         
         $signature = \sodium\crypto_sign_detached($message, $this->sign->secretkey);
         
-        return static::base58($signature);
+        return static::encode($signature, $encoding);
     }
     
     /**
@@ -102,6 +107,28 @@ class Account
         
         return $event;
     }
+    
+    /**
+     * Verify a signature of a message
+     * 
+     * @param string $signature
+     * @param string $message
+     * @param string $encoding   signature encoding 'raw', 'base58' or 'base64'
+     * @return boolean
+     */
+    public function verify($signature, $message, $encoding = 'base58')
+    {
+        if (!isset($this->sign->publickey)) {
+            throw new \RuntimeException("Unable to verify message; no public sign key");
+        }
+        
+        $rawSignature = static::decode($signature, $encoding);
+        
+        return strlen($rawSignature) === \sodium\CRYPTO_SIGN_BYTES &&
+            strlen($this->sign->publickey) === \sodium\CRYPTO_SIGN_PUBLICKEYBYTES &&
+            \sodium\crypto_sign_verify_detached($rawSignature, $message, $this->sign->publickey);
+    }
+    
     
     /**
      * Encrypt a message for another account.
@@ -176,16 +203,46 @@ class Account
         return $chain;
     }
     
+    
     /**
-     * Base58 encode a string
+     * Base58 or base64 encode a string
      * 
      * @param string $string
+     * @param string $encoding  'raw', 'base58' or 'base64'
      * @return string
      */
-    protected static function base58($string)
+    protected static function encode($string, $encoding = 'base58')
     {
-        $base58 = new \StephenHill\Base58();
+        if ($encoding === 'base58') {
+            $base58 = new Base58();
+            $string = $base58->encode($string);
+        }
         
-        return $base58->encode($string);
+        if ($encoding === 'base64') {
+            $string = base64_encode($string);
+        }
+
+        return $string;
+    }
+    
+    /**
+     * Base58 or base64 decode a string
+     * 
+     * @param string $string
+     * @param string $encoding  'raw', 'base58' or 'base64'
+     * @return string
+     */
+    protected static function decode($string, $encoding = 'base58')
+    {
+        if ($encoding === 'base58') {
+            $base58 = new Base58();
+            $string = $base58->decode($string);
+        }
+        
+        if ($encoding === 'base64') {
+            $string = base64_decode($string);
+        }
+
+        return $string;
     }
 }

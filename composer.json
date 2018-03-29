@@ -18,7 +18,8 @@
         "ext-json": "*",
         "ext-libsodium": "1.*",
         "stephenhill/base58": "^1.1",
-        "paragonie/random_compat": "^2.0"
+        "paragonie/random_compat": "^2.0",
+        "psr/http-message": "^1.0"
     },
     "require-dev": {
         "jasny/php-code-quality": "^2.1"
