@@ -74,9 +74,9 @@ class HTTPSignature
      * @param RequestInterface $this->request
      * @return string
      */
-    public function getRequestLine()
+    public function getRequestTarget()
     {
-        $method = $this->request->getMethod();
+        $method = strtolower($this->request->getMethod());
         $uri = (string)$this->request->getUri()->withScheme('')->withHost('')->withUserInfo('');
         
         return $method . ' ' . $uri;
@@ -124,15 +124,10 @@ class HTTPSignature
         if ($this->params['algorithm'] !== 'ed25519-sha256') {
             throw new HTTPSignatureException("only the 'ed25519-sha256' signing algorithm is supported");
         }
-        
-        if (!array_key_exists('key', $this->params)) {
-            $keyId = $this->params['keyId'];
-            throw new HTTPSignatureException("unable to lookup key with id '$keyId' and key was not specified");
-        }
     }
 
     /**
-     * Extract the Authorization Signature parameters
+     * Extract the authorization Signature parameters
      * 
      * @return array
      * @throws HTTPSignatureException
@@ -143,11 +138,11 @@ class HTTPSignature
             return $this->params;
         }
         
-        if ($this->request->hasHeader('Authorization')) {
+        if (!$this->request->hasHeader('authorization')) {
             throw new HTTPSignatureException('no authorization header in the request');
         }
         
-        $auth = $this->request->getHeaderLine('Authorization');
+        $auth = $this->request->getHeaderLine('authorization');
         
         list($method, $paramString) = explode(" ", $auth, 2) + [null, null];
         
@@ -155,7 +150,11 @@ class HTTPSignature
             throw new HTTPSignatureException('authorization schema is not "Signature"');
         }
         
-        $this->params = str_getcsv($paramString);
+        if (!preg_match_all('/(\w+)\s*=\s*"([^"]++)"\s*(,|$)/', $paramString, $matches, PREG_PATTERN_ORDER)) {
+            throw new HTTPSignatureException('corrupt header');
+        }
+        
+        $this->params = array_combine($matches[1], $matches[2]);
         $this->assertParams();
         
         return $this->params;
@@ -180,14 +179,14 @@ class HTTPSignature
      * 
      * @throws HTTPSignatureException
      */
-    public function assertRequiredHeaders()
+    protected function assertRequiredHeaders()
     {
         $headers = explode(' ', $this->getParam('headers'));
+        $missing = array_diff($this->headers, $headers);
         
-        foreach ($this->headers as $requiredHeader) {
-            if (in_array($requiredHeader, $headers)) {
-                throw new HTTPSignatureException("$requiredHeader is not part of signature");
-            }
+        if (!empty($missing)) {
+            $err = sprintf("%s %s not part of signature", join(', ', $missing), count($missing) === 1 ? 'is' : 'are');
+            throw new HTTPSignatureException($err);
         }
     }
     
@@ -197,7 +196,7 @@ class HTTPSignature
      */
     public function getHeaders()
     {
-        return $this->getParam('headers') ? explode(' ', $this->getParam('headers')) : $this->headers;
+        return isset($this->params) ? explode(' ', $this->getParam('headers')) : $this->headers;
     }
     
 
@@ -226,8 +225,10 @@ class HTTPSignature
             return $this->account;
         }
 
-        if ($this->getParam('keyId')) {
-            return null;
+        $publickey = $this->getParam('keyId');
+        
+        if (!isset($publickey)) {
+            throw new \BadMethodCallException("Unable to get account; keyId unknown (not verified?)");
         }
 
         if (!isset($this->accountFactory)) {
@@ -235,7 +236,7 @@ class HTTPSignature
         }
         
         $factory = $this->accountFactory;
-        $this->account = $factory->createPublic($this->getParam('keyId'), null, 'base64');
+        $this->account = $factory->createPublic($publickey, null, 'base64');
         
         return $this->account;
     }
@@ -250,14 +251,28 @@ class HTTPSignature
         $message = [];
         
         foreach ($this->getHeaders() as $header) {
-            $message[] = $header === 'request-line'
-                ? sprintf("%s: %s", '(request-target)', $this->getRequestLine())
+            $message[] = $header === '(request-target)'
+                ? sprintf("%s: %s", '(request-target)', $this->getRequestTarget())
                 : sprintf("%s: %s", $header, $this->request->getHeaderLine($header));
         }
         
         return join("\n", $message);
     }
 
+    /**
+     * Asset that the signature is not to old
+     * 
+     * @throws HTTPSignatureException
+     */
+    protected function assertSignatureAge()
+    {
+        $date = $this->request->getHeaderLine('date');
+        
+        if (empty($date) || abs(time() - strtotime($date)) > $this->clockSkew) {
+            throw new HTTPSignatureException("signature to old or clock offset");
+        }
+    }
+    
     /**
      * Verify the signature
      * 
@@ -268,21 +283,19 @@ class HTTPSignature
         $this->assertRequiredHeaders();
         
         $signature = $this->getParam('signature');
+        $account = $this->getAccount();
         
-        if (!$this->getAccount()) {
+        if (!isset($account)) {
             throw new HTTPSignatureException("account not set");
         }
         
         $hash = hash('sha256', $this->getMessage(), true);
         
-        if (!$this->getAccount()->verify($signature, $hash, 'base64')) {
+        if (!$account->verify($signature, $hash, 'base64')) {
             throw new HTTPSignatureException("invalid signature");
         }
         
-        $date = $this->request->getHeaderLine('Date');
-        if (empty($date) || abs(now() - strtotime($date)) > $this->clockSkew) {
-            throw new HTTPSignatureException("signature to old or clock offset");
-        }
+        $this->assertSignatureAge();
     }
 
     
@@ -294,19 +307,17 @@ class HTTPSignature
      * @return RequestInterface
      * @throws HTTPSignatureException
      */
-    public function sign(Account $account)
+    public function signWith(Account $account)
     {
         $this->params = [
             'keyId' => $account->getPublicSignKey('base64'),
             'algorithm' => 'ed25519-sha256',
             'headers' => join(' ', $this->getHeaders())
         ];
-        
-        if ($this->request->hasHeader('Date')) {
-            $date = $this->request->getHeaderLine('Date');
-        } else {
+
+        if (!$this->request->hasHeader('date')) {
             $date = date(DATE_RFC1123);
-            $this->request = $this->request->withHeader('Date', $date);
+            $this->request = $this->request->withHeader('date', $date);
         }
         
         $hash = hash('sha256', $this->getMessage(), true);
@@ -315,7 +326,8 @@ class HTTPSignature
         $header = sprintf('Signature keyId="%s",algorithm="%s",headers="%s",signature="%s"',
             $this->params['keyId'], $this->params['algorithm'], $this->params['headers'], $signature);
         
-        $this->request = $this->request->withHeader('Authorization', $header);
+        $this->account = $account;
+        $this->request = $this->request->withHeader('authorization', $header);
         
         return $this->request;
     }

@@ -14,6 +14,8 @@ use Psr\Http\Message\UriInterface;
  */
 class HTTPSignatureTest extends TestCase
 {
+    use \Jasny\TestHelper;
+    
     /**
      * Create a partially mocked HTTPSignature.
      * 
@@ -32,7 +34,6 @@ class HTTPSignatureTest extends TestCase
         }
         
         return $this->getMockBuilder(HTTPSignature::class)
-            ->enableProxyingToOriginalMethods()
             ->setConstructorArgs([$request])
             ->setMethods($methods)
             ->getMock();
@@ -46,7 +47,7 @@ class HTTPSignatureTest extends TestCase
         $this->assertSame($request, $httpSign->getRequest());
     }
     
-    public function testGetRequestLine()
+    public function testGetRequestTarget()
     {
         $uri = $this->createMock(UriInterface::class);
         $uri->expects($this->once())->method('withScheme')->with('')->willReturnSelf();
@@ -60,7 +61,7 @@ class HTTPSignatureTest extends TestCase
         
         $httpSign = $this->createHTTPSignature($request);
         
-        $this->assertSame('GET /foos?a=1', $httpSign->getRequestLine());
+        $this->assertSame('get /foos?a=1', $httpSign->getRequestTarget());
     }
     
     public function testClockSkew()
@@ -82,16 +83,236 @@ class HTTPSignatureTest extends TestCase
             'keyId="BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6"',
             'algorithm="ed25519-sha256"',
             'headers="(request-target) date digest content-length"',
-            'signature="2DDGtVHrX66Ae8C4shFho4AqgojCBTcE4phbCRTm3qXCKPZZ7reJBXiiwxweQAkJ3Tsz6Xd3r5qgnbA67gdL5fWE"'
+            'signature="PIw+8VW129YY/6tRfThI3ZA0VygH4cYWxIayUZbdA3I9CKUdmqttvVZvOXN5BX2Z9jfO3f1vD1/R2jxwd3BHBw=="',
+            'foo="bar"'
         ]);
         
         $request = $this->createMock(RequestInterface::class);
-        $request->expects($this->any())->method('getHeader')->with('Authorization')->willReturn();
-        $request->expects($this->any())->method('getHeaderLine')->with('Authorization')
+        $request->expects($this->any())->method('hasHeader')->with('authorization')->willReturn(true);
+        $request->expects($this->any())->method('getHeaderLine')->with('authorization')
             ->willReturn("Signature $paramString");
         
         $httpSign = $this->createHTTPSignature($request);
         
         $params = $httpSign->getParams();
+        
+        $expected = [
+            'keyId' => "BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6",
+            'algorithm' => "ed25519-sha256",
+            'headers' => "(request-target) date digest content-length",
+            'signature' => "PIw+8VW129YY/6tRfThI3ZA0VygH4cYWxIayUZbdA3I9CKUdmqttvVZvOXN5BX2Z9jfO3f1vD1/R2jxwd3BHBw==",
+            'foo' => "bar"
+        ];
+        
+        $this->assertEquals($expected, $params);
+    }
+    
+    public function testGetParam()
+    {
+        $httpSign = $this->createHTTPSignature(null, ['getParams']);
+        $httpSign->expects($this->atLeastOnce())->method('getParams')->willReturn([
+            'keyId' => "BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6",
+            'algorithm' => "ed25519-sha256",
+            'headers' => "(request-target) date digest content-length",
+            'signature' => "PIw+8VW129YY/6tRfThI3ZA0VygH4cYWxIayUZbdA3I9CKUdmqttvVZvOXN5BX2Z9jfO3f1vD1/R2jxwd3BHBw==",
+            'foo' => "bar"
+        ]);
+        
+        $this->assertEquals("BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6", $httpSign->getParam('keyId'));
+        $this->assertEquals("bar", $httpSign->getParam('foo'));
+    }
+
+    public function testGetHeaders()
+    {
+        $request = $this->createMock(RequestInterface::class);
+        
+        $httpSign = new HTTPSignature($request, ["(request-target)", "date", "digest", "content-length"]);
+        
+        $this->assertEquals(["(request-target)", "date", "digest", "content-length"], $httpSign->getHeaders());
+    }
+    
+    public function testGetHeadersFromParams()
+    {
+        $httpSign = $this->createHTTPSignature(null, ['getParam']);
+        $httpSign->expects($this->atLeastOnce())->method('getParam')->with('headers')
+            ->willReturn("(request-target) date digest content-length");
+        
+        $this->setPrivateProperty($httpSign, 'params', []);
+        
+        $this->assertEquals(["(request-target)", "date", "digest", "content-length"], $httpSign->getHeaders());
+    }
+    
+    public function testGetAccount()
+    {
+        $httpSign = $this->createHTTPSignature(null, ['getParam']);
+        $httpSign->expects($this->atLeastOnce())->method('getParam')->with('keyId')
+            ->willReturn("BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6");
+     
+        $account = $this->createMock(Account::class);
+        
+        $accountFactory = $this->createMock(AccountFactory::class);
+        $accountFactory->expects($this->once())->method('createPublic')
+            ->with("BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6", null, 'base64')
+            ->willReturn($account);
+        
+        $ret = $httpSign->useAccountFactory($accountFactory);
+        $this->assertSame($httpSign, $ret);
+        
+        $this->assertSame($account, $httpSign->getAccount());
+    }
+    
+    public function testGetMessage()
+    {
+        $request = $this->createMock(RequestInterface::class);
+        $request->expects($this->atLeast(3))->method('getHeaderLine')->willReturnMap([
+            ["date", "Tue, 07 Jun 2014 20:51:35 GMT"],
+            ["digest", "SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE="],
+            ["content-length", '18']
+        ]);
+        
+        $httpSign = $this->createHTTPSignature($request, ['getHeaders', 'getRequestTarget']);
+        $httpSign->expects($this->atLeastOnce())->method('getHeaders')
+            ->willReturn(["(request-target)", "date", "digest", "content-length"]);
+        $httpSign->expects($this->atLeastOnce())->method('getRequestTarget')->willReturn('post /foo');
+        
+        $msg = join("\n", [
+            "(request-target): post /foo",
+            "date: Tue, 07 Jun 2014 20:51:35 GMT",
+            "digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=",
+            "content-length: 18"
+        ]);
+        
+        $this->assertEquals($msg, $httpSign->getMessage());
+    }
+    
+    public function testAssertSignatureAge()
+    {
+        $date = date(DATE_RFC1123);
+        
+        $request = $this->createMock(RequestInterface::class);
+        $request->expects($this->once())->method('getHeaderLine')->with("date")
+            ->willReturn($date);
+        
+        $httpSign = $this->createHTTPSignature($request);
+        
+        $this->callPrivateMethod($httpSign, 'assertSignatureAge');
+    }
+    
+    /**
+     * @expectedException LTO\HTTPSignatureException
+     */
+    public function testAssertSignatureAgeFail()
+    {
+        $date = "Tue, 07 Jun 2014 20:51:35 GMT";
+        
+        $request = $this->createMock(RequestInterface::class);
+        $request->expects($this->once())->method('getHeaderLine')->with("date")
+            ->willReturn($date);
+        
+        $httpSign = $this->createHTTPSignature($request);
+        
+        $this->callPrivateMethod($httpSign, 'assertSignatureAge');
+    }
+    
+    public function testVerify()
+    {
+        $msg = join("\n", [
+            "(request-target): post /foo",
+            "date: Tue, 07 Jun 2014 20:51:35 GMT",
+            "digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=",
+            "content-length: 18"
+        ]);
+        
+        $hash = "0b50f70b241111e3233c84279697f7d80efae4303b54a8959c1ac68a54fe7736";
+        $signature = "PIw+8VW129YY/6tRfThI3ZA0VygH4cYWxIayUZbdA3I9CKUdmqttvVZvOXN5BX2Z9jfO3f1vD1/R2jxwd3BHBw==";
+        
+        $account = $this->createMock(Account::class);
+        $account->expects($this->once())->method('verify')->with($signature, pack('H*', $hash), 'base64')
+            ->willReturn(true);
+        
+        $httpSign = $this->createHTTPSignature(null, ['getAccount', 'getParam', 'getMessage', 'assertSignatureAge']);
+        
+        $httpSign->expects($this->once())->method('getAccount')->willReturn($account);
+        $httpSign->expects($this->atLeastOnce())->method('getParam')->willReturnMap([
+            ["signature", $signature],
+            ["headers", "(request-target) date digest content-length"]
+        ]);
+        $httpSign->expects($this->once())->method('getMessage')->willReturn($msg);
+        $httpSign->expects($this->once())->method('assertSignatureAge');
+        
+        $httpSign->verify();
+    }
+    
+    /**
+     * @expectedException LTO\HTTPSignatureException
+     * @expectedExceptionMessage invalid signature
+     */
+    public function testVerifyFail()
+    {
+        $msg = join("\n", [
+            "(request-target): post /foo",
+            "date: Tue, 07 Jun 2014 20:51:35 GMT",
+            "digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=",
+            "content-length: 18"
+        ]);
+        $hash = "0b50f70b241111e3233c84279697f7d80efae4303b54a8959c1ac68a54fe7736";
+        $signature = "PIw+8VW129YY/6tRfThI3ZA0VygH4cYWxIayUZbdA3I9CKUdmqttvVZvOXN5BX2Z9jfO3f1vD1/R2jxwd3BHBw==";
+        
+        $account = $this->createMock(Account::class);
+        $account->expects($this->once())->method('verify')->with($signature, pack('H*', $hash), 'base64')
+            ->willReturn(false);
+        
+        $httpSign = $this->createHTTPSignature(null, ['getAccount', 'getParam', 'getMessage', 'assertSignatureAge']);
+        
+        $httpSign->expects($this->once())->method('getAccount')->willReturn($account);
+        $httpSign->expects($this->atLeastOnce())->method('getParam')->willReturnMap([
+            ["signature", $signature],
+            ["headers", "(request-target) date digest content-length"]
+        ]);
+        $httpSign->expects($this->once())->method('getMessage')->willReturn($msg);
+        
+        $httpSign->verify();
+    }
+    
+    public function testSignWith()
+    {
+        $msg = join("\n", [
+            "(request-target): post /foo",
+            "date: Tue, 07 Jun 2014 20:51:35 GMT",
+            "digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=",
+            "content-length: 18"
+        ]);
+        $hash = "0b50f70b241111e3233c84279697f7d80efae4303b54a8959c1ac68a54fe7736";
+        $signature = "PIw+8VW129YY/6tRfThI3ZA0VygH4cYWxIayUZbdA3I9CKUdmqttvVZvOXN5BX2Z9jfO3f1vD1/R2jxwd3BHBw==";
+        
+        $account = $this->createMock(Account::class);
+        $account->expects($this->once())->method('getPublicSignKey')->with('base64')
+            ->willReturn("2yYhlEGdosg7QZC//hibHiZ1MHk2m7jp/EbUeFdzDis=");
+        $account->expects($this->once())->method('sign')->with(pack('H*', $hash), 'base64')
+            ->willReturn($signature);
+        
+        $request = $this->createMock(RequestInterface::class);
+        $request->expects($this->any())->method('hasHeader')->with('date')->willReturn(true);
+        $request->expects($this->any())->method('getHeaderLine')->with('date')
+            ->willReturn("Tue, 07 Jun 2014 20:51:35 GMT");
+        $request->expects($this->once())->method('withHeader')
+            ->with('authorization', 'Signature keyId="2yYhlEGdosg7QZC//hibHiZ1MHk2m7jp/EbUeFdzDis=",algorithm="ed25519-sha256",headers="(request-target) date digest content-length",signature="PIw+8VW129YY/6tRfThI3ZA0VygH4cYWxIayUZbdA3I9CKUdmqttvVZvOXN5BX2Z9jfO3f1vD1/R2jxwd3BHBw=="')
+            ->willReturnSelf();
+        
+        $httpSign = $this->createHTTPSignature($request, ['getHeaders', 'getMessage']);
+        
+        $httpSign->expects($this->once())->method('getHeaders')
+            ->willReturn(["(request-target)", "date", "digest", "content-length"]);
+        $httpSign->expects($this->once())->method('getMessage')->willReturn($msg);
+        
+        $ret = $httpSign->signWith($account);
+        $this->assertSame($request, $ret);
+        
+        $this->assertSame($account, $httpSign->getAccount());
+        $this->assertEquals([
+            'keyId' => "2yYhlEGdosg7QZC//hibHiZ1MHk2m7jp/EbUeFdzDis=",
+            'algorithm' => 'ed25519-sha256',
+            'headers' => "(request-target) date digest content-length"
+        ], $httpSign->getParams());
     }
 }

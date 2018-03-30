@@ -16,7 +16,9 @@ Installation
 Usage
 ---
 
-### Create an account
+### Creation
+
+#### Create an account
 
 ```php
 $accountInfo = [
@@ -35,7 +37,7 @@ $factory = new LTO\AccountFactory('T'); // 'T' for testnet and 'W' for mainnet
 $account = $factory->create($accountInfo);
 ```
 
-### Create an account with only a secret sign key
+#### Create an account with only a secret sign key
 
 ```php
 $secretKey = 'wJ4WH8dD88fSkNdFQRjaAhjFUZzZhV5yiDLDwNUnp6bYwRXrvWV8MJhQ9HL9uqMDG1n7XpTGZx7PafqaayQV8Rp';
@@ -44,7 +46,7 @@ $factory = new LTO\AccountFactory('T');
 $account = $factory->create($secretKey);
 ```
 
-### Create an account from seed
+#### Create an account from seed
 
 _Currently the seeded keyset doesn't match when seeded using the Waves API. Seeded results may change to match Waves._
 
@@ -55,13 +57,25 @@ $factory = new LTO\AccountFactory('T');
 $account = $factory->seed($seedText);
 ```
 
-### Sign a message
+### Signing (ED25519)
+
+#### Sign a message
 
 ```php
 $signature = $account->sign('hello world'); // Base58 encoded signature
 ```
 
-### Encrypt a message for another account
+#### Verify a signature
+
+```php
+if (!$account->verify($signature, 'hello world')) {
+    throw new RuntimeException('invalid signature');
+}
+```
+
+### Encryption (X25519)
+
+#### Encrypt a message for another account
 
 ```php
 $message = 'hello world';
@@ -74,7 +88,7 @@ $cyphertext = $account->encryptFor($recipient, $message); // Raw binary, not enc
 
 You can use `$account->encryptFor($account, $message);` to encrypt a message for yourself.
 
-### Decrypt a message received from another account
+#### Decrypt a message received from another account
 
 ```php
 $senderPublicKey = "HBqhfdFASRQ5eBBpu2y6c6KKi1az6bMx8v1JxX4iW1Q8"; // base58 encoded X25519 public key
@@ -85,7 +99,9 @@ $message = $account->decryptFrom($sender, $cyphertext);
 
 You can use `$account->decryptFrom($account, $message);` to decrypt a message from yourself.
 
-### Create a new event chain
+### Event chain
+
+#### Create a new event chain
 
 ```php
 $chain = $account->createEventChain(); // Creates an empty event chain with a valid id and last hash
@@ -93,7 +109,7 @@ $chain = $account->createEventChain(); // Creates an empty event chain with a va
 
 _Note: You need to add an identity as first event on the chain. This is **not** done automatically._
 
-### Create and sign an event and add it to an existing event chain
+#### Create and sign an event and add it to an existing event chain
 
 ```php
 $body = [
@@ -109,9 +125,56 @@ $body = [
 $chainId = "JEKNVnkbo3jqSHT8tfiAKK4tQTFK7jbx8t18wEEnygya";
 $chainLastHash" = "3yMApqCuCjXDWPrbjfR5mjCPTHqFG8Pux1TxQrEM35jj";
 
-$chain = new EventChain($chainId, $chainLastHash);
+$chain = new LTO\EventChain($chainId, $chainLastHash);
 
 $chain->add(new Event($body))->signWith($account);
 ```
 
 You need the chain id and the hash of the last event to use an existing chain.
+
+### HTTP Authentication
+
+HTTP Signature Authentication on [PSR-7 requests](https://www.php-fig.org/psr/psr-7/#33-psrhttpmessageresponseinterface).
+
+#### Sign HTTP Request
+
+```php
+$request = new GuzzleHttp\Psr7\Request('GET', 'http://httpbin.org/get');
+
+$httpSignature = new LTO\HTTPSignature($request, ['(request-target)', 'date']);
+$signedRequest = $httpSignature->signWith($account);
+
+$client = new GuzzleHttp\Client();
+$client->send($request);
+```
+
+#### Verify signed HTTP request
+
+Verifying a signed HTTP request requires using a PSR-7 compliant framework. Assume that `Response` is an implementation
+of `Psr\Http\Message\ResponseInterface`.
+
+```php
+function handleRequest(Psr\Http\Message\RequestInterface $request)
+{
+    $accountFactory = new LTO\AccountFactory('T');
+
+    $requiredHeaders = $this->getMethod() === 'POST'
+        ? ['(request-target)', 'date', 'content-type', 'content-length', 'digest']
+        : ['(request-target)', 'date'];
+
+    try {
+        $httpSignature = new LTO\HTTPSignature($this->getRequest(), $requiredHeaders);
+        $httpSignature->useAccountFactory($accountFactory)->verify();
+
+        $account = $httpSignature->getAccount();
+        // The account can be used for access control
+
+        $response = (new Response())->withStatusCode(200);
+    } catch (LTO\HTTPSignatureException $e) {
+        $wwwAuthHeader = sprintf('Signature algorithm="ed25519-sha256",headers="%s"', join(' ', $requiredHeaders));
+        $response = (new Response())->withStatusCode(401)->withHeader("WWW-Authenticate", $wwwAuthHeader);
+    }
+
+    return $response;
+}
+```
