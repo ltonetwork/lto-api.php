@@ -134,7 +134,9 @@ You need the chain id and the hash of the last event to use an existing chain.
 
 ### HTTP Authentication
 
-HTTP Signature Authentication on [PSR-7 requests](https://www.php-fig.org/psr/psr-7/#33-psrhttpmessageresponseinterface).
+Signing HTTP Messages is described IETF draft [draft-cavage-http-signatures-09](https://tools.ietf.org/id/draft-cavage-http-signatures-09.html).
+
+HTTP Signature Authentication is applied to [PSR-7 requests](https://www.php-fig.org/psr/psr-7/#33-psrhttpmessageresponseinterface).
 
 #### Sign HTTP Request
 
