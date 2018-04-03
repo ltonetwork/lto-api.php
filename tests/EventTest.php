@@ -28,12 +28,12 @@ class EventTest extends TestCase
      */
     public function testGetMessage(Event $event)
     {
-        $event->timestamp = new \DateTime('2018-03-01T00:00:00+00:00');
+        $event->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
         $event->signkey = "FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y";
         
         $expected = join("\n", [
             "HeFMDcuveZQYtBePVUugLyWtsiwsW4xp7xKdv",
-            '2018-03-01T00:00:00+00:00',
+            '1519862400',
             "72gRWx4C1Egqz9xvUBCYVdgh7uLc5kmGbjXFhiknNCTW",
             "FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y"
         ]);
@@ -48,7 +48,7 @@ class EventTest extends TestCase
      */
     public function testGetHash(Event $event)
     {
-        $this->assertEquals('47FmxvJ4v1Bnk4SGSwrHcncX5t5u3eAjmc6QJgbR5nn8', $event->getHash());
+        $this->assertEquals('Bpq9rZt12Gv44dkXFw8RmLYzbaH2HBwPQJ6KihdLe5LG', $event->getHash());
     }
     
     /**
@@ -56,7 +56,7 @@ class EventTest extends TestCase
      */
     public function testVerifySignature($event)
     {
-        $event->signature = "Szr7uLhwirqEuVJ9SBPuAgvFAbuiMG23FbCsVNbptLbMH7uzrR5R23Yze83YGe98HawMzjvEMWgsJhdRQDXw8Br";
+        $event->signature = "258KnaZxcx4cA9DUWSPw8QwBokRGzFDQmB4BH9MRJhoPJghsXoAZ7KnQ2DWR7ihtjXzUjbsXtSeup4UDcQ2L6RDL";
         
         $this->assertTrue($event->verifySignature());
     }
@@ -66,8 +66,8 @@ class EventTest extends TestCase
      */
     public function testVerifySignatureFail($event)
     {
-        $event->timestamp = new \DateTime('2018-02-20T00:00:00+00:00'); // Back dated
-        $event->signature = "Szr7uLhwirqEuVJ9SBPuAgvFAbuiMG23FbCsVNbptLbMH7uzrR5R23Yze83YGe98HawMzjvEMWgsJhdRQDXw8Br";
+        $event->timestamp = (new \DateTime('2018-02-20T00:00:00+00:00'))->getTimestamp(); // Back dated
+        $event->signature = "258KnaZxcx4cA9DUWSPw8QwBokRGzFDQmB4BH9MRJhoPJghsXoAZ7KnQ2DWR7ihtjXzUjbsXtSeup4UDcQ2L6RDL";
         
         $this->assertFalse($event->verifySignature());
     }

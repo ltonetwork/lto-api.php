@@ -19,7 +19,7 @@ class Event
     /**
      * Time when the event was signed.
      * 
-     * @var DateTime
+     * @var int
      */
     public $timestamp;
     
@@ -87,7 +87,7 @@ class Event
         
         $message = join("\n", [
             $this->body,
-            $this->timestamp->format('c'),
+            $this->timestamp,
             $this->previous,
             $this->signkey
         ]);
