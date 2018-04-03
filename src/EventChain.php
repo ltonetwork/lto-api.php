@@ -95,7 +95,9 @@ class EventChain
     {
         $base58 = new \StephenHill\Base58();
         
-        return $base58->encode(hash('sha256', $this->id, true));
+        $rawId = $base58->decode($this->id);
+        
+        return $base58->encode(hash('sha256', $rawId, true));
     }
     
     /**

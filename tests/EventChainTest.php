@@ -23,7 +23,7 @@ class EventChainTest extends TestCase
         $chain = new EventChain('L1hGimV7Pp2CFNUnTCitqWDbk9Zng3r3uc66dAG6hLwEx');
         
         $this->assertAttributeEquals('L1hGimV7Pp2CFNUnTCitqWDbk9Zng3r3uc66dAG6hLwEx', 'id', $chain);
-        $this->assertEquals('ERHWHK5EJ42vuBpnnGunRGLfUnuH27SQyvsuaS3mNtsc', $chain->getLatestHash());
+        $this->assertEquals('9HM1ykH7AxLgdCqBBeUhvoTH4jkq3zsZe4JGTrjXVENg', $chain->getLatestHash());
     }
     
     public function testConstructLatestHash()
@@ -59,6 +59,6 @@ class EventChainTest extends TestCase
         $chain->initFor($account);
         
         $this->assertAttributeEquals('L1hGimV7Pp2CFNUnTCitqWDbk9Zng3r3uc66dAG6hLwEx', 'id', $chain);
-        $this->assertEquals('ERHWHK5EJ42vuBpnnGunRGLfUnuH27SQyvsuaS3mNtsc', $chain->getLatestHash());
+        $this->assertEquals('9HM1ykH7AxLgdCqBBeUhvoTH4jkq3zsZe4JGTrjXVENg', $chain->getLatestHash());
     }
 }
