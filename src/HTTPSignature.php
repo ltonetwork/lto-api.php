@@ -251,9 +251,11 @@ class HTTPSignature
         $message = [];
         
         foreach ($this->getHeaders() as $header) {
+            $headerKey = strtolower($header) === 'date' && $this->request->hasHeader('x-date') ? 'x-date' : $header;
+            
             $message[] = $header === '(request-target)'
                 ? sprintf("%s: %s", '(request-target)', $this->getRequestTarget())
-                : sprintf("%s: %s", $header, $this->request->getHeaderLine($header));
+                : sprintf("%s: %s", $header, $this->request->getHeaderLine($headerKey));
         }
         
         return join("\n", $message);

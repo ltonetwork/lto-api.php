@@ -164,8 +164,10 @@ class HTTPSignatureTest extends TestCase
     public function testGetMessage()
     {
         $request = $this->createMock(RequestInterface::class);
+        $request->expects($this->once())->method('hasHeader')->with('x-date')->willReturn(false);
         $request->expects($this->atLeast(3))->method('getHeaderLine')->willReturnMap([
             ["date", "Tue, 07 Jun 2014 20:51:35 GMT"],
+            ["x-date", "Tue, 07 Jun 2014 20:50:00 GMT"],
             ["digest", "SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE="],
             ["content-length", '18']
         ]);
@@ -178,6 +180,32 @@ class HTTPSignatureTest extends TestCase
         $msg = join("\n", [
             "(request-target): post /foo",
             "date: Tue, 07 Jun 2014 20:51:35 GMT",
+            "digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=",
+            "content-length: 18"
+        ]);
+        
+        $this->assertEquals($msg, $httpSign->getMessage());
+    }
+    
+    public function testGetMessageXDate()
+    {
+        $request = $this->createMock(RequestInterface::class);
+        $request->expects($this->once())->method('hasHeader')->with('x-date')->willReturn(true);
+        $request->expects($this->atLeast(3))->method('getHeaderLine')->willReturnMap([
+            ["date", "Tue, 07 Jun 2014 20:51:35 GMT"],
+            ["x-date", "Tue, 07 Jun 2014 20:50:00 GMT"],
+            ["digest", "SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE="],
+            ["content-length", '18']
+        ]);
+        
+        $httpSign = $this->createHTTPSignature($request, ['getHeaders', 'getRequestTarget']);
+        $httpSign->expects($this->atLeastOnce())->method('getHeaders')
+            ->willReturn(["(request-target)", "date", "digest", "content-length"]);
+        $httpSign->expects($this->atLeastOnce())->method('getRequestTarget')->willReturn('post /foo');
+        
+        $msg = join("\n", [
+            "(request-target): post /foo",
+            "date: Tue, 07 Jun 2014 20:50:00 GMT",
             "digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=",
             "content-length: 18"
         ]);
