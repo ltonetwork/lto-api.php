@@ -77,7 +77,7 @@ class HTTPSignature
     public function getRequestTarget()
     {
         $method = strtolower($this->request->getMethod());
-        $uri = (string)$this->request->getUri()->withScheme('')->withHost('')->withUserInfo('');
+        $uri = (string)$this->request->getUri()->withScheme('')->withHost('')->withPort('')->withUserInfo('');
         
         return $method . ' ' . $uri;
     }
@@ -182,6 +182,11 @@ class HTTPSignature
     protected function assertRequiredHeaders()
     {
         $headers = explode(' ', $this->getParam('headers'));
+
+        if (in_array('x-date', $headers)) {
+            $headers[] = 'date';
+        }
+        
         $missing = array_diff($this->headers, $headers);
         
         if (!empty($missing)) {
@@ -251,11 +256,9 @@ class HTTPSignature
         $message = [];
         
         foreach ($this->getHeaders() as $header) {
-            $headerKey = strtolower($header) === 'date' && $this->request->hasHeader('x-date') ? 'x-date' : $header;
-            
             $message[] = $header === '(request-target)'
                 ? sprintf("%s: %s", '(request-target)', $this->getRequestTarget())
-                : sprintf("%s: %s", $header, $this->request->getHeaderLine($headerKey));
+                : sprintf("%s: %s", $header, $this->request->getHeaderLine($header));
         }
         
         return join("\n", $message);
