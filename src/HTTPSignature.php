@@ -121,8 +121,8 @@ class HTTPSignature
             }
         }
         
-        if ($this->params['algorithm'] !== 'ed25519-sha256') {
-            throw new HTTPSignatureException("only the 'ed25519-sha256' signing algorithm is supported");
+        if (!in_array($this->params['algorithm'], ['ed25519', 'ed25519-sha256'])) {
+            throw new HTTPSignatureException("only the 'ed25519' and 'ed25519-sha256' algorithms are supported");
         }
     }
 
@@ -291,9 +291,11 @@ class HTTPSignature
             throw new HTTPSignatureException("account not set");
         }
         
-        $hash = hash('sha256', $this->getMessage(), true);
+        $message = $this->getParam('algorithm') === 'ed25519-sha256'
+            ? hash('sha256', $this->getMessage(), true)
+            : $this->getMessage();
         
-        if (!$account->verify($signature, $hash, 'base64')) {
+        if (!$account->verify($signature, $message, 'base64')) {
             throw new HTTPSignatureException("invalid signature");
         }
         
@@ -305,11 +307,11 @@ class HTTPSignature
      * Sign a request.
      * 
      * @param Account $account
-     * @param array   $headers
+     * @param string  $algorithm
      * @return RequestInterface
      * @throws HTTPSignatureException
      */
-    public function signWith(Account $account)
+    public function signWith(Account $account, $algorithm = 'ed25519-sha256')
     {
         $this->params = [
             'keyId' => $account->getPublicSignKey('base64'),
@@ -322,8 +324,8 @@ class HTTPSignature
             $this->request = $this->request->withHeader('date', $date);
         }
         
-        $hash = hash('sha256', $this->getMessage(), true);
-        $signature = $account->sign($hash, 'base64');
+        $message = $algorithm == 'ed25519-sha256' ? hash('sha256', $this->getMessage(), true) : $this->getMessage();
+        $signature = $account->sign($message, 'base64');
         
         $header = sprintf('Signature keyId="%s",algorithm="%s",headers="%s",signature="%s"',
             $this->params['keyId'], $this->params['algorithm'], $this->params['headers'], $signature);

@@ -242,7 +242,20 @@ class HTTPSignatureTest extends TestCase
         $this->callPrivateMethod($httpSign, 'assertSignatureAge');
     }
     
-    public function testVerify()
+    public function algorithmProvider()
+    {
+        return [
+            [ 'ed25519' ],
+            [ 'ed25519-sha256' ]
+        ];
+    }
+    
+    /**
+     * @dataProvider algorithmProvider
+     * 
+     * @param string $algorithm
+     */
+    public function testVerify($algorithm)
     {
         $msg = join("\n", [
             "(request-target): post /foo",
@@ -255,13 +268,15 @@ class HTTPSignatureTest extends TestCase
         $signature = "PIw+8VW129YY/6tRfThI3ZA0VygH4cYWxIayUZbdA3I9CKUdmqttvVZvOXN5BX2Z9jfO3f1vD1/R2jxwd3BHBw==";
         
         $account = $this->createMock(Account::class);
-        $account->expects($this->once())->method('verify')->with($signature, pack('H*', $hash), 'base64')
+        $account->expects($this->once())->method('verify')
+            ->with($signature, $algorithm === 'ed25519-sha256' ? pack('H*', $hash) : $msg, 'base64')
             ->willReturn(true);
         
         $httpSign = $this->createHTTPSignature(null, ['getAccount', 'getParam', 'getMessage', 'assertSignatureAge']);
         
         $httpSign->expects($this->once())->method('getAccount')->willReturn($account);
         $httpSign->expects($this->atLeastOnce())->method('getParam')->willReturnMap([
+            ["algorithm", $algorithm],
             ["signature", $signature],
             ["headers", "(request-target) date digest content-length"]
         ]);
@@ -272,10 +287,14 @@ class HTTPSignatureTest extends TestCase
     }
     
     /**
+     * @dataProvider algorithmProvider
+     * 
+     * @param string $algorithm
+     *
      * @expectedException LTO\HTTPSignatureException
      * @expectedExceptionMessage invalid signature
      */
-    public function testVerifyFail()
+    public function testVerifyFail($algorithm)
     {
         $msg = join("\n", [
             "(request-target): post /foo",
@@ -287,13 +306,15 @@ class HTTPSignatureTest extends TestCase
         $signature = "PIw+8VW129YY/6tRfThI3ZA0VygH4cYWxIayUZbdA3I9CKUdmqttvVZvOXN5BX2Z9jfO3f1vD1/R2jxwd3BHBw==";
         
         $account = $this->createMock(Account::class);
-        $account->expects($this->once())->method('verify')->with($signature, pack('H*', $hash), 'base64')
+        $account->expects($this->once())->method('verify')
+            ->with($signature, $algorithm === 'ed25519-sha256' ? pack('H*', $hash) : $msg, 'base64')
             ->willReturn(false);
         
         $httpSign = $this->createHTTPSignature(null, ['getAccount', 'getParam', 'getMessage', 'assertSignatureAge']);
         
         $httpSign->expects($this->once())->method('getAccount')->willReturn($account);
         $httpSign->expects($this->atLeastOnce())->method('getParam')->willReturnMap([
+            ["algorithm", $algorithm],
             ["signature", $signature],
             ["headers", "(request-target) date digest content-length"]
         ]);
@@ -302,7 +323,13 @@ class HTTPSignatureTest extends TestCase
         $httpSign->verify();
     }
     
-    public function testSignWith()
+    
+    /**
+     * @dataProvider algorithmProvider
+     * 
+     * @param string $algorithm
+     */
+    public function testSignWith($algorithm)
     {
         $msg = join("\n", [
             "(request-target): post /foo",
@@ -316,7 +343,8 @@ class HTTPSignatureTest extends TestCase
         $account = $this->createMock(Account::class);
         $account->expects($this->once())->method('getPublicSignKey')->with('base64')
             ->willReturn("2yYhlEGdosg7QZC//hibHiZ1MHk2m7jp/EbUeFdzDis=");
-        $account->expects($this->once())->method('sign')->with(pack('H*', $hash), 'base64')
+        $account->expects($this->once())->method('sign')
+            ->with($algorithm === 'ed25519-sha256' ? pack('H*', $hash) : $msg, 'base64')
             ->willReturn($signature);
         
         $request = $this->createMock(RequestInterface::class);
@@ -333,7 +361,7 @@ class HTTPSignatureTest extends TestCase
             ->willReturn(["(request-target)", "date", "digest", "content-length"]);
         $httpSign->expects($this->once())->method('getMessage')->willReturn($msg);
         
-        $ret = $httpSign->signWith($account);
+        $ret = $httpSign->signWith($account, $algorithm);
         $this->assertSame($request, $ret);
         
         $this->assertSame($account, $httpSign->getAccount());
