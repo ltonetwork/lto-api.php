@@ -124,9 +124,15 @@ class Account
         
         $rawSignature = static::decode($signature, $encoding);
         
-        return strlen($rawSignature) === \sodium\CRYPTO_SIGN_BYTES &&
-            strlen($this->sign->publickey) === \sodium\CRYPTO_SIGN_PUBLICKEYBYTES &&
-            \sodium\crypto_sign_verify_detached($rawSignature, $message, $this->sign->publickey);
+        if (strlen($rawSignature) !== \sodium\CRYPTO_SIGN_BYTES) {
+            throw new \RuntimeException("Invalid signature length");
+        }
+        
+        if (strlen($this->sign->publickey) !== \sodium\CRYPTO_SIGN_PUBLICKEYBYTES) {
+            throw new \RuntimeException("Invalid public key length");
+        }
+        
+        return \sodium\crypto_sign_verify_detached($rawSignature, $message, $this->sign->publickey);
     }
     
     

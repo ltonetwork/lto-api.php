@@ -92,6 +92,95 @@ class AccountTest extends TestCase
         $this->assertAttributeEquals('Szr7uLhwirqEuVJ9SBPuAgvFAbuiMG23FbCsVNbptLbMH7uzrR5R23Yze83YGe98HawMzjvEMWgsJhdRQDXw8Br', 'signature', $event);
         $this->assertAttributeEquals('47FmxvJ4v1Bnk4SGSwrHcncX5t5u3eAjmc6QJgbR5nn8', 'hash', $event);
     }
+    
+    public function testSignAndVerify()
+    {
+        $signature = $this->account->sign("hello");
+        
+        $this->assertSame(
+            '2DDGtVHrX66Ae8C4shFho4AqgojCBTcE4phbCRTm3qXCKPZZ7reJBXiiwxweQAkJ3Tsz6Xd3r5qgnbA67gdL5fWE',
+            $signature
+        );
+        
+        $this->account->verify($signature, "hello");
+    }
+    
+    public function testSignAndVerifyOtherAccount()
+    {
+        $base58 = new \StephenHill\Base58();
+        $account = $this->createPartialMock(Account::class, ['getNonce']);
+        $account->method('getNonce')->willReturn(str_repeat("\0", 24));
+        
+        $account->sign = (object) [
+            'secretkey' => $base58->decode('3Exo2vCYQXd6Uqb4basuhSbCQbfUXAfp71Tbr1E2Yi7tkJeMqdEabjavuHFZj9oJ3TJyMGJssw4w1pdg8HVT1Xjx'),
+            'publickey' => $base58->decode('42uogHha8jzG8idNGZvNpZDEzcRZustuTxk6SKKrgEpr')
+        ];
+        
+        $signature = $account->sign("hello");
+        
+        $this->assertSame(
+            '2bu6zVLVJCtjuhiAmHiKhBHcvE9rQPCwDgMMwbQdEKfAZUYTp3DemCNteFAAFjZZFwnM2yKjCNx2uudMkQ8Jamp',
+            $signature
+        );
+        
+        $account->verify($signature, "hello");
+    }
+    
+    public function testSignAndVerifyHash()
+    {
+        $message = 'hello';
+        $hash = hash('sha256', $message, true);
+        $signature = $this->account->sign($hash);        
+        
+        $this->assertSame(
+            'iPQjYm8TXY3GuQbEnrEQd9aMq5thmg8UERQYgjm1ehAm9g7X76pfXXy3wohgzyJRqTJidesiBYx5v8q8puPjb81',
+            $signature
+        );
+        
+        $this->account->verify($signature, $hash);
+    }
+    
+    public function testSignAndVerifyHashBase64()
+    {
+        $message = 'hello';
+        $hash = hash('sha256', $message, true);
+        $signature = $this->account->sign($hash, 'base64');        
+        
+        $this->assertSame(
+            'I7Cl2QXp16ltBOwEwBYe5D/DWRH8bTC7yyeGFIVJK3LlP2lRz7GTK8Ap+NJq4gG1koMybEvKJTAEnyGq6tkoDg==',
+            $signature
+        );
+        
+        $this->account->verify($signature, $hash, 'base64');
+    }
+    
+    public function testVerifyLTORequest()
+    {
+        $base58 = new \StephenHill\Base58();
+        $account = $this->createPartialMock(Account::class, ['getNonce']);
+        $account->method('getNonce')->willReturn(str_repeat("\0", 24));
+        
+        $account->sign = (object) [
+            'secretkey' => $base58->decode('3Exo2vCYQXd6Uqb4basuhSbCQbfUXAfp71Tbr1E2Yi7tkJeMqdEabjavuHFZj9oJ3TJyMGJssw4w1pdg8HVT1Xjx'),
+            'publickey' => $base58->decode('42uogHha8jzG8idNGZvNpZDEzcRZustuTxk6SKKrgEpr')
+        ];
+        
+        $msg = join("\n", [
+            "(request-target): post /api/events/event-chains",
+            "x-date: 1522854960166",
+            "digest: 47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
+            "content-length: 8192"
+        ]);
+        
+        $signatureMsg = $account->sign($msg, 'base64');
+        $this->assertEquals($signatureMsg, 'HJqtpjR+NmQzlIbtQNpjaBVP/vHxhGr0ZELJc90cYU2bU4dXM/UEqHxd2+GX1OWZdH7t4xmn/xKuGAg4QVmGCQ==');
+        
+        $this->assertTrue($account->verify($signatureMsg, $msg, 'base64'));
+        
+        $hash = hash('sha256', $msg, true);
+        $signatureHash = $account->sign($hash, 'base64');
+        $this->assertTrue($account->verify($signatureHash, $hash, 'base64'));
+    }
 
     public function testVerify()
     {
