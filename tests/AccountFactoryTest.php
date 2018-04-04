@@ -193,7 +193,6 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreateFull($data, $hasSign, $hasEncrypt)
     {
-        $this->markAsRisky();
         $base58 = new \StephenHill\Base58();
         
         $factory = new AccountFactory('W', 0);
