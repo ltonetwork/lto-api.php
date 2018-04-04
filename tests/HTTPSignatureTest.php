@@ -187,6 +187,32 @@ class HTTPSignatureTest extends TestCase
         $this->assertEquals($msg, $httpSign->getMessage());
     }
     
+    public function testGetMessageHash()
+    {
+        $request = $this->createMock(RequestInterface::class);
+        $request->expects($this->atLeast(3))->method('getHeaderLine')->willReturnMap([
+            ["x-date", "1522854960166"],
+            ["digest", "47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="],
+            ["content-length", '8192']
+        ]);
+        
+        $httpSign = $this->createHTTPSignature($request, ['getHeaders', 'getRequestTarget']);
+        $httpSign->expects($this->atLeastOnce())->method('getHeaders')
+            ->willReturn(["(request-target)", "x-date", "digest", "content-length"]);
+        $httpSign->expects($this->atLeastOnce())->method('getRequestTarget')->willReturn('post /api/events/event-chains');
+        
+        $msg = join("\n", [
+            "(request-target): post /api/events/event-chains",
+            "x-date: 1522854960166",
+            "digest: 47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
+            "content-length: 8192"
+        ]);
+        
+        $this->assertEquals($msg, $httpSign->getMessage());
+        $hash = hash('sha256', $msg);
+        $this->assertEquals($hash, 'dfc11ef6724a0547d390699cd73061f3cb02a72a683acab9a0d5ef3f16d1b5f0');
+    }
+    
     public function testGetMessageXDate()
     {
         $request = $this->createMock(RequestInterface::class);
