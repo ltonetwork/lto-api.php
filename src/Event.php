@@ -137,6 +137,6 @@ class Event
      */
     public function signWith(Account $account)
     {
-        return $account->sign($this);
+        return $account->sign($this->getMessage());
     }
 }
