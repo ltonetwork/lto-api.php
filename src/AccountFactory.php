@@ -255,12 +255,15 @@ class AccountFactory
      */
     public function createPublic($sign = null, $encrypt = null, $encoding = 'base58')
     {
-        $data = [
-            'sign' => ['publickey' => $sign],
-            'encrypt' => ['publickey' => $encrypt]
-        ];
+        if (isset($sign)) {
+            $data['sign'] = ['publickey' => $sign];
+        }
         
-        return $this->create($data);
+        if (isset($encrypt)) {
+            $data['encrypt'] = ['publickey' => $encrypt];
+        }
+        
+        return $this->create($data, $encoding);
     }
     
     
