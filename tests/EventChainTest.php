@@ -61,4 +61,29 @@ class EventChainTest extends TestCase
         $this->assertAttributeEquals('L1hGimV7Pp2CFNUnTCitqWDbk9Zng3r3uc66dAG6hLwEx', 'id', $chain);
         $this->assertEquals('9HM1ykH7AxLgdCqBBeUhvoTH4jkq3zsZe4JGTrjXVENg', $chain->getLatestHash());
     }
+    
+    /**
+     * @expectedException \BadMethodCallException
+     */
+    public function testInitForExisting()
+    {
+        $account = $this->createMock(Account::class);
+        
+        $chain = $this->createPartialMock(EventChain::class, ['getNonce']);
+        $chain->id = '123';
+        
+        $chain->initFor($account);
+    }
+    
+    /**
+     * @expectedException \InvalidArgumentException
+     */
+    public function testInitForInvalidAccount()
+    {
+        $account = $this->createMock(Account::class);
+        
+        $chain = $this->createPartialMock(EventChain::class, ['getNonce']);
+        
+        $chain->initFor($account);
+    }
 }

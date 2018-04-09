@@ -44,6 +44,26 @@ class EventTest extends TestCase
     }
     
     /**
+     * @expectedException \BadMethodCallException
+     * @expectedExceptionMessage Body unknown
+     */
+    public function testGetMessageNoBody()
+    {
+        $event = new Event();
+        $event->getMessage();
+    }
+    
+    /**
+     * @expectedException \BadMethodCallException
+     * @expectedExceptionMessage First set signkey before creating message
+     */
+    public function testGetMessageNoSignkey()
+    {
+        $event = new Event(['foo' => 'bar', 'color' => 'red']);
+        $event->getMessage();
+    }
+    
+    /**
      * @depends testGetMessage
      */
     public function testGetHash(Event $event)
@@ -72,12 +92,34 @@ class EventTest extends TestCase
         $this->assertFalse($event->verifySignature());
     }
     
+    /**
+     * @expectedException BadMethodCallException
+     */
+    public function testVerifySignatureNoSignature()
+    {
+        $event = new Event();
+        $event->signkey = 'FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y';
+        
+        $event->verifySignature();
+    }
+    
+    /**
+     * @expectedException BadMethodCallException
+     */
+    public function testVerifySignatureNoSignkey()
+    {
+        $event = new Event();
+        $event->signature = "258KnaZxcx4cA9DUWSPw8QwBokRGzFDQmB4BH9MRJhoPJghsXoAZ7KnQ2DWR7ihtjXzUjbsXtSeup4UDcQ2L6RDL";
+        
+        $event->verifySignature();
+    }
+    
     public function testSignWith()
     {
         $event = new Event([], '');
         
         $account = $this->createMock(Account::class);
-        $account->expects($this->once())->method('sign')->with($this->identicalTo($event))->willReturn($event);
+        $account->expects($this->once())->method('signEvent')->with($this->identicalTo($event))->willReturn($event);
         
         $ret = $event->signWith($account);
         

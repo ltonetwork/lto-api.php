@@ -255,6 +255,8 @@ class AccountFactory
      */
     public function createPublic($sign = null, $encrypt = null, $encoding = 'base58')
     {
+        $data = [];
+        
         if (isset($sign)) {
             $data['sign'] = ['publickey' => $sign];
         }
