@@ -49,10 +49,10 @@ class AccountFactoryTest extends TestCase
     public function createAddressProvider()
     {
         return [
-            [ "2yGxdW58dRvihU5M6JpDdv6qLFpv7CK9XKGb", 'W' ],
-            [ "2yGxdW58dRvihU5M6JpDdv6qLFpv7CK9XKGb", 0x57 ],
-            [ "2yFkch7ojZoBJqd3g3jxdxeTWtwQLNDfzWDH", 'T' ],
-            [ "2yFkch7ojZoBJqd3g3jxdxeTWtwQLNDfzWDH", 0x54 ],
+            [ "3PPbMwqLtwBGcJrTA5whqJfY95GqnNnFMDX", 'W' ],
+            [ "3PPbMwqLtwBGcJrTA5whqJfY95GqnNnFMDX", 0x57 ],
+            [ "3NBaYzWT2odsyrZ2u1ghsrHinBm4xFRAgLX", 'T' ],
+            [ "3NBaYzWT2odsyrZ2u1ghsrHinBm4xFRAgLX", 0x54 ]
         ];
     }
     
@@ -166,10 +166,10 @@ class AccountFactoryTest extends TestCase
         $this->assertBase58Equals("BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6", $account->encrypt->publickey);
         $this->assertBase58Equals("BnjFJJarge15FiqcxrB7Mzt68nseBXXR4LQ54qFBsWJN", $account->encrypt->secretkey);
         
-        $this->assertBase58Equals("2yGuV1ZWmK3HzV38mzEW9fYKmFYozkShTJxW", $account->address);
+        $this->assertBase58Equals("3PLSsSDUn3kZdGe8qWEDak9y8oAjLVecXV1", $account->address);
     }
 
-    
+
     public function createSecretProvider()
     {
         $sign = [
@@ -184,7 +184,7 @@ class AccountFactoryTest extends TestCase
         ];
         $encryptSecret = ['secretkey' => $encrypt['secretkey']];
         
-        $address = '2yGuV1ZWmK3HzV38mzEW9fYKmFYozkShTJxW';
+        $address = '3PLSsSDUn3kZdGe8qWEDak9y8oAjLVecXV1';
         
         return [
             [ compact('sign', 'encrypt', 'address'), true, true ],
@@ -234,7 +234,7 @@ class AccountFactoryTest extends TestCase
             $this->assertNull($account->encrypt);
         }
         
-        $this->assertBase58Equals("2yGuV1ZWmK3HzV38mzEW9fYKmFYozkShTJxW", $account->address);
+        $this->assertBase58Equals("3PLSsSDUn3kZdGe8qWEDak9y8oAjLVecXV1", $account->address);
     }
     
     /**
@@ -297,7 +297,7 @@ class AccountFactoryTest extends TestCase
         $account = $factory->create([
             'encrypt' => ['publickey' => 'EZa2ndj6h95m3xm7DxPQhrtANvhymNC7nWQ3o1vmDJ4x'],
             'sign' => ['publickey' => 'gVVExGUK4J5BsxwUfYsFkkjpn6A7BcvYdmARL28GBRc'],
-            'address' => '2yGuV1ZWmK3HzV38mzEW9fYKmFYozkShTJxW'
+            'address' => '3PLSsSDUn3kZdGe8qWEDak9y8oAjLVecXV1'
         ]);
         
         $this->assertInstanceOf(Account::class, $account);
@@ -320,7 +320,7 @@ class AccountFactoryTest extends TestCase
      * 
      * @param string $signkey
      * @param string $encryptkey
-     * @param string $encode
+     * @param string $encoding
      */
     public function testCreatePublic($signkey, $encryptkey, $encoding = 'base58')
     {
@@ -341,6 +341,6 @@ class AccountFactoryTest extends TestCase
         $this->assertObjectHasAttribute('publickey', $account->encrypt);
         $this->assertBase58Equals("BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6", $account->encrypt->publickey);
         
-        $this->assertBase58Equals("2yGuV1ZWmK3HzV38mzEW9fYKmFYozkShTJxW", $account->address);
+        $this->assertBase58Equals("3PLSsSDUn3kZdGe8qWEDak9y8oAjLVecXV1", $account->address);
     }
 }

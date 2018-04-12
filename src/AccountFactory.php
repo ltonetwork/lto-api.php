@@ -10,7 +10,7 @@ use LTO\Keccak;
  */
 class AccountFactory
 {
-    const ADDRESS_VERSION = 0x40;
+    const ADDRESS_VERSION = 0x1;
     
     /**
      * Address scheme
