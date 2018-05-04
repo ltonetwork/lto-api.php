@@ -13,7 +13,7 @@
         "issues": "https://github.com/legalthings/lto-api.php/issues",
         "source": "https://github.com/legalthings/lto-api.php"
     },
-    "bin": ["bin/sign"],
+    "bin": ["bin/lto-sign"],
     "require": {
         "php": "~5.6",
         "ext-json": "*",
