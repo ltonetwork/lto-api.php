@@ -1,0 +1,32 @@
+#!/usr/bin/env php
+<?php
+
+require 'vendor/autoload.php';
+
+use LTO\Account;
+use LTO\AccountFactory;
+
+if ($argc < 1) {
+    echo "USAGE: sign PRIVATEKEY [base58|base64|raw]\n";
+    echo "write the message and close with ctrl-d\n";
+    exit(1);
+}
+
+$factory = new AccountFactory('W', 0);
+$account = $factory->create($argv[1], isset($argv[2]) ? $argv[2] : 'base58');
+
+$base58 = new \StephenHill\Base58();
+$data = '';
+
+do {
+    $chunk = fread(STDIN, 8192);
+    $data .= $chunk;
+} while ($chunk && substr($chunk, -1) === "\n" || strlen($chunk) === 8192);
+
+$message = trim($data);
+
+echo "\n\n", json_encode([
+  "signature" => $account->sign($message, 'base58'),
+  "hash" => $base58->encode(hash('sha256', $message, true))
+], JSON_PRETTY_PRINT), "\n";
+
