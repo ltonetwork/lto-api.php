@@ -2,7 +2,8 @@
 
 namespace LTO;
 
-use \LTO\Account;
+use LTO\Account;
+use LTO\EventChain;
 
 /**
  * Live Contracts Event
@@ -138,5 +139,16 @@ class Event
     public function signWith(Account $account)
     {
         return $account->signEvent($this);
+    }
+    
+    /**
+     * Add this event to the chain
+     * 
+     * @param EventChain $chain
+     * @return $this
+     */
+    public function addTo(EventChain $chain)
+    {
+        return $chain->add($this);
     }
 }

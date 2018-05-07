@@ -5,6 +5,7 @@ namespace LTO;
 use PHPUnit_Framework_TestCase as TestCase;
 use LTO\Account;
 use LTO\Event;
+use LTO\EventChain;
 
 /**
  * @covers LTO\Event
@@ -122,6 +123,18 @@ class EventTest extends TestCase
         $account->expects($this->once())->method('signEvent')->with($this->identicalTo($event))->willReturn($event);
         
         $ret = $event->signWith($account);
+        
+        $this->assertSame($event, $ret);
+    }
+    
+    public function testAddTo()
+    {
+        $event = new Event([], '');
+        
+        $chain = $this->createMock(EventChain::class);
+        $chain->expects($this->once())->method('add')->with($this->identicalTo($event))->willReturn($event);
+        
+        $ret = $event->addTo($chain);
         
         $this->assertSame($event, $ret);
     }
