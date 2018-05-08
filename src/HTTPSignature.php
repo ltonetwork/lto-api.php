@@ -77,7 +77,7 @@ class HTTPSignature
     public function getRequestTarget()
     {
         $method = strtolower($this->request->getMethod());
-        $uri = (string)$this->request->getUri()->withScheme('')->withHost('')->withPort('')->withUserInfo('');
+        $uri = (string)$this->request->getUri()->withScheme('')->withHost('')->withPort(null)->withUserInfo('');
         
         return $method . ' ' . $uri;
     }
