@@ -18,7 +18,7 @@ class EventTest extends TestCase
         $event = new Event($data, "72gRWx4C1Egqz9xvUBCYVdgh7uLc5kmGbjXFhiknNCTW");
         
         $this->assertAttributeEquals('HeFMDcuveZQYtBePVUugLyWtsiwsW4xp7xKdv', 'body', $event);
-        $this->assertAttributeInstanceOf(\DateTime::class, 'timestamp', $event);
+        $this->assertAttributeInternalType('int', 'timestamp', $event);
         $this->assertAttributeEquals("72gRWx4C1Egqz9xvUBCYVdgh7uLc5kmGbjXFhiknNCTW", 'previous', $event);
         
         return $event;

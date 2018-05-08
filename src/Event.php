@@ -65,7 +65,7 @@ class Event
             $base58 = new \StephenHill\Base58();
 
             $this->body = $base58->encode(json_encode($body));
-            $this->timestamp = new \DateTime();
+            $this->timestamp = time();
         }
         
         $this->previous = $previous;
