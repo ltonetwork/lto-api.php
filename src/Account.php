@@ -192,13 +192,14 @@ class Account
     /**
      * Create a new event chain for this account
      * 
+     * @param string|null $nonceSeed  Seed the nonce, rather than using a random nonce.
      * @return EventChain
      * @throws \BadMethodCallException
      */
-    public function createEventChain()
+    public function createEventChain($nonceSeed = null)
     {
         $chain = new EventChain();
-        $chain->initFor($this);
+        $chain->initFor($this, $nonceSeed);
         
         return $chain;
     }

@@ -46,22 +46,22 @@ class EventChain
 
     
     /**
-     * Generate an 8 byte random nonce for the id
-     * @codeCoverageIgnore
+     * Generate an 20 byte random nonce for the id
      * 
      * @return string
      */
-    protected function getNonce()
+    protected function getRandomNonce()
     {
-        return random_bytes(8);
+        return random_bytes(20);
     }
     
     /**
      * Initialize a new event chain
      * 
      * @param Account $account
+     * @param string  $nonceSeed
      */
-    public function initFor(Account $account)
+    public function initFor(Account $account, $nonceSeed = null)
     {
         if (isset($this->id)) {
             throw new \BadMethodCallException("Chain id already set");
@@ -72,14 +72,14 @@ class EventChain
         }
         
         $signkey = $account->sign->publickey;
-        $signkeyHashed = substr(Keccak::hash(\sodium\crypto_generichash($signkey, null, 32), 256), 0, 40);
+        $signkeyHashed = Keccak::hash(\sodium\crypto_generichash($signkey, null, 32), 256, true);
         
-        $nonce = $this->getNonce();
+        $nonce = isset($nonceSeed) ? hash('sha256', $nonceSeed, true) : $this->getRandomNonce();
         
-        $packed = pack('Ca8H40', self::ADDRESS_VERSION, $nonce, $signkeyHashed);
-        $chksum = substr(Keccak::hash(\sodium\crypto_generichash($packed), 256), 0, 8);
+        $packed = pack('Ca20a20', self::ADDRESS_VERSION, $nonce, $signkeyHashed);
+        $chksum = Keccak::hash(\sodium\crypto_generichash($packed), 256, true);
         
-        $idBinary = pack('Ca8H40H8', self::ADDRESS_VERSION, $nonce, $signkeyHashed, $chksum);
+        $idBinary = pack('Ca20a20a4', self::ADDRESS_VERSION, $nonce, $signkeyHashed, $chksum);
         
         $base58 = new \StephenHill\Base58();
         
