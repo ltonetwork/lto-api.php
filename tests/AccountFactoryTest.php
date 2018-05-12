@@ -2,12 +2,13 @@
 
 namespace LTO;
 
-use PHPUnit_Framework_TestCase as TestCase;
+use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Constraint\IsEqual as IsEqualConstraint;
 use LTO\Account;
 use LTO\AccountFactory;
 
 /**
- * @covers LTO\AccountFactory
+ * @covers \LTO\AccountFactory
  */
 class AccountFactoryTest extends TestCase
 {
@@ -26,7 +27,7 @@ class AccountFactoryTest extends TestCase
         $base58 = new \StephenHill\Base58();
         $value = $base58->encode($actual);
         
-        $constraint = new \PHPUnit_Framework_Constraint_IsEqual($encoded);
+        $constraint = new IsEqualConstraint($encoded);
 
         static::assertThat($value, $constraint, $message);
     }

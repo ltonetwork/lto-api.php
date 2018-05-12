@@ -72,12 +72,12 @@ class EventChain
         }
         
         $signkey = $account->sign->publickey;
-        $signkeyHashed = Keccak::hash(\sodium\crypto_generichash($signkey, null, 32), 256, true);
+        $signkeyHashed = Keccak::hash(sodium_crypto_generichash($signkey, null, 32), 256, true);
         
         $nonce = isset($nonceSeed) ? hash('sha256', $nonceSeed, true) : $this->getRandomNonce();
         
         $packed = pack('Ca20a20', self::ADDRESS_VERSION, $nonce, $signkeyHashed);
-        $chksum = Keccak::hash(\sodium\crypto_generichash($packed), 256, true);
+        $chksum = Keccak::hash(sodium_crypto_generichash($packed), 256, true);
         
         $idBinary = pack('Ca20a20a4', self::ADDRESS_VERSION, $nonce, $signkeyHashed, $chksum);
         

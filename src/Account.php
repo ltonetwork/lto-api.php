@@ -37,7 +37,7 @@ class Account
      */
     protected function getNonce()
     {
-        return random_bytes(\sodium\CRYPTO_BOX_NONCEBYTES);
+        return random_bytes(SODIUM_CRYPTO_BOX_NONCEBYTES);
     }
     
     
@@ -88,7 +88,7 @@ class Account
             throw new \RuntimeException("Unable to sign message; no secret sign key");
         }
         
-        $signature = \sodium\crypto_sign_detached($message, $this->sign->secretkey);
+        $signature = sodium_crypto_sign_detached($message, $this->sign->secretkey);
         
         return static::encode($signature, $encoding);
     }
@@ -124,9 +124,9 @@ class Account
         
         $rawSignature = static::decode($signature, $encoding);
         
-        return strlen($rawSignature) === \sodium\CRYPTO_SIGN_BYTES &&
-            strlen($this->sign->publickey) === \sodium\CRYPTO_SIGN_PUBLICKEYBYTES &&
-            \sodium\crypto_sign_verify_detached($rawSignature, $message, $this->sign->publickey);
+        return strlen($rawSignature) === SODIUM_CRYPTO_SIGN_BYTES &&
+            strlen($this->sign->publickey) === SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES &&
+            sodium_crypto_sign_verify_detached($rawSignature, $message, $this->sign->publickey);
     }
     
     
@@ -150,10 +150,10 @@ class Account
         
         $nonce = $this->getNonce();
 
-        $encryptionKey = \sodium\crypto_box_keypair_from_secretkey_and_publickey($this->encrypt->secretkey,
+        $encryptionKey = sodium_crypto_box_keypair_from_secretkey_and_publickey($this->encrypt->secretkey,
             $recipient->encrypt->publickey);
         
-        return \sodium\crypto_box($message, $nonce, $encryptionKey) . $nonce;
+        return sodium_crypto_box($message, $nonce, $encryptionKey) . $nonce;
     }
     
     /**
@@ -177,10 +177,10 @@ class Account
         $encryptedMessage = substr($cyphertext, 0, -24);
         $nonce = substr($cyphertext, -24);
 
-        $encryptionKey = \sodium\crypto_box_keypair_from_secretkey_and_publickey($sender->encrypt->secretkey,
+        $encryptionKey = sodium_crypto_box_keypair_from_secretkey_and_publickey($sender->encrypt->secretkey,
             $this->encrypt->publickey);
         
-        $message = \sodium\crypto_box_open($encryptedMessage, $nonce, $encryptionKey);
+        $message = sodium_crypto_box_open($encryptedMessage, $nonce, $encryptionKey);
         
         if ($message === false) {
             throw new DecryptException("Failed to decrypt message from " . $sender->getAddress());

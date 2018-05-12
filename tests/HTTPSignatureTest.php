@@ -2,7 +2,7 @@
 
 namespace LTO;
 
-use PHPUnit_Framework_TestCase as TestCase;
+use PHPUnit\Framework\TestCase;
 use LTO\HTTPSignature;
 use LTO\Account;
 use LTO\AccountFactory;
@@ -10,7 +10,7 @@ use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\UriInterface;
 
 /**
- * @covers LTO\HTTPSignature
+ * @covers \LTO\HTTPSignature
  */
 class HTTPSignatureTest extends TestCase
 {

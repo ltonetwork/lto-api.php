@@ -2,11 +2,11 @@
 
 namespace LTO;
 
-use PHPUnit_Framework_TestCase as TestCase;
+use PHPUnit\Framework\TestCase;
 use LTO\Account;
 
 /**
- * @covers LTO\Account
+ * @covers \LTO\Account
  */
 class AccountTest extends TestCase
 {
@@ -186,7 +186,7 @@ class AccountTest extends TestCase
      */
     protected function assertValidId($signkey, $chain)
     {
-        $signkeyHashed = substr(Keccak::hash(\sodium\crypto_generichash($signkey, null, 32), 256), 0, 40);
+        $signkeyHashed = substr(Keccak::hash(sodium_crypto_generichash($signkey, null, 32), 256), 0, 40);
         
         $base58 = new \StephenHill\Base58();
         $decodedId = $base58->decode($chain->id);

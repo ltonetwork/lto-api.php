@@ -2,13 +2,13 @@
 
 namespace LTO;
 
-use PHPUnit_Framework_TestCase as TestCase;
+use PHPUnit\Framework\TestCase;
 use LTO\Account;
 use LTO\Event;
 use LTO\EventChain;
 
 /**
- * @covers LTO\Event
+ * @covers \LTO\Event
  */
 class EventTest extends TestCase
 {

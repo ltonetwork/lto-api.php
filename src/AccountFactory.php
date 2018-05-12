@@ -56,7 +56,7 @@ class AccountFactory
     {
         $seedBase = pack('La*', $this->getNonce(), $seedText);
         
-        $secureSeed = Keccak::hash(\sodium\crypto_generichash($seedBase, null, 32), 256, true);
+        $secureSeed = Keccak::hash(sodium_crypto_generichash($seedBase, null, 32), 256, true);
         $seed = hash('sha256', $secureSeed, true);
         
         return $seed;
@@ -70,9 +70,9 @@ class AccountFactory
      */
     protected function createSignKeys($seed)
     {
-        $keypair = \sodium\crypto_sign_seed_keypair($seed);
-        $publickey = \sodium\crypto_sign_publickey($keypair);
-        $secretkey = \sodium\crypto_sign_secretkey($keypair);
+        $keypair = sodium_crypto_sign_seed_keypair($seed);
+        $publickey = sodium_crypto_sign_publickey($keypair);
+        $secretkey = sodium_crypto_sign_secretkey($keypair);
 
         return (object)compact('publickey', 'secretkey');
     }
@@ -85,9 +85,9 @@ class AccountFactory
      */
     protected function createEncryptKeys($seed)
     {
-        $keypair = \sodium\crypto_box_seed_keypair($seed);
-        $publickey = \sodium\crypto_box_publickey($keypair);
-        $secretkey = \sodium\crypto_box_secretkey($keypair);
+        $keypair = sodium_crypto_box_seed_keypair($seed);
+        $publickey = sodium_crypto_box_publickey($keypair);
+        $secretkey = sodium_crypto_box_secretkey($keypair);
         
         return (object)compact('publickey', 'secretkey');
     }
@@ -102,13 +102,13 @@ class AccountFactory
     public function createAddress($publickey, $type = 'encrypt')
     {
         if ($type === 'sign') {
-            $publickey = \sodium\crypto_sign_ed25519_pk_to_curve25519($publickey);
+            $publickey = sodium_crypto_sign_ed25519_pk_to_curve25519($publickey);
         }
         
-        $publickeyHash = substr(Keccak::hash(\sodium\crypto_generichash($publickey, null, 32), 256), 0, 40);
+        $publickeyHash = substr(Keccak::hash(sodium_crypto_generichash($publickey, null, 32), 256), 0, 40);
         
         $packed = pack('CaH40', self::ADDRESS_VERSION, $this->network, $publickeyHash);
-        $chksum = substr(Keccak::hash(\sodium\crypto_generichash($packed), 256), 0, 8);
+        $chksum = substr(Keccak::hash(sodium_crypto_generichash($packed), 256), 0, 8);
         
         return pack('CaH40H8', self::ADDRESS_VERSION, $this->network, $publickeyHash, $chksum);
     }
@@ -144,7 +144,7 @@ class AccountFactory
         $encrypt = (object)[];
         
         if (isset($sign->secretkey)) {
-            $secretkey = \sodium\crypto_sign_ed25519_sk_to_curve25519($sign->secretkey);
+            $secretkey = sodium_crypto_sign_ed25519_sk_to_curve25519($sign->secretkey);
 
             // Swap bits, on uneven???
             $bytes = unpack('C*', $secretkey);
@@ -155,7 +155,7 @@ class AccountFactory
         }
         
         if (isset($sign->publickey)) {
-            $encrypt->publickey = \sodium\crypto_sign_ed25519_pk_to_curve25519($sign->publickey);
+            $encrypt->publickey = sodium_crypto_sign_ed25519_pk_to_curve25519($sign->publickey);
         }
         
         return $encrypt;
@@ -178,8 +178,8 @@ class AccountFactory
         $secretkey = $keys['secretkey'];
         
         $publickey = $type === 'sign' ?
-            \sodium\crypto_sign_publickey_from_secretkey($secretkey) :
-            \sodium\crypto_box_publickey_from_secretkey($secretkey);
+            sodium_crypto_sign_publickey_from_secretkey($secretkey) :
+            sodium_crypto_box_publickey_from_secretkey($secretkey);
         
         if (isset($keys['publickey']) && $keys['publickey'] !== $publickey) {
             throw new InvalidAccountException("Public {$type} key doesn't match private {$type} key");
