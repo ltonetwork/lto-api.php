@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace LTO;
 
 use LTO\Account;
@@ -52,7 +54,7 @@ class HTTPSignature
      * @param RequestInterface $request
      * @parma string[]         $headers
      */
-    public function __construct(RequestInterface $request, $headers = ['date'])
+    public function __construct(RequestInterface $request, array $headers = ['date'])
     {
         $this->request = $request;
         $this->headers = $headers;
@@ -63,7 +65,7 @@ class HTTPSignature
      * 
      * @return RequestInterface
      */
-    public function getRequest()
+    public function getRequest(): RequestInterface
     {
         return $this->request;
     }
@@ -71,10 +73,9 @@ class HTTPSignature
     /**
      * Build a request line.
      * 
-     * @param RequestInterface $this->request
      * @return string
      */
-    public function getRequestTarget()
+    public function getRequestTarget(): string
     {
         $method = strtolower($this->request->getMethod());
         $uri = (string)$this->request->getUri()->withScheme('')->withHost('')->withPort(null)->withUserInfo('');
@@ -88,7 +89,7 @@ class HTTPSignature
      * @param int $clockSkew
      * @return $this
      */
-    public function setClockSkew($clockSkew = 300)
+    public function setClockSkew(int $clockSkew = 300): self
     {
         $this->clockSkew = $clockSkew;
         
@@ -100,7 +101,7 @@ class HTTPSignature
      * 
      * @return int
      */
-    public function getClockSkew()
+    public function getClockSkew(): int
     {
         return $this->clockSkew;
     }
@@ -109,7 +110,7 @@ class HTTPSignature
     /**
      * Assert all required parameters are available
      * 
-     * @throws InvalidHeaderError
+     * @throws HTTPSignatureException
      */
     protected function assertParams()
     {
@@ -132,7 +133,7 @@ class HTTPSignature
      * @return array
      * @throws HTTPSignatureException
      */
-    public function getParams()
+    public function getParams(): array
     {
         if (isset($this->params)) {
             return $this->params;
@@ -166,7 +167,7 @@ class HTTPSignature
      * @param string $param
      * @return string
      */
-    public function getParam($param)
+    public function getParam($param): ?string
     {
         $params = $this->getParams();
         
@@ -197,9 +198,9 @@ class HTTPSignature
     
     /**
      * Get the headers used 
-     * @return string
+     * @return array
      */
-    public function getHeaders()
+    public function getHeaders(): array
     {
         return isset($this->params) ? explode(' ', $this->getParam('headers')) : $this->headers;
     }
@@ -211,7 +212,7 @@ class HTTPSignature
      * @param AccountFactory $accountFactory
      * @return $this
      */
-    public function useAccountFactory(AccountFactory $accountFactory)
+    public function useAccountFactory(AccountFactory $accountFactory): self
     {
         $this->accountFactory = $accountFactory;
         
@@ -224,7 +225,7 @@ class HTTPSignature
      * 
      * @return Account
      */
-    public function getAccount()
+    public function getAccount(): Account
     {
         if (isset($this->account)) {
             return $this->account;
@@ -251,7 +252,7 @@ class HTTPSignature
      * 
      * @return string
      */
-    public function getMessage()
+    public function getMessage(): string
     {
         $message = [];
         
@@ -310,15 +311,15 @@ class HTTPSignature
      * Sign a request.
      * 
      * @param Account $account
-     * @param string  $algorithm
+     * @param string  $algorithm  'ed25519-sha256' or 'ed25519'
      * @return RequestInterface
      * @throws HTTPSignatureException
      */
-    public function signWith(Account $account, $algorithm = 'ed25519-sha256')
+    public function signWith(Account $account, string $algorithm = 'ed25519-sha256'): RequestInterface
     {
         $this->params = [
             'keyId' => $account->getPublicSignKey('base64'),
-            'algorithm' => 'ed25519-sha256',
+            'algorithm' => $algorithm,
             'headers' => join(' ', $this->getHeaders())
         ];
 
@@ -327,7 +328,9 @@ class HTTPSignature
             $this->request = $this->request->withHeader('date', $date);
         }
         
-        $message = $algorithm == 'ed25519-sha256' ? hash('sha256', $this->getMessage(), true) : $this->getMessage();
+        $message = $algorithm == 'ed25519-sha256'
+            ? hash('sha256', $this->getMessage(), true)
+            : $this->getMessage();
         $signature = $account->sign($message, 'base64');
         
         $header = sprintf('Signature keyId="%s",algorithm="%s",headers="%s",signature="%s"',

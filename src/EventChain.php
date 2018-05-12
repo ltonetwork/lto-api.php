@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace LTO;
 
 use LTO\Event;
 use LTO\Account; 
-use LTO\Keccak;
+use kornrunner\Keccak;
 
 /**
  * Live contracts event chain
@@ -38,7 +40,7 @@ class EventChain
      * @param string $id
      * @param string $latestHash
      */
-    public function __construct($id = null, $latestHash = null)
+    public function __construct(string $id = null, string $latestHash = null)
     {
         $this->id = $id;
         $this->latestHash = $latestHash ?: (isset($id) ? $this->getInitialHash() : null);
@@ -50,7 +52,7 @@ class EventChain
      * 
      * @return string
      */
-    protected function getRandomNonce()
+    protected function getRandomNonce(): string
     {
         return random_bytes(20);
     }
@@ -61,7 +63,7 @@ class EventChain
      * @param Account $account
      * @param string  $nonceSeed
      */
-    public function initFor(Account $account, $nonceSeed = null)
+    public function initFor(Account $account, string $nonceSeed = null)
     {
         if (isset($this->id)) {
             throw new \BadMethodCallException("Chain id already set");
@@ -72,7 +74,7 @@ class EventChain
         }
         
         $signkey = $account->sign->publickey;
-        $signkeyHashed = Keccak::hash(sodium_crypto_generichash($signkey, null, 32), 256, true);
+        $signkeyHashed = Keccak::hash(sodium_crypto_generichash($signkey, '', 32), 256, true);
         
         $nonce = isset($nonceSeed) ? hash('sha256', $nonceSeed, true) : $this->getRandomNonce();
         
@@ -90,8 +92,10 @@ class EventChain
     
     /**
      * Get the initial hash which is based on the event chain id
+     *
+     * @return string
      */
-    public function getInitialHash()
+    public function getInitialHash(): string
     {
         $base58 = new \StephenHill\Base58();
         
@@ -104,9 +108,9 @@ class EventChain
      * Get the latest hash.
      * Expecting a new event to use this as previous property.
      * 
-     * @return string
+     * @return string|null
      */
-    public function getLatestHash()
+    public function getLatestHash(): ?string
     {
         if (empty($this->events)) {
             return $this->latestHash;
@@ -122,7 +126,7 @@ class EventChain
      * @param Event $event
      * @return Event
      */
-    public function add(Event $event)
+    public function add(Event $event): Event
     {
         $event->previous = $this->getLatestHash();
         

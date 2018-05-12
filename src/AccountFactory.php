@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace LTO;
 
 use LTO\Account;
-use LTO\Keccak;
+use kornrunner\Keccak;
 
 /**
  * Create new account (aka wallet)
@@ -30,7 +32,7 @@ class AccountFactory
      * @param int|string $network 'W' or 'T' (1 byte)
      * @param int        $nonce   (4 bytes)
      */
-    public function __construct($network, $nonce = null)
+    public function __construct($network, int $nonce = null)
     {
         $this->network = is_int($network) ? chr($network) : substr($network, 0, 1);
         $this->nonce = isset($nonce) ? $nonce : random_int(0, 0xFFFF);
@@ -41,7 +43,7 @@ class AccountFactory
      * 
      * @return int
      */
-    protected function getNonce()
+    protected function getNonce(): int
     {
         return $this->nonce++;
     }
@@ -52,11 +54,11 @@ class AccountFactory
      * @param string $seedText  Brainwallet seed string
      * @return string  raw seed (not encoded)
      */
-    public function createAccountSeed($seedText)
+    public function createAccountSeed(string $seedText): string
     {
         $seedBase = pack('La*', $this->getNonce(), $seedText);
         
-        $secureSeed = Keccak::hash(sodium_crypto_generichash($seedBase, null, 32), 256, true);
+        $secureSeed = Keccak::hash(sodium_crypto_generichash($seedBase, '', 32), 256, true);
         $seed = hash('sha256', $secureSeed, true);
         
         return $seed;
@@ -66,9 +68,9 @@ class AccountFactory
      * Create ED25519 sign keypairs
      * 
      * @param string $seed
-     * @return object
+     * @return \stdClass
      */
-    protected function createSignKeys($seed)
+    protected function createSignKeys(string $seed): \stdClass
     {
         $keypair = sodium_crypto_sign_seed_keypair($seed);
         $publickey = sodium_crypto_sign_publickey($keypair);
@@ -81,9 +83,9 @@ class AccountFactory
      * Create X25519 encrypt keypairs
      * 
      * @param string $seed
-     * @return object
+     * @return \stdClass
      */
-    protected function createEncryptKeys($seed)
+    protected function createEncryptKeys(string $seed): \stdClass
     {
         $keypair = sodium_crypto_box_seed_keypair($seed);
         $publickey = sodium_crypto_box_publickey($keypair);
@@ -99,13 +101,13 @@ class AccountFactory
      * @param string $type       Type of key 'sign' or 'encrypt'
      * @return string  raw (not encoded)
      */
-    public function createAddress($publickey, $type = 'encrypt')
+    public function createAddress(string $publickey, string $type = 'encrypt'): string
     {
         if ($type === 'sign') {
             $publickey = sodium_crypto_sign_ed25519_pk_to_curve25519($publickey);
         }
         
-        $publickeyHash = substr(Keccak::hash(sodium_crypto_generichash($publickey, null, 32), 256), 0, 40);
+        $publickeyHash = substr(Keccak::hash(sodium_crypto_generichash($publickey, '', 32), 256), 0, 40);
         
         $packed = pack('CaH40', self::ADDRESS_VERSION, $this->network, $publickeyHash);
         $chksum = substr(Keccak::hash(sodium_crypto_generichash($packed), 256), 0, 8);
@@ -119,7 +121,7 @@ class AccountFactory
      * @param string $seedText  Brainwallet seed string
      * @return Account
      */
-    public function seed($seedText)
+    public function seed(string $seedText): Account
     {
         $seed = $this->createAccountSeed($seedText);
         
@@ -137,9 +139,9 @@ class AccountFactory
      * Convert sign keys to encrypt keys.
      * 
      * @param object|string $sign
-     * @return object
+     * @return \stdClass
      */
-    public function convertSignToEncrypt($sign)
+    public function convertSignToEncrypt($sign): \stdClass
     {
         $encrypt = (object)[];
         
@@ -166,10 +168,10 @@ class AccountFactory
      * 
      * @param array  $keys
      * @param string $type  'sign' or 'encrypt'
-     * @return object
+     * @return \stdClass
      * @throws InvalidAccountException  if keys don't match
      */
-    protected function calcKeys($keys, $type)
+    protected function calcKeys(array $keys, string $type): \stdClass
     {
         if (!isset($keys['secretkey'])) {
             return (object)['publickey' => $keys['publickey']];
@@ -197,7 +199,7 @@ class AccountFactory
      * @return string
      * @throws InvalidAccountException  if address doesn't match
      */
-    protected function calcAddress($address, $sign, $encrypt)
+    protected function calcAddress(?string $address, $sign, $encrypt): string
     {
         $addrSign = isset($sign->publickey) ? $this->createAddress($sign->publickey, 'sign') : null;
         $addrEncrypt = isset($encrypt->publickey) ? $this->createAddress($encrypt->publickey, 'encrypt') : null;
@@ -220,10 +222,11 @@ class AccountFactory
     /**
      * Create an account from base58 encoded keys.
      * 
-     * @param array|string $keys  All keys (array) or private sign key (string)
+     * @param array|string $keys      All keys (array) or private sign key (string)
+     * @param string       $encoding
      * @return Account
      */
-    public function create($keys, $encoding = 'base58')
+    public function create($keys, string $encoding = 'base58'): Account
     {
         $data = self::decode($keys, $encoding);
         
@@ -248,12 +251,12 @@ class AccountFactory
     /**
      * Create an account from public keys.
      * 
-     * @param string $sign
-     * @param string $encrypt
-     * @param string $encoding  Encoding of keys 'raw', 'base58' or 'base64'
+     * @param string|null $sign
+     * @param string|null $encrypt
+     * @param string      $encoding  Encoding of keys 'raw', 'base58' or 'base64'
      * @return Account
      */
-    public function createPublic($sign = null, $encrypt = null, $encoding = 'base58')
+    public function createPublic(?string $sign = null, ?string $encrypt = null, string $encoding = 'base58'): Account
     {
         $data = [];
         
@@ -276,7 +279,7 @@ class AccountFactory
      * @param string       $encoding  'raw', 'base58' or 'base64'
      * @return string|array
      */
-    protected static function decode($data, $encoding = 'base58')
+    protected static function decode($data, string $encoding = 'base58')
     {
         if ($encoding === 'raw') {
             return $data;

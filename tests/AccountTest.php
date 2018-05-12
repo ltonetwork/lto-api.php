@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace LTO;
 
 use PHPUnit\Framework\TestCase;
 use LTO\Account;
+use kornrunner\Keccak;
 
 /**
  * @covers \LTO\Account
@@ -186,7 +189,7 @@ class AccountTest extends TestCase
      */
     protected function assertValidId($signkey, $chain)
     {
-        $signkeyHashed = substr(Keccak::hash(sodium_crypto_generichash($signkey, null, 32), 256), 0, 40);
+        $signkeyHashed = substr(Keccak::hash(sodium_crypto_generichash($signkey, '', 32), 256), 0, 40);
         
         $base58 = new \StephenHill\Base58();
         $decodedId = $base58->decode($chain->id);
