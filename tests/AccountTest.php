@@ -191,7 +191,7 @@ class AccountTest extends TestCase
         $base58 = new \StephenHill\Base58();
         $decodedId = $base58->decode($chain->id);
         
-        $vars = (object)unpack('Cversion/H16random/H40keyhash/H8checksum', $decodedId);
+        $vars = (object)unpack('Cversion/H40nonce/H40keyhash/H8checksum', $decodedId);
         
         $this->assertAttributeEquals(EventChain::ADDRESS_VERSION, 'version', $vars);
         $this->assertAttributeEquals(substr($signkeyHashed, 0, 40), 'keyhash', $vars);
@@ -204,5 +204,14 @@ class AccountTest extends TestCase
         
         $this->assertInstanceOf(EventChain::class, $chain);
         $this->assertValidId($this->account->sign->publickey, $chain);
+    }
+
+    public function testCreateEventChainSeeded()
+    {
+        $chain = $this->account->createEventChain(10);
+
+        $this->assertInstanceOf(EventChain::class, $chain);
+        $this->assertValidId($this->account->sign->publickey, $chain);
+        $this->assertEquals("2bGCW3XbfLmSRhotYzcUgqiomiiFLSXKDU43jLMNaf29UXTkpkn2PfvyZkF8yx", $chain->id);
     }
 }
