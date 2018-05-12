@@ -1,17 +1,19 @@
 language: php
 
 php:
-  - 5.6
+  - 7.1
+  - 7.2
 
 branches:
   only:
     - master
+    - php7
 
 before_install:
   - sudo add-apt-repository ppa:ondrej/php -y
   - sudo apt-get -qq update
   - sudo apt-get install libsodium-dev
-  - pecl install libsodium-1.0.7
+  - pecl install libsodium
 
 install:
   - composer install
