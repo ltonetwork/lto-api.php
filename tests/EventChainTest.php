@@ -112,4 +112,49 @@ class EventChainTest extends TestCase
         
         $chain->initFor($account);
     }
+
+    public function testCreateProjectionIdSeedNonce()
+    {
+        $chain = $this->createPartialMock(EventChain::class, ['getRandomNonce']);
+        $chain->expects($this->never())->method('getRandomNonce');
+
+        $chain->id = '2b6QYLttL2R3CLGL4fUB9vaXXX4c5HJanjV5QecmAYLCrD52o6is1fRMGShUUF';
+
+        $this->assertEquals('2z4AmxL122aaTLyVy6rhEfXHGJMGuMja5LBfCU536ksVgRi1oeuWDhLBEBRe1q', $chain->createProjectionId('foo'));
+    }
+
+    public function testCreateProjectionId()
+    {
+        $chain = $this->createPartialMock(EventChain::class, ['getRandomNonce']);
+        $chain->expects($this->once())->method('getRandomNonce')->willReturn(str_repeat("\0", 20));
+
+        $chain->id = '2b6QYLttL2R3CLGL4fUB9vaXXX4c5HJanjV5QecmAYLCrD52o6is1fRMGShUUF';
+
+        $this->assertEquals('2yopB4AaT1phJ4YrXBwbQhimguSM9PhhP41TMYt5mofAZgs7H7iNYcT2eKqS8W', $chain->createProjectionId());
+    }
+
+    public function projectionIdProvider()
+    {
+        return [
+            [true, '2z4AmxL122aaTLyVy6rhEfXHGJMGuMja5LBfCU536ksVgRi1oeuWDhLBEBRe1q'],
+            [true, '2yopB4AaT1phJ4YrXBwbQhimguSM9PhhP41TMYt5mofAZgs7H7iNYcT2eKqS8W'],
+            [true, '31E2kKp5TtUGx3MxyX5e2WGqoCfgD4uK2ym1rVx7fmGMsLGVUyydHar4uzFnr3'],
+            [false, '2z4AmxL122aaTLyVy6rhEfXHGJMGueqGvF1FmfWVHECt7xEc6VSSqCCSZUfq7D'],
+            [false, '2yopB4AaT1phJ4YrXBwbQhimguSM9goQDxq3vkKXxGzZ1DPhZxFKA7KHvVwSKf'],
+            [false, '2z4AmxL12'],
+            [false, '2z4AmxL12lolololollolololollolololollolololollolololollolololo'],
+            [false, '2b6QYLttL2R3CLGL4fUB9vaXXX4c5HJanjV5QecmAYLCrD52o6is1fRMGShUUF']
+        ];
+    }
+
+    /**
+     * @dataProvider projectionIdProvider
+     */
+    public function testIsValidProjectionId($expected, $projectionId)
+    {
+        $chain = new EventChain();
+        $chain->id = '2b6QYLttL2R3CLGL4fUB9vaXXX4c5HJanjV5QecmAYLCrD52o6is1fRMGShUUF';
+
+        $this->assertEquals($expected, $chain->isValidProjectionId($projectionId));
+    }
 }
