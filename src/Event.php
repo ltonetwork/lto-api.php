@@ -134,7 +134,17 @@ class Event
             strlen($signkey) === SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES &&
             sodium_crypto_sign_verify_detached($signature, $this->getMessage(), $signkey);
     }
-    
+
+    /**
+     * Get the version a resource might be given when defined through this event.
+     *
+     * @return string
+     */
+    public function getResourceVersion()
+    {
+        return substr($this->getHash(), 0, 8);
+    }
+
     /**
      * Sign this event
      * 
