@@ -98,7 +98,7 @@ class EventTest extends TestCase
      */
     public function testGetResourceVersion(Event $event)
     {
-        $this->assertEquals('Bpq9rZt1', $event->getResourceVersion());
+        $this->assertEquals('4RaPGFmq', $event->getResourceVersion());
     }
     
     /**

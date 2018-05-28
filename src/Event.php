@@ -142,7 +142,12 @@ class Event
      */
     public function getResourceVersion()
     {
-        return substr($this->getHash(), 0, 8);
+        $base58 = new \StephenHill\Base58();
+
+        $rawHash = hash('sha256', $this->body, true);
+        $hash = $base58->encode($rawHash);
+
+        return substr($hash, 0, 8);
     }
 
     /**
