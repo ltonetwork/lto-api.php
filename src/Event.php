@@ -65,9 +65,7 @@ class Event
     public function __construct($body = null, string $previous = null)
     {
         if (isset($body)) {
-            $base58 = new \StephenHill\Base58();
-
-            $this->body = $base58->encode(json_encode($body));
+            $this->body = \Encoding::encode(json_encode($body));
             $this->timestamp = time();
         }
         
@@ -109,8 +107,7 @@ class Event
     {
         $hash = hash('sha256', $this->getMessage(), true);
 
-        $base58 = new \StephenHill\Base58();
-        return $base58->encode($hash);
+        return \Encoding::encode($hash);
     }
     
     /**
@@ -125,10 +122,8 @@ class Event
             throw new BadMethodCallException("Signature and/or signkey not set");
         }
         
-        $base58 = new \StephenHill\Base58();
-        
-        $signature = $base58->decode($this->signature);
-        $signkey = $base58->decode($this->signkey);
+        $signature = \Encoding::decode($this->signature);
+        $signkey = \Encoding::decode($this->signkey);
         
         return strlen($signature) === SODIUM_CRYPTO_SIGN_BYTES &&
             strlen($signkey) === SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES &&
@@ -142,10 +137,8 @@ class Event
      */
     public function getResourceVersion()
     {
-        $base58 = new \StephenHill\Base58();
-
         $rawHash = hash('sha256', $this->body, true);
-        $hash = $base58->encode($rawHash);
+        $hash = \Encoding::encode($rawHash);
 
         return substr($hash, 0, 8);
     }

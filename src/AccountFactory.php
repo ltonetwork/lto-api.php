@@ -271,10 +271,9 @@ class AccountFactory
         return $this->create($data, $encoding);
     }
     
-    
     /**
      * Base58 or base64 decode, recursively
-     * 
+     *
      * @param string|array $data
      * @param string       $encoding  'raw', 'base58' or 'base64'
      * @return string|array
@@ -284,16 +283,15 @@ class AccountFactory
         if ($encoding === 'raw') {
             return $data;
         }
-        
+
         if (is_array($data)) {
             return array_map(function ($item) use ($encoding) { return self::decode($item, $encoding); }, $data);
         }
-        
+
         if ($encoding === 'base58') {
-            $base58 = new \StephenHill\Base58();
-            $data = $base58->decode($data);
+            $data = \Encoding::decode($data);
         }
-        
+
         if ($encoding === 'base64') {
             $data = base64_decode($data);
         }

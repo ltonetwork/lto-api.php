@@ -20,21 +20,19 @@ class AccountTest extends TestCase
     
     public function setUp()
     {
-        $base58 = new \StephenHill\Base58();
-        
         $this->account = $this->createPartialMock(Account::class, ['getNonce']);
         $this->account->method('getNonce')->willReturn(str_repeat("\0", 24));
 
-        $this->account->address = $base58->decode('3PLSsSDUn3kZdGe8qWEDak9y8oAjLVecXV1');
+        $this->account->address = base58_decode('3PLSsSDUn3kZdGe8qWEDak9y8oAjLVecXV1');
         
         $this->account->sign = (object)[
-            'secretkey' => $base58->decode('wJ4WH8dD88fSkNdFQRjaAhjFUZzZhV5yiDLDwNUnp6bYwRXrvWV8MJhQ9HL9uqMDG1n7XpTGZx7PafqaayQV8Rp'),
-            'publickey' => $base58->decode('FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y')
+            'secretkey' => base58_decode('wJ4WH8dD88fSkNdFQRjaAhjFUZzZhV5yiDLDwNUnp6bYwRXrvWV8MJhQ9HL9uqMDG1n7XpTGZx7PafqaayQV8Rp'),
+            'publickey' => base58_decode('FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y')
         ];
         
         $this->account->encrypt = (object)[
-            'secretkey' => $base58->decode('BnjFJJarge15FiqcxrB7Mzt68nseBXXR4LQ54qFBsWJN'),
-            'publickey' => $base58->decode('BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6')
+            'secretkey' => base58_decode('BnjFJJarge15FiqcxrB7Mzt68nseBXXR4LQ54qFBsWJN'),
+            'publickey' => base58_decode('BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6')
         ];
     }
     
@@ -117,28 +115,26 @@ class AccountTest extends TestCase
     {
         $signature = 'not a real signature';
         
-        $this->assertTrue($this->account->verify($signature, 'hello'));
+        $this->assertFalse(@$this->account->verify($signature, 'hello'));
     }
     
     
 
     public function createSecondaryAccount()
     {
-        $base58 = new \StephenHill\Base58();
-        
         $account = $this->createPartialMock(Account::class, ['getNonce']);
         $account->method('getNonce')->willReturn(str_repeat('0', 24));
 
-        $account->address = $base58->decode('3PPbMwqLtwBGcJrTA5whqJfY95GqnNnFMDX');
+        $account->address = base58_decode('3PPbMwqLtwBGcJrTA5whqJfY95GqnNnFMDX');
         
         $account->sign = (object)[
-            'secretkey' => $base58->decode('pLX2GgWzkjiiPp2SsowyyHZKrF4thkq1oDLD7tqBpYDwfMvRsPANMutwRvTVZHrw8VzsKjiN8EfdGA9M84smoEz'),
-            'publickey' => $base58->decode('BvEdG3ATxtmkbCVj9k2yvh3s6ooktBoSmyp8xwDqCQHp')
+            'secretkey' => base58_decode('pLX2GgWzkjiiPp2SsowyyHZKrF4thkq1oDLD7tqBpYDwfMvRsPANMutwRvTVZHrw8VzsKjiN8EfdGA9M84smoEz'),
+            'publickey' => base58_decode('BvEdG3ATxtmkbCVj9k2yvh3s6ooktBoSmyp8xwDqCQHp')
         ];
         
         $account->encrypt = (object)[
-            'secretkey' => $base58->decode('3kMEhU5z3v8bmer1ERFUUhW58Dtuhyo9hE5vrhjqAWYT'),
-            'publickey' => $base58->decode('HBqhfdFASRQ5eBBpu2y6c6KKi1az6bMx8v1JxX4iW1Q8')
+            'secretkey' => base58_decode('3kMEhU5z3v8bmer1ERFUUhW58Dtuhyo9hE5vrhjqAWYT'),
+            'publickey' => base58_decode('HBqhfdFASRQ5eBBpu2y6c6KKi1az6bMx8v1JxX4iW1Q8')
         ];
         
         return $account;
@@ -146,21 +142,17 @@ class AccountTest extends TestCase
     
     public function testEncryptFor()
     {
-        $base58 = new \StephenHill\Base58();
-        
         $recipient = $this->createSecondaryAccount();
         
         $cyphertext = $this->account->encryptFor($recipient, 'hello');
         
-        $this->assertSame('3NQBM8qd7nbLjABMf65jdExWt3xSAtAW2Sonjc7ZTLyqWAvDgiJNq7tW1XFX5H', $base58->encode($cyphertext));
+        $this->assertSame('3NQBM8qd7nbLjABMf65jdExWt3xSAtAW2Sonjc7ZTLyqWAvDgiJNq7tW1XFX5H', base58_encode($cyphertext));
     }
     
     public function testDecryptFrom()
     {
-        $base58 = new \StephenHill\Base58();
-        
         $recipient = $this->createSecondaryAccount();
-        $cyphertext = $base58->decode('3NQBM8qd7nbLjABMf65jdExWt3xSAtAW2Sonjc7ZTLyqWAvDgiJNq7tW1XFX5H');
+        $cyphertext = base58_decode('3NQBM8qd7nbLjABMf65jdExWt3xSAtAW2Sonjc7ZTLyqWAvDgiJNq7tW1XFX5H');
         
         $message = $recipient->decryptFrom($this->account, $cyphertext);
         
@@ -173,9 +165,7 @@ class AccountTest extends TestCase
      */
     public function testDecryptFromFail()
     {
-        $base58 = new \StephenHill\Base58();
-        
-        $cyphertext = $base58->decode('3NQBM8qd7nbLjABMf65jdExWt3xSAtAW2Sonjc7ZTLyqWAvDgiJNq7tW1XFX5H');
+        $cyphertext = base58_decode('3NQBM8qd7nbLjABMf65jdExWt3xSAtAW2Sonjc7ZTLyqWAvDgiJNq7tW1XFX5H');
         
         $this->account->decryptFrom($this->account, $cyphertext);
     }
@@ -191,8 +181,7 @@ class AccountTest extends TestCase
     {
         $signkeyHashed = substr(Keccak::hash(sodium_crypto_generichash($signkey, '', 32), 256), 0, 40);
         
-        $base58 = new \StephenHill\Base58();
-        $decodedId = $base58->decode($chain->id);
+        $decodedId = base58_decode($chain->id);
         
         $vars = (object)unpack('Cversion/H40nonce/H40keyhash/H8checksum', $decodedId);
         

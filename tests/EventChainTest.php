@@ -58,10 +58,8 @@ class EventChainTest extends TestCase
     
     public function testInitForSeedNonce()
     {
-        $base58 = new \StephenHill\Base58();
-        
         $account = $this->createMock(Account::class);
-        $account->sign = (object)['publickey' => $base58->decode("8MeRTc26xZqPmQ3Q29RJBwtgtXDPwR7P9QNArymjPLVQ")];
+        $account->sign = (object)['publickey' => base58_decode("8MeRTc26xZqPmQ3Q29RJBwtgtXDPwR7P9QNArymjPLVQ")];
         
         $chain = $this->createPartialMock(EventChain::class, ['getRandomNonce']);
         $chain->expects($this->never())->method('getRandomNonce');
@@ -74,10 +72,8 @@ class EventChainTest extends TestCase
     
     public function testInitFor()
     {
-        $base58 = new \StephenHill\Base58();
-        
         $account = $this->createMock(Account::class);
-        $account->sign = (object)['publickey' => $base58->decode("8MeRTc26xZqPmQ3Q29RJBwtgtXDPwR7P9QNArymjPLVQ")];
+        $account->sign = (object)['publickey' => base58_decode("8MeRTc26xZqPmQ3Q29RJBwtgtXDPwR7P9QNArymjPLVQ")];
         
         $chain = $this->createPartialMock(EventChain::class, ['getRandomNonce']);
         $chain->expects($this->once())->method('getRandomNonce')->willReturn(str_repeat("\0", 20));
@@ -155,6 +151,6 @@ class EventChainTest extends TestCase
         $chain = new EventChain();
         $chain->id = '2b6QYLttL2R3CLGL4fUB9vaXXX4c5HJanjV5QecmAYLCrD52o6is1fRMGShUUF';
 
-        $this->assertEquals($expected, $chain->isValidProjectionId($projectionId));
+        $this->assertEquals($expected, @$chain->isValidProjectionId($projectionId));
     }
 }

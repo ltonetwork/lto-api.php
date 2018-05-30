@@ -77,9 +77,7 @@ class EventChain
 
         $idBinary = pack('Ca20a20a4', $type, $nonce, $nsHashed, $chksum);
 
-        $base58 = new \StephenHill\Base58();
-
-        return $base58->encode($idBinary);
+        return \Encoding::encode($idBinary);
     }
 
     /**
@@ -125,10 +123,8 @@ class EventChain
      */
     public function isValidProjectionId(string $projectionId): bool
     {
-        $base58 = new \StephenHill\Base58();
-
         try {
-            $binaryId = $base58->decode($projectionId);
+            $binaryId = \Encoding::decode($projectionId);
         } catch (\InvalidArgumentException $e) {
             return false;
         }
@@ -154,11 +150,9 @@ class EventChain
      */
     public function getInitialHash(): string
     {
-        $base58 = new \StephenHill\Base58();
+        $rawId = \Encoding::decode($this->id);
         
-        $rawId = $base58->decode($this->id);
-        
-        return $base58->encode(hash('sha256', $rawId, true));
+        return \Encoding::encode(hash('sha256', $rawId, true));
     }
     
     /**
