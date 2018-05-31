@@ -7,6 +7,7 @@ namespace LTO;
 use LTO\Account;
 use LTO\EventChain;
 use BadMethodCallException;
+use LTO\Encoding;
 
 /**
  * Live Contracts Event
@@ -65,7 +66,7 @@ class Event
     public function __construct($body = null, string $previous = null)
     {
         if (isset($body)) {
-            $this->body = \Encoding::encode(json_encode($body));
+            $this->body = Encoding::encode(json_encode($body));
             $this->timestamp = time();
         }
         
@@ -107,7 +108,7 @@ class Event
     {
         $hash = hash('sha256', $this->getMessage(), true);
 
-        return \Encoding::encode($hash);
+        return Encoding::encode($hash);
     }
     
     /**
@@ -122,8 +123,8 @@ class Event
             throw new BadMethodCallException("Signature and/or signkey not set");
         }
         
-        $signature = \Encoding::decode($this->signature);
-        $signkey = \Encoding::decode($this->signkey);
+        $signature = Encoding::decode($this->signature);
+        $signkey = Encoding::decode($this->signkey);
         
         return strlen($signature) === SODIUM_CRYPTO_SIGN_BYTES &&
             strlen($signkey) === SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES &&
@@ -138,7 +139,7 @@ class Event
     public function getResourceVersion()
     {
         $rawHash = hash('sha256', $this->body, true);
-        $hash = \Encoding::encode($rawHash);
+        $hash = Encoding::encode($rawHash);
 
         return substr($hash, 0, 8);
     }

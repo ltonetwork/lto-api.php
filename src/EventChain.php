@@ -7,6 +7,7 @@ namespace LTO;
 use LTO\Event;
 use LTO\Account; 
 use kornrunner\Keccak;
+use LTO\Encoding;
 
 /**
  * Live contracts event chain
@@ -77,7 +78,7 @@ class EventChain
 
         $idBinary = pack('Ca20a20a4', $type, $nonce, $nsHashed, $chksum);
 
-        return \Encoding::encode($idBinary);
+        return Encoding::encode($idBinary);
     }
 
     /**
@@ -124,7 +125,7 @@ class EventChain
     public function isValidProjectionId(string $projectionId): bool
     {
         try {
-            $binaryId = \Encoding::decode($projectionId);
+            $binaryId = Encoding::decode($projectionId);
         } catch (\InvalidArgumentException $e) {
             return false;
         }
@@ -150,9 +151,9 @@ class EventChain
      */
     public function getInitialHash(): string
     {
-        $rawId = \Encoding::decode($this->id);
+        $rawId = Encoding::decode($this->id);
         
-        return \Encoding::encode(hash('sha256', $rawId, true));
+        return Encoding::encode(hash('sha256', $rawId, true));
     }
     
     /**

@@ -6,6 +6,7 @@ namespace LTO;
 
 use LTO\Account;
 use kornrunner\Keccak;
+use LTO\Encoding;
 
 /**
  * Create new account (aka wallet)
@@ -285,11 +286,13 @@ class AccountFactory
         }
 
         if (is_array($data)) {
-            return array_map(function ($item) use ($encoding) { return self::decode($item, $encoding); }, $data);
+            return array_map(function ($item) use ($encoding) {
+                return self::decode($item, $encoding);
+            }, $data);
         }
 
         if ($encoding === 'base58') {
-            $data = \Encoding::decode($data);
+            $data = Encoding::decode($data);
         }
 
         if ($encoding === 'base64') {
