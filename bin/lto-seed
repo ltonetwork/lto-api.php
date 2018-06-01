@@ -1,0 +1,24 @@
+#!/usr/bin/env php
+<?php
+
+require 'vendor/autoload.php';
+
+use LTO\Account;
+use LTO\AccountFactory;
+
+if ($argc < 2) {
+    echo "USAGE: lto-seed SEED [W|T]\n";
+    exit(1);
+}
+
+$factory = new AccountFactory($argv[2] ?? 'W', 0);
+$account = $factory->seed($argv[1]);
+
+echo "address: ", base58_encode($account->address), "\n";
+echo "sign:", "\n";
+echo "  secretkey: ", base58_encode($account->sign->secretkey), "\n";
+echo "  publickey: ", base58_encode($account->sign->publickey), "\n";
+echo "encrypt:", "\n";
+echo "  secretkey: ", base58_encode($account->encrypt->secretkey), "\n";
+echo "  publickey: ", base58_encode($account->encrypt->publickey), "\n";
+
