@@ -2,7 +2,7 @@
 
 namespace LTO;
 
-use PHPUnit_Framework_TestCase as TestCase;
+use PHPUnit\Framework\TestCase;
 use LTO\HTTPSignature;
 use LTO\Account;
 use LTO\AccountFactory;
@@ -10,7 +10,7 @@ use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\UriInterface;
 
 /**
- * @covers LTO\HTTPSignature
+ * @covers \LTO\HTTPSignature
  */
 class HTTPSignatureTest extends TestCase
 {
@@ -226,7 +226,7 @@ class HTTPSignatureTest extends TestCase
     }
     
     /**
-     * @expectedException LTO\HTTPSignatureException
+     * @expectedException \LTO\HTTPSignatureException
      */
     public function testAssertSignatureAgeFail()
     {
@@ -290,7 +290,7 @@ class HTTPSignatureTest extends TestCase
      * 
      * @param string $algorithm
      *
-     * @expectedException LTO\HTTPSignatureException
+     * @expectedException \LTO\HTTPSignatureException
      * @expectedExceptionMessage invalid signature
      */
     public function testVerifyFail($algorithm)
@@ -351,7 +351,7 @@ class HTTPSignatureTest extends TestCase
         $request->expects($this->any())->method('getHeaderLine')->with('date')
             ->willReturn("Tue, 07 Jun 2014 20:51:35 GMT");
         $request->expects($this->once())->method('withHeader')
-            ->with('authorization', 'Signature keyId="2yYhlEGdosg7QZC//hibHiZ1MHk2m7jp/EbUeFdzDis=",algorithm="ed25519-sha256",headers="(request-target) date digest content-length",signature="PIw+8VW129YY/6tRfThI3ZA0VygH4cYWxIayUZbdA3I9CKUdmqttvVZvOXN5BX2Z9jfO3f1vD1/R2jxwd3BHBw=="')
+            ->with('authorization', 'Signature keyId="2yYhlEGdosg7QZC//hibHiZ1MHk2m7jp/EbUeFdzDis=",algorithm="' . $algorithm . '",headers="(request-target) date digest content-length",signature="PIw+8VW129YY/6tRfThI3ZA0VygH4cYWxIayUZbdA3I9CKUdmqttvVZvOXN5BX2Z9jfO3f1vD1/R2jxwd3BHBw=="')
             ->willReturnSelf();
         
         $httpSign = $this->createHTTPSignature($request, ['getHeaders', 'getMessage']);
@@ -366,7 +366,7 @@ class HTTPSignatureTest extends TestCase
         $this->assertSame($account, $httpSign->getAccount());
         $this->assertEquals([
             'keyId' => "2yYhlEGdosg7QZC//hibHiZ1MHk2m7jp/EbUeFdzDis=",
-            'algorithm' => 'ed25519-sha256',
+            'algorithm' => $algorithm,
             'headers' => "(request-target) date digest content-length"
         ], $httpSign->getParams());
     }

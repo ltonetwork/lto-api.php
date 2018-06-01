@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace LTO;
 
-use StephenHill\Base58;
 use LTO\DecryptException;
+use RuntimeException;
+use LTO\Encoding;
 
 /**
  * An account (aka wallet)
@@ -37,7 +40,7 @@ class Account
      */
     protected function getNonce()
     {
-        return random_bytes(\sodium\CRYPTO_BOX_NONCEBYTES);
+        return random_bytes(SODIUM_CRYPTO_BOX_NONCEBYTES);
     }
     
     
@@ -45,33 +48,33 @@ class Account
      * Get base58 encoded address
      * 
      * @param string $encoding  'raw', 'base58' or 'base64'
-     * @return string
+     * @return string|null
      */
-    public function getAddress($encoding = 'base58')
+    public function getAddress(string $encoding = 'base58'): ?string
     {
-        return $this->address ? static::encode($this->address, $encoding) : null;
+        return $this->address ? Encoding::encode($this->address, $encoding) : null;
     }
     
     /**
      * Get base58 encoded public sign key
      * 
      * @param string $encoding  'raw', 'base58' or 'base64'
-     * @return string
+     * @return string|null
      */
-    public function getPublicSignKey($encoding = 'base58')
+    public function getPublicSignKey(string $encoding = 'base58'): ?string
     {
-        return $this->sign ? static::encode($this->sign->publickey, $encoding) : null;
+        return $this->sign ? Encoding::encode($this->sign->publickey, $encoding) : null;
     }
     
     /**
      * Get base58 encoded public encryption key
      * 
      * @param string $encoding  'raw', 'base58' or 'base64'
-     * @return string
+     * @return string|null
      */
-    public function getPublicEncryptKey($encoding = 'base58')
+    public function getPublicEncryptKey(string $encoding = 'base58'): ?string
     {
-        return $this->encrypt ? static::encode($this->encrypt->publickey, $encoding) : null;
+        return $this->encrypt ? Encoding::encode($this->encrypt->publickey, $encoding) : null;
     }
     
     
@@ -81,25 +84,26 @@ class Account
      * @param string $message
      * @param string $encoding  'raw', 'base58' or 'base64'
      * @return string
+     * @throws RuntimeException if secret sign key is not set
      */
-    public function sign($message, $encoding = 'base58')
+    public function sign(string $message, string $encoding = 'base58'): string
     {
         if (!isset($this->sign->secretkey)) {
-            throw new \RuntimeException("Unable to sign message; no secret sign key");
+            throw new RuntimeException("Unable to sign message; no secret sign key");
         }
         
-        $signature = \sodium\crypto_sign_detached($message, $this->sign->secretkey);
+        $signature = sodium_crypto_sign_detached($message, $this->sign->secretkey);
         
-        return static::encode($signature, $encoding);
+        return Encoding::encode($signature, $encoding);
     }
     
     /**
      * Sign an event
      * 
      * @param Event $event
-     * @return $event
+     * @return Event
      */
-    public function signEvent($event)
+    public function signEvent(Event $event): Event
     {
         $event->signkey = $this->getPublicSignKey();
         $event->signature = $this->sign($event->getMessage());
@@ -115,18 +119,19 @@ class Account
      * @param string $message
      * @param string $encoding   signature encoding 'raw', 'base58' or 'base64'
      * @return boolean
+     * @throws RuntimeException if public sign key is not set
      */
-    public function verify($signature, $message, $encoding = 'base58')
+    public function verify(string $signature, string $message, string $encoding = 'base58'): bool
     {
         if (!isset($this->sign->publickey)) {
-            throw new \RuntimeException("Unable to verify message; no public sign key");
+            throw new RuntimeException("Unable to verify message; no public sign key");
         }
         
-        $rawSignature = static::decode($signature, $encoding);
+        $rawSignature = Encoding::decode($signature, $encoding);
         
-        return strlen($rawSignature) === \sodium\CRYPTO_SIGN_BYTES &&
-            strlen($this->sign->publickey) === \sodium\CRYPTO_SIGN_PUBLICKEYBYTES &&
-            \sodium\crypto_sign_verify_detached($rawSignature, $message, $this->sign->publickey);
+        return strlen($rawSignature) === SODIUM_CRYPTO_SIGN_BYTES &&
+            strlen($this->sign->publickey) === SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES &&
+            sodium_crypto_sign_verify_detached($rawSignature, $message, $this->sign->publickey);
     }
     
     
@@ -137,23 +142,24 @@ class Account
      * @param Account $recipient 
      * @param string  $message
      * @return string
+     * @throws RuntimeException if secret encrypt key of sender or public encrypt key of recipient is not set
      */
-    public function encryptFor(Account $recipient, $message)
+    public function encryptFor(Account $recipient, string $message): string
     {
         if (!isset($this->encrypt->secretkey)) {
-            throw new \RuntimeException("Unable to encrypt message; no secret encryption key");
+            throw new RuntimeException("Unable to encrypt message; no secret encryption key");
         }
         
         if (!isset($recipient->encrypt->publickey)) {
-            throw new \RuntimeException("Unable to encrypt message; no public encryption key for recipient");
+            throw new RuntimeException("Unable to encrypt message; no public encryption key for recipient");
         }
         
         $nonce = $this->getNonce();
 
-        $encryptionKey = \sodium\crypto_box_keypair_from_secretkey_and_publickey($this->encrypt->secretkey,
+        $encryptionKey = sodium_crypto_box_keypair_from_secretkey_and_publickey($this->encrypt->secretkey,
             $recipient->encrypt->publickey);
         
-        return \sodium\crypto_box($message, $nonce, $encryptionKey) . $nonce;
+        return sodium_crypto_box($message, $nonce, $encryptionKey) . $nonce;
     }
     
     /**
@@ -162,25 +168,26 @@ class Account
      * @param Account $sender 
      * @param string  $cyphertext
      * @return string
-     * @throws 
+     * @throws RuntimeException if secret encrypt key of recipient or public encrypt key of sender is not set
+     * @throws DecryptException if message can't be decrypted
      */
-    public function decryptFrom(Account $sender, $cyphertext)
+    public function decryptFrom(Account $sender, string $cyphertext): string
     {
         if (!isset($this->encrypt->secretkey)) {
             throw new \RuntimeException("Unable to decrypt message; no secret encryption key");
         }
         
         if (!isset($sender->encrypt->publickey)) {
-            throw new \RuntimeException("Unable to decrypt message; no public encryption key for recipient");
+            throw new \RuntimeException("Unable to decrypt message; no public encryption key for sender");
         }
         
         $encryptedMessage = substr($cyphertext, 0, -24);
         $nonce = substr($cyphertext, -24);
 
-        $encryptionKey = \sodium\crypto_box_keypair_from_secretkey_and_publickey($sender->encrypt->secretkey,
+        $encryptionKey = sodium_crypto_box_keypair_from_secretkey_and_publickey($sender->encrypt->secretkey,
             $this->encrypt->publickey);
         
-        $message = \sodium\crypto_box_open($encryptedMessage, $nonce, $encryptionKey);
+        $message = sodium_crypto_box_open($encryptedMessage, $nonce, $encryptionKey);
         
         if ($message === false) {
             throw new DecryptException("Failed to decrypt message from " . $sender->getAddress());
@@ -192,58 +199,15 @@ class Account
     /**
      * Create a new event chain for this account
      * 
-     * @param string|null $nonceSeed  Seed the nonce, rather than using a random nonce.
+     * @param mixed $nonceSeed  Seed the nonce, rather than using a random nonce.
      * @return EventChain
      * @throws \BadMethodCallException
      */
-    public function createEventChain($nonceSeed = null)
+    public function createEventChain($nonceSeed = null): EventChain
     {
         $chain = new EventChain();
-        $chain->initFor($this, $nonceSeed);
+        $chain->initFor($this, isset($nonceSeed) ? (string)$nonceSeed : null);
         
         return $chain;
-    }
-    
-    
-    /**
-     * Base58 or base64 encode a string
-     * 
-     * @param string $string
-     * @param string $encoding  'raw', 'base58' or 'base64'
-     * @return string
-     */
-    protected static function encode($string, $encoding = 'base58')
-    {
-        if ($encoding === 'base58') {
-            $base58 = new Base58();
-            $string = $base58->encode($string);
-        }
-        
-        if ($encoding === 'base64') {
-            $string = base64_encode($string);
-        }
-
-        return $string;
-    }
-    
-    /**
-     * Base58 or base64 decode a string
-     * 
-     * @param string $string
-     * @param string $encoding  'raw', 'base58' or 'base64'
-     * @return string
-     */
-    protected static function decode($string, $encoding = 'base58')
-    {
-        if ($encoding === 'base58') {
-            $base58 = new Base58();
-            $string = $base58->decode($string);
-        }
-        
-        if ($encoding === 'base64') {
-            $string = base64_decode($string);
-        }
-
-        return $string;
     }
 }

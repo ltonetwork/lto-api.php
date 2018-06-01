@@ -2,12 +2,12 @@
 
 namespace LTO;
 
-use PHPUnit_Framework_TestCase as TestCase;
+use PHPUnit\Framework\TestCase;
 use LTO\Account;
 use LTO\EventChain;
 
 /**
- * @covers LTO\EventChain
+ * @covers \LTO\EventChain
  */
 class EventChainTest extends TestCase
 {
@@ -58,10 +58,8 @@ class EventChainTest extends TestCase
     
     public function testInitForSeedNonce()
     {
-        $base58 = new \StephenHill\Base58();
-        
         $account = $this->createMock(Account::class);
-        $account->sign = (object)['publickey' => $base58->decode("8MeRTc26xZqPmQ3Q29RJBwtgtXDPwR7P9QNArymjPLVQ")];
+        $account->sign = (object)['publickey' => base58_decode("8MeRTc26xZqPmQ3Q29RJBwtgtXDPwR7P9QNArymjPLVQ")];
         
         $chain = $this->createPartialMock(EventChain::class, ['getRandomNonce']);
         $chain->expects($this->never())->method('getRandomNonce');
@@ -74,10 +72,8 @@ class EventChainTest extends TestCase
     
     public function testInitFor()
     {
-        $base58 = new \StephenHill\Base58();
-        
         $account = $this->createMock(Account::class);
-        $account->sign = (object)['publickey' => $base58->decode("8MeRTc26xZqPmQ3Q29RJBwtgtXDPwR7P9QNArymjPLVQ")];
+        $account->sign = (object)['publickey' => base58_decode("8MeRTc26xZqPmQ3Q29RJBwtgtXDPwR7P9QNArymjPLVQ")];
         
         $chain = $this->createPartialMock(EventChain::class, ['getRandomNonce']);
         $chain->expects($this->once())->method('getRandomNonce')->willReturn(str_repeat("\0", 20));
@@ -111,5 +107,50 @@ class EventChainTest extends TestCase
         $chain = $this->createPartialMock(EventChain::class, ['getNonce']);
         
         $chain->initFor($account);
+    }
+
+    public function testCreateProjectionIdSeedNonce()
+    {
+        $chain = $this->createPartialMock(EventChain::class, ['getRandomNonce']);
+        $chain->expects($this->never())->method('getRandomNonce');
+
+        $chain->id = '2b6QYLttL2R3CLGL4fUB9vaXXX4c5HJanjV5QecmAYLCrD52o6is1fRMGShUUF';
+
+        $this->assertEquals('2z4AmxL122aaTLyVy6rhEfXHGJMGuMja5LBfCU536ksVgRi1oeuWDhLBEBRe1q', $chain->createProjectionId('foo'));
+    }
+
+    public function testCreateProjectionId()
+    {
+        $chain = $this->createPartialMock(EventChain::class, ['getRandomNonce']);
+        $chain->expects($this->once())->method('getRandomNonce')->willReturn(str_repeat("\0", 20));
+
+        $chain->id = '2b6QYLttL2R3CLGL4fUB9vaXXX4c5HJanjV5QecmAYLCrD52o6is1fRMGShUUF';
+
+        $this->assertEquals('2yopB4AaT1phJ4YrXBwbQhimguSM9PhhP41TMYt5mofAZgs7H7iNYcT2eKqS8W', $chain->createProjectionId());
+    }
+
+    public function projectionIdProvider()
+    {
+        return [
+            [true, '2z4AmxL122aaTLyVy6rhEfXHGJMGuMja5LBfCU536ksVgRi1oeuWDhLBEBRe1q'],
+            [true, '2yopB4AaT1phJ4YrXBwbQhimguSM9PhhP41TMYt5mofAZgs7H7iNYcT2eKqS8W'],
+            [true, '31E2kKp5TtUGx3MxyX5e2WGqoCfgD4uK2ym1rVx7fmGMsLGVUyydHar4uzFnr3'],
+            [false, '2z4AmxL122aaTLyVy6rhEfXHGJMGueqGvF1FmfWVHECt7xEc6VSSqCCSZUfq7D'],
+            [false, '2yopB4AaT1phJ4YrXBwbQhimguSM9goQDxq3vkKXxGzZ1DPhZxFKA7KHvVwSKf'],
+            [false, '2z4AmxL12'],
+            [false, '2z4AmxL12lolololollolololollolololollolololollolololollolololo'],
+            [false, '2b6QYLttL2R3CLGL4fUB9vaXXX4c5HJanjV5QecmAYLCrD52o6is1fRMGShUUF']
+        ];
+    }
+
+    /**
+     * @dataProvider projectionIdProvider
+     */
+    public function testIsValidProjectionId($expected, $projectionId)
+    {
+        $chain = new EventChain();
+        $chain->id = '2b6QYLttL2R3CLGL4fUB9vaXXX4c5HJanjV5QecmAYLCrD52o6is1fRMGShUUF';
+
+        $this->assertEquals($expected, @$chain->isValidProjectionId($projectionId));
     }
 }

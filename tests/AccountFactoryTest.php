@@ -2,12 +2,13 @@
 
 namespace LTO;
 
-use PHPUnit_Framework_TestCase as TestCase;
+use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Constraint\IsEqual as IsEqualConstraint;
 use LTO\Account;
 use LTO\AccountFactory;
 
 /**
- * @covers LTO\AccountFactory
+ * @covers \LTO\AccountFactory
  */
 class AccountFactoryTest extends TestCase
 {
@@ -23,10 +24,9 @@ class AccountFactoryTest extends TestCase
      */
     public static function assertBase58Equals($encoded, $actual, $message = '')
     {
-        $base58 = new \StephenHill\Base58();
-        $value = $base58->encode($actual);
+        $value = base58_encode($actual);
         
-        $constraint = new \PHPUnit_Framework_Constraint_IsEqual($encoded);
+        $constraint = new IsEqualConstraint($encoded);
 
         static::assertThat($value, $constraint, $message);
     }
@@ -37,12 +37,10 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreateAccountSeed()
     {
-        $base58 = new \StephenHill\Base58();
-        
         $factory = new AccountFactory('W', 0);
         $seed = $factory->createAccountSeed($this->seedText);
         
-        $this->assertEquals("49mgaSSVQw6tDoZrHSr9rFySgHHXwgQbCRwFssboVLWX", $base58->encode($seed));
+        $this->assertEquals("49mgaSSVQw6tDoZrHSr9rFySgHHXwgQbCRwFssboVLWX", base58_encode($seed));
     }
 
     
@@ -64,14 +62,12 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreateAddressEncrypt($expected, $network)
     {
-        $base58 = new \StephenHill\Base58();
-
         $factory = new AccountFactory($network, 0);
         
-        $publickey = $base58->decode("HBqhfdFASRQ5eBBpu2y6c6KKi1az6bMx8v1JxX4iW1Q8");
+        $publickey = base58_decode("HBqhfdFASRQ5eBBpu2y6c6KKi1az6bMx8v1JxX4iW1Q8");
         $address = $factory->createAddress($publickey, "encrypt");
         
-        $this->assertEquals($expected, $base58->encode($address));
+        $this->assertEquals($expected, base58_encode($address));
     }
     
     /**
@@ -82,14 +78,12 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreateAddressSign($expected, $network)
     {
-        $base58 = new \StephenHill\Base58();
-
         $factory = new AccountFactory($network, 0);
         
-        $publickey = $base58->decode("BvEdG3ATxtmkbCVj9k2yvh3s6ooktBoSmyp8xwDqCQHp");
+        $publickey = base58_decode("BvEdG3ATxtmkbCVj9k2yvh3s6ooktBoSmyp8xwDqCQHp");
         $address = $factory->createAddress($publickey, "sign");
         
-        $this->assertEquals($expected, $base58->encode($address));
+        $this->assertEquals($expected, base58_encode($address));
     }
 
     public function convertSignToEncryptProvider()
@@ -132,10 +126,8 @@ class AccountFactoryTest extends TestCase
      */
     public function testConvertSignToEncrypt($expected, $sign)
     {
-        $base58 = new \StephenHill\Base58();
-        
         foreach ($sign as &$value) {
-            $value = $base58->decode($value);
+            $value = base58_decode($value);
         }
         
         $factory = new AccountFactory('W', 0);
@@ -143,7 +135,7 @@ class AccountFactoryTest extends TestCase
         $encrypt = $factory->convertSignToEncrypt($sign);
         
         foreach ($encrypt as &$value) {
-            $value = $base58->encode($value);
+            $value = base58_encode($value);
         }
         
         $this->assertEquals($expected, $encrypt);

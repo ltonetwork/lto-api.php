@@ -2,13 +2,13 @@
 
 namespace LTO;
 
-use PHPUnit_Framework_TestCase as TestCase;
+use PHPUnit\Framework\TestCase;
 use LTO\Account;
 use LTO\Event;
 use LTO\EventChain;
 
 /**
- * @covers LTO\Event
+ * @covers \LTO\Event
  */
 class EventTest extends TestCase
 {
@@ -71,7 +71,7 @@ class EventTest extends TestCase
     {
         $this->assertEquals('Bpq9rZt12Gv44dkXFw8RmLYzbaH2HBwPQJ6KihdLe5LG', $event->getHash());
     }
-    
+
     /**
      * @depends testGetMessage
      */
@@ -91,6 +91,14 @@ class EventTest extends TestCase
         $event->signature = "258KnaZxcx4cA9DUWSPw8QwBokRGzFDQmB4BH9MRJhoPJghsXoAZ7KnQ2DWR7ihtjXzUjbsXtSeup4UDcQ2L6RDL";
         
         $this->assertFalse($event->verifySignature());
+    }
+
+    /**
+     * @depends testGetMessage
+     */
+    public function testGetResourceVersion(Event $event)
+    {
+        $this->assertEquals('4RaPGFmq', $event->getResourceVersion());
     }
     
     /**

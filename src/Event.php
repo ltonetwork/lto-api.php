@@ -1,9 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace LTO;
 
 use LTO\Account;
 use LTO\EventChain;
+use BadMethodCallException;
+use LTO\Encoding;
 
 /**
  * Live Contracts Event
@@ -59,12 +63,10 @@ class Event
      * @param object|array $body
      * @param string       $previous
      */
-    public function __construct($body = null, $previous = null)
+    public function __construct($body = null, string $previous = null)
     {
         if (isset($body)) {
-            $base58 = new \StephenHill\Base58();
-
-            $this->body = $base58->encode(json_encode($body));
+            $this->body = Encoding::encode(json_encode($body));
             $this->timestamp = time();
         }
         
@@ -75,15 +77,16 @@ class Event
      * Get the message used for hash and signature
      * 
      * @return string
+     * @throws BadMethodCallException if called before the body or signkey is set
      */
-    public function getMessage()
+    public function getMessage(): string
     {
         if (!isset($this->body)) {
-            throw new \BadMethodCallException("Body unknown");
+            throw new BadMethodCallException("Body unknown");
         }
         
         if (!isset($this->signkey)) {
-            throw new \BadMethodCallException("First set signkey before creating message");
+            throw new BadMethodCallException("First set signkey before creating message");
         }
         
         $message = join("\n", [
@@ -101,42 +104,53 @@ class Event
      * 
      * @return string
      */
-    public function getHash()
+    public function getHash(): string
     {
         $hash = hash('sha256', $this->getMessage(), true);
 
-        $base58 = new \StephenHill\Base58();
-        return $base58->encode($hash);
+        return Encoding::encode($hash);
     }
     
     /**
      * Verify that the signature is valid
      * 
-     * @return boolean
+     * @return bool
+     * @throw BadMethodCallException if signature or signkey is not set
      */
-    public function verifySignature()
+    public function verifySignature(): bool
     {
         if (!isset($this->signature) || !isset($this->signkey)) {
-            throw new \BadMethodCallException("Signature and/or signkey not set");
+            throw new BadMethodCallException("Signature and/or signkey not set");
         }
         
-        $base58 = new \StephenHill\Base58();
+        $signature = Encoding::decode($this->signature);
+        $signkey = Encoding::decode($this->signkey);
         
-        $signature = $base58->decode($this->signature);
-        $signkey = $base58->decode($this->signkey);
-        
-        return strlen($signature) === \sodium\CRYPTO_SIGN_BYTES &&
-            strlen($signkey) === \sodium\CRYPTO_SIGN_PUBLICKEYBYTES &&
-            \sodium\crypto_sign_verify_detached($signature, $this->getMessage(), $signkey);
+        return strlen($signature) === SODIUM_CRYPTO_SIGN_BYTES &&
+            strlen($signkey) === SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES &&
+            sodium_crypto_sign_verify_detached($signature, $this->getMessage(), $signkey);
     }
-    
+
+    /**
+     * Get the version a resource might be given when defined through this event.
+     *
+     * @return string
+     */
+    public function getResourceVersion()
+    {
+        $rawHash = hash('sha256', $this->body, true);
+        $hash = Encoding::encode($rawHash);
+
+        return substr($hash, 0, 8);
+    }
+
     /**
      * Sign this event
      * 
      * @param Account $account
      * @return $this
      */
-    public function signWith(Account $account)
+    public function signWith(Account $account): self
     {
         return $account->signEvent($this);
     }
@@ -147,7 +161,7 @@ class Event
      * @param EventChain $chain
      * @return $this
      */
-    public function addTo(EventChain $chain)
+    public function addTo(EventChain $chain): self
     {
         return $chain->add($this);
     }
