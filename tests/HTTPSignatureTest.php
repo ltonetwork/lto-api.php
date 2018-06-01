@@ -55,13 +55,31 @@ class HTTPSignatureTest extends TestCase
         $uri->expects($this->once())->method('withPort')->with('')->willReturnSelf();
         $uri->expects($this->once())->method('withUserInfo')->with('')->willReturnSelf();
         $uri->expects($this->once())->method('__toString')->willReturn('/foos?a=1');
-        
+
         $request = $this->createMock(RequestInterface::class);
         $request->expects($this->once())->method('getMethod')->willReturn('GET');
         $request->expects($this->once())->method('getUri')->willReturn($uri);
-        
+
         $httpSign = $this->createHTTPSignature($request);
-        
+
+        $this->assertSame('get /foos?a=1', $httpSign->getRequestTarget());
+    }
+
+    public function testGetRequestTargetWithoutSlash()
+    {
+        $uri = $this->createMock(UriInterface::class);
+        $uri->expects($this->once())->method('withScheme')->with('')->willReturnSelf();
+        $uri->expects($this->once())->method('withHost')->with('')->willReturnSelf();
+        $uri->expects($this->once())->method('withPort')->with('')->willReturnSelf();
+        $uri->expects($this->once())->method('withUserInfo')->with('')->willReturnSelf();
+        $uri->expects($this->once())->method('__toString')->willReturn('foos?a=1');
+
+        $request = $this->createMock(RequestInterface::class);
+        $request->expects($this->once())->method('getMethod')->willReturn('GET');
+        $request->expects($this->once())->method('getUri')->willReturn($uri);
+
+        $httpSign = $this->createHTTPSignature($request);
+
         $this->assertSame('get /foos?a=1', $httpSign->getRequestTarget());
     }
     
