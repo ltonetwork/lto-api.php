@@ -80,7 +80,7 @@ class HTTPSignature
         $uri = (string)$this->request->getUri()->withScheme('')->withHost('')->withPort(null)->withUserInfo('');
 
         if (substr($uri, 0, 1) !== '/') {
-            $uri .= '/';
+            $uri = '/' . $uri;
         }
         
         return $method . ' ' . $uri;
@@ -320,17 +320,17 @@ class HTTPSignature
      */
     public function signWith(Account $account, $algorithm = 'ed25519-sha256')
     {
-        if (!$this->request->hasHeader('date')) {
-            $date = date(DATE_RFC1123);
-            $this->request = $this->request->withHeader('date', $date);
-        }
-
         $this->params = [
             'keyId' => $account->getPublicSignKey('base64'),
             'algorithm' => 'ed25519-sha256',
             'headers' => join(' ', $this->getHeaders())
         ];
-        
+
+        if (!$this->request->hasHeader('date')) {
+            $date = date(DATE_RFC1123);
+            $this->request = $this->request->withHeader('date', $date);
+        }
+
         $message = $algorithm == 'ed25519-sha256' ? hash('sha256', $this->getMessage(), true) : $this->getMessage();
         $signature = $account->sign($message, 'base64');
         
