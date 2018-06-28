@@ -191,7 +191,6 @@ class HTTPSignatureTest extends TestCase
     {
         $request = $this->createMock(RequestInterface::class);
         $request->expects($this->atLeast(3))->method('getHeaderLine')->willReturnMap([
-            ["date", "Tue, 07 Jun 2014 20:51:35 GMT"],
             ["x-date", "Tue, 07 Jun 2014 20:50:00 GMT"],
             ["digest", "SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE="],
             ["content-length", '18']
@@ -199,12 +198,12 @@ class HTTPSignatureTest extends TestCase
         
         $httpSign = $this->createHTTPSignature($request, ['getHeaders', 'getRequestTarget']);
         $httpSign->expects($this->atLeastOnce())->method('getHeaders')
-            ->willReturn(["(request-target)", "date", "digest", "content-length"]);
+            ->willReturn(["(request-target)", "x-date", "digest", "content-length"]);
         $httpSign->expects($this->atLeastOnce())->method('getRequestTarget')->willReturn('post /foo');
         
         $msg = join("\n", [
             "(request-target): post /foo",
-            "date: Tue, 07 Jun 2014 20:51:35 GMT",
+            "x-date: Tue, 07 Jun 2014 20:50:00 GMT",
             "digest: SHA-256=X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=",
             "content-length: 18"
         ]);
@@ -217,6 +216,8 @@ class HTTPSignatureTest extends TestCase
         $date = date(DATE_RFC1123);
         
         $request = $this->createMock(RequestInterface::class);
+        $request->expects($this->once())->method('hasHeader')->with("x-date")
+            ->willReturn(false);
         $request->expects($this->once())->method('getHeaderLine')->with("date")
             ->willReturn($date);
         
@@ -233,6 +234,8 @@ class HTTPSignatureTest extends TestCase
         $date = "Tue, 07 Jun 2014 20:51:35 GMT";
         
         $request = $this->createMock(RequestInterface::class);
+        $request->expects($this->once())->method('hasHeader')->with("x-date")
+            ->willReturn(false);
         $request->expects($this->once())->method('getHeaderLine')->with("date")
             ->willReturn($date);
         

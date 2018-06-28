@@ -272,7 +272,7 @@ class HTTPSignature
      */
     protected function assertSignatureAge()
     {
-        $date = $this->request->getHeaderLine('date');
+        $date = ($this->request->hasHeader('x-date') ? $this->request->getHeaderLine('x-date') : $this->request->getHeaderLine('date'));
         
         if (empty($date) || abs(time() - strtotime($date)) > $this->clockSkew) {
             throw new HTTPSignatureException("signature to old or clock offset");
