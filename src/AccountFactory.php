@@ -33,7 +33,7 @@ class AccountFactory
     public function __construct($network, $nonce = null)
     {
         $this->network = is_int($network) ? chr($network) : substr($network, 0, 1);
-        $this->nonce = isset($nonce) ? $nonce : random_int(0, 0xFFFF);
+        $this->nonce = isset($nonce) ? $nonce : 0;
     }
     
     /**
@@ -43,7 +43,7 @@ class AccountFactory
      */
     protected function getNonce()
     {
-        return $this->nonce++;
+        return $this->nonce;
     }
     
     /**
