@@ -36,7 +36,7 @@ class AccountFactory
     public function __construct($network, int $nonce = null)
     {
         $this->network = is_int($network) ? chr($network) : substr($network, 0, 1);
-        $this->nonce = isset($nonce) ? $nonce : random_int(0, 0xFFFF);
+        $this->nonce = isset($nonce) ? $nonce : 0;
     }
     
     /**
@@ -46,7 +46,7 @@ class AccountFactory
      */
     protected function getNonce(): int
     {
-        return $this->nonce++;
+        return $this->nonce;
     }
     
     /**
@@ -130,7 +130,7 @@ class AccountFactory
         
         $account->sign = $this->createSignKeys($seed);
         $account->encrypt = $this->createEncryptKeys($seed);
-        $account->address = $this->createAddress($account->encrypt->publickey, 'encrypt');
+        $account->address = $this->createAddress($account->sign->publickey, 'sign');
         
         return $account;
     }
