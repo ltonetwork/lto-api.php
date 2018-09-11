@@ -130,7 +130,7 @@ class AccountFactory
         
         $account->sign = $this->createSignKeys($seed);
         $account->encrypt = $this->createEncryptKeys($seed);
-        $account->address = $this->createAddress($account->encrypt->publickey, 'encrypt');
+        $account->address = $this->createAddress($account->sign->publickey, 'sign');
         
         return $account;
     }
