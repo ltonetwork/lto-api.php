@@ -1,4 +1,4 @@
-LegalThings One client for PHP
+LTO Network client for PHP
 ===
 
 [![Build Status](https://travis-ci.org/legalthings/lto-api.php.svg?branch=master)](https://travis-ci.org/legalthings/lto-api.php)
@@ -6,7 +6,6 @@ LegalThings One client for PHP
 [![Code Coverage](https://scrutinizer-ci.com/g/legalthings/lto-api.php/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/legalthings/lto-api.php/?branch=master)
 [![Packagist Stable Version](https://img.shields.io/packagist/v/legalthings/lto-api.svg)](https://packagist.org/packages/legalthings/lto-api)
 [![Packagist License](https://img.shields.io/packagist/l/legalthings/lto-api.svg)](https://packagist.org/packages/legalthings/lto-api)
-
 
 Installation
 ---
@@ -33,7 +32,7 @@ $accountInfo = [
   ]
 ];
 
-$factory = new LTO\AccountFactory('T'); // 'T' for testnet and 'W' for mainnet
+$factory = new LTO\AccountFactory('T'); // 'T' for testnet, 'W' for mainnet or 'L' for the public chain
 $account = $factory->create($accountInfo);
 ```
 
