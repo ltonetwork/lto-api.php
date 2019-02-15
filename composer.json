@@ -27,6 +27,9 @@
     "autoload": {
         "psr-4": {
             "LTO\\": "src/"
-        }
+        },
+        "files": [
+            "src/functions.php"
+        ]
     }
 }

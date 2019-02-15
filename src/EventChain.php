@@ -2,6 +2,9 @@
 
 namespace LTO;
 
+use function blake2b as blake2b;
+use InvalidArgumentException;
+
 /**
  * Live contracts event chain
  */
@@ -62,16 +65,16 @@ class EventChain
      */
     protected function createId(int $type, string $ns, ?string $nonceSeed = null): string
     {
-        $nsHashed = self::hash(sodium_crypto_generichash($ns, '', 32));
+        $nsHashed = sha256(blake2b($ns, '', 32));
 
-        $nonce = isset($nonceSeed) ? self::hash($nonceSeed) : $this->getRandomNonce();
+        $nonce = isset($nonceSeed) ? sha256($nonceSeed) : $this->getRandomNonce();
 
         $packed = pack('Ca20a20', $type, $nonce, $nsHashed);
-        $chksum = self::hash(sodium_crypto_generichash($packed));
+        $chksum = sha256(blake2b($packed));
 
         $idBinary = pack('Ca20a20a4', $type, $nonce, $nsHashed, $chksum);
 
-        return Encoding::encode($idBinary);
+        return encode($idBinary);
     }
 
     /**
@@ -111,7 +114,6 @@ class EventChain
 
     /**
      * Validate if the ID is a valid projection ID for this event chain.
-     * {@internal `sodium_crypto_generichash` is Blake2b}}
      *
      * @param string $projectionId
      * @return bool
@@ -119,8 +121,8 @@ class EventChain
     public function isValidProjectionId(string $projectionId): bool
     {
         try {
-            $binaryId = Encoding::decode($projectionId);
-        } catch (\InvalidArgumentException $e) {
+            $binaryId = decode($projectionId);
+        } catch (InvalidArgumentException $e) {
             return false;
         }
 
@@ -128,10 +130,10 @@ class EventChain
             return false;
         }
 
-        $nsHashed = self::hash(sodium_crypto_generichash($this->id, '', 32));
+        $nsHashed = sha256(blake2b($this->id));
 
         $parts = unpack('Ctype/a20nonce/a20ns/a4checksum', $binaryId);
-        $checksum = self::hash(sodium_crypto_generichash(substr($binaryId, 0, -4)));
+        $checksum = sha256(blake2b(substr($binaryId, 0, -4)));
 
         return $parts['type'] === self::PROJECTION_ADDRESS_VERSION
             && $parts['ns'] === substr($nsHashed, 0, 20)
@@ -145,9 +147,9 @@ class EventChain
      */
     public function getInitialHash(): string
     {
-        $rawId = Encoding::decode($this->id);
+        $rawId = decode($this->id);
         
-        return Encoding::encode(self::hash($rawId));
+        return encode(sha256($rawId));
     }
     
     /**
@@ -180,16 +182,5 @@ class EventChain
         $this->latestHash = null;
         
         return $event;
-    }
-
-    /**
-     * Create a raw SHA-256 hash of the input.
-     *
-     * @param string $input
-     * @return string
-     */
-    protected function hash(string $input): string
-    {
-        return hash('sha256', $input, true);
     }
 }

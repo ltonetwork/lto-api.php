@@ -3,6 +3,7 @@
 namespace LTO;
 
 use BadMethodCallException;
+use function sodium_crypto_sign_verify_detached as ed25519_verify;
 
 /**
  * Live Contracts Event
@@ -61,7 +62,7 @@ class Event
     public function __construct($body = null, string $previous = null)
     {
         if (isset($body)) {
-            $this->body = Encoding::encode(json_encode($body));
+            $this->body = encode(json_encode($body));
             $this->timestamp = time();
         }
         
@@ -101,9 +102,9 @@ class Event
      */
     public function getHash(): string
     {
-        $hash = hash('sha256', $this->getMessage(), true);
+        $hash = sha256($this->getMessage());
 
-        return Encoding::encode($hash);
+        return encode($hash, 'base58');
     }
     
     /**
@@ -118,12 +119,12 @@ class Event
             throw new BadMethodCallException("Signature and/or signkey not set");
         }
         
-        $signature = Encoding::decode($this->signature);
-        $signkey = Encoding::decode($this->signkey);
+        $signature = decode($this->signature, 'base58');
+        $signkey = decode($this->signkey, 'base58');
         
         return strlen($signature) === SODIUM_CRYPTO_SIGN_BYTES &&
             strlen($signkey) === SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES &&
-            sodium_crypto_sign_verify_detached($signature, $this->getMessage(), $signkey);
+            ed25519_verify($signature, $this->getMessage(), $signkey);
     }
 
     /**
@@ -133,8 +134,8 @@ class Event
      */
     public function getResourceVersion()
     {
-        $rawHash = hash('sha256', $this->body, true);
-        $hash = Encoding::encode($rawHash);
+        $rawHash = sha256($this->body);
+        $hash = encode($rawHash, 'base58');
 
         return substr($hash, 0, 8);
     }

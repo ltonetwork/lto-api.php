@@ -4,6 +4,22 @@ namespace LTO;
 
 use function base58_encode;
 
+// ED25519 sign functions
+use function sodium_crypto_sign_seed_keypair as ed25519_seed_keypair;
+use function sodium_crypto_sign_publickey as ed25519_publickey;
+use function sodium_crypto_sign_secretkey as ed25519_secretkey;
+use function sodium_crypto_sign_publickey_from_secretkey as ed25519_publickey_from_secretkey;
+
+// X25519 encrypt functions
+use function sodium_crypto_box_seed_keypair as x25519_seed_keypair;
+use function sodium_crypto_box_publickey as x25519_publickey;
+use function sodium_crypto_box_secretkey as x25519_secretkey;
+use function sodium_crypto_box_publickey_from_secretkey as x25519_publickey_from_secretkey;
+
+// Convert ED25519 keys to X25519 keys
+use function sodium_crypto_sign_ed25519_pk_to_curve25519 as ed25519_to_x25519_publickey;
+use function sodium_crypto_sign_ed25519_sk_to_curve25519 as ed25519_to_x25519_secretkey;
+
 /**
  * Create new account (aka wallet)
  */
@@ -48,17 +64,15 @@ class AccountFactory
     /**
      * Create the account seed using several hashing algorithms.
      *
-     * {@internal `sodium_crypto_generichash` is Blake2b}}
-     *
      * @param string $seedText  Brainwallet seed string
      * @return string  raw seed (not encoded)
      */
     public function createAccountSeed(string $seedText): string
     {
         $seedBase = pack('La*', $this->getNonce(), $seedText);
-        $seedHash = self::hash(sodium_crypto_generichash($seedBase, '', 32));
+        $seedHash = sha256(blake2b($seedBase));
 
-        return self::hash($seedHash);
+        return sha256($seedHash);
     }
     
     /**
@@ -69,9 +83,9 @@ class AccountFactory
      */
     protected function createSignKeys(string $seed): \stdClass
     {
-        $keypair = sodium_crypto_sign_seed_keypair($seed);
-        $publickey = sodium_crypto_sign_publickey($keypair);
-        $secretkey = sodium_crypto_sign_secretkey($keypair);
+        $keypair = ed25519_seed_keypair($seed);
+        $publickey = ed25519_publickey($keypair);
+        $secretkey = ed25519_secretkey($keypair);
 
         return (object)compact('publickey', 'secretkey');
     }
@@ -84,9 +98,9 @@ class AccountFactory
      */
     protected function createEncryptKeys(string $seed): \stdClass
     {
-        $keypair = sodium_crypto_box_seed_keypair($seed);
-        $publickey = sodium_crypto_box_publickey($keypair);
-        $secretkey = sodium_crypto_box_secretkey($keypair);
+        $keypair = x25519_seed_keypair($seed);
+        $publickey = x25519_publickey($keypair);
+        $secretkey = x25519_secretkey($keypair);
         
         return (object)compact('publickey', 'secretkey');
     }
@@ -94,22 +108,18 @@ class AccountFactory
     /**
      * Create an address from a public key
      * 
-     * @param string $publickey  Raw public key (not encoded)
-     * @param string $type       Type of key 'sign' or 'encrypt'
+     * @param string $publickey  Raw public sign key
      * @return string  raw (not encoded)
      */
-    public function createAddress(string $publickey, string $type = 'encrypt'): string
+    public function createAddress(string $publickey): string
     {
-        if ($type === 'sign') {
-            $publickey = sodium_crypto_sign_ed25519_pk_to_curve25519($publickey);
-        }
-        
-        $publickeyHash = substr(self::hash(sodium_crypto_generichash($publickey, '', 32), false), 0, 40);
+        $publickeyHash = substr(sha256(blake2b($publickey)), 0, 20);
+        $prefix = pack('Ca', self::ADDRESS_VERSION, $this->network);
 
-        $packed = pack('CaH40', self::ADDRESS_VERSION, $this->network, $publickeyHash);
-        $chksum = substr(self::hash(sodium_crypto_generichash($packed), false), 0, 8);
+        $base = $prefix . $publickeyHash;
+        $chksum = substr(sha256(blake2b($base)), 0, 4);
 
-        return pack('CaH40H8', self::ADDRESS_VERSION, $this->network, $publickeyHash, $chksum);
+        return $base . $chksum;
     }
     
     /**
@@ -126,7 +136,7 @@ class AccountFactory
         
         $account->sign = $this->createSignKeys($seed);
         $account->encrypt = $this->createEncryptKeys($seed);
-        $account->address = $this->createAddress($account->sign->publickey, 'sign');
+        $account->address = $this->createAddress($account->sign->publickey);
         
         return $account;
     }
@@ -143,7 +153,7 @@ class AccountFactory
         $encrypt = (object)[];
         
         if (isset($sign->secretkey)) {
-            $secretkey = sodium_crypto_sign_ed25519_sk_to_curve25519($sign->secretkey);
+            $secretkey = ed25519_to_x25519_secretkey($sign->secretkey);
 
             // Swap bits, on uneven???
             $bytes = unpack('C*', $secretkey);
@@ -154,7 +164,7 @@ class AccountFactory
         }
         
         if (isset($sign->publickey)) {
-            $encrypt->publickey = sodium_crypto_sign_ed25519_pk_to_curve25519($sign->publickey);
+            $encrypt->publickey = ed25519_to_x25519_publickey($sign->publickey);
         }
         
         return $encrypt;
@@ -177,8 +187,8 @@ class AccountFactory
         $secretkey = $keys['secretkey'];
         
         $publickey = $type === 'sign' ?
-            sodium_crypto_sign_publickey_from_secretkey($secretkey) :
-            sodium_crypto_box_publickey_from_secretkey($secretkey);
+            ed25519_publickey_from_secretkey($secretkey) :
+            x25519_publickey_from_secretkey($secretkey);
         
         if (isset($keys['publickey']) && $keys['publickey'] !== $publickey) {
             throw new InvalidAccountException("Public {$type} key doesn't match private {$type} key");
@@ -287,26 +297,6 @@ class AccountFactory
             }, $data);
         }
 
-        if ($encoding === 'base58') {
-            $data = Encoding::decode($data);
-        }
-
-        if ($encoding === 'base64') {
-            $data = base64_decode($data);
-        }
-
-        return $data;
-    }
-
-    /**
-     * Create a SHA-256 hash of the input.
-     *
-     * @param string $input
-     * @param bool   $raw
-     * @return string
-     */
-    protected static function hash(string $input, bool $raw = true): string
-    {
-        return hash('sha256', $input, $raw);
+        return decode($data, $encoding);
     }
 }

@@ -3,6 +3,11 @@
 namespace LTO;
 
 use RuntimeException;
+use function sodium_crypto_sign_detached as ed25519_sign;
+use function sodium_crypto_sign_verify_detached as ed25519_verify;
+use function sodium_crypto_box_keypair_from_secretkey_and_publickey as x25519_keypair;
+use function sodium_crypto_box as x25519_encrypt;
+use function sodium_crypto_box_open as x25519_decrypt;
 
 /**
  * An account (aka wallet)
@@ -48,7 +53,7 @@ class Account
      */
     public function getAddress(string $encoding = 'base58'): ?string
     {
-        return $this->address ? Encoding::encode($this->address, $encoding) : null;
+        return $this->address ? encode($this->address, $encoding) : null;
     }
     
     /**
@@ -59,7 +64,7 @@ class Account
      */
     public function getPublicSignKey(string $encoding = 'base58'): ?string
     {
-        return $this->sign ? Encoding::encode($this->sign->publickey, $encoding) : null;
+        return $this->sign ? encode($this->sign->publickey, $encoding) : null;
     }
     
     /**
@@ -70,7 +75,7 @@ class Account
      */
     public function getPublicEncryptKey(string $encoding = 'base58'): ?string
     {
-        return $this->encrypt ? Encoding::encode($this->encrypt->publickey, $encoding) : null;
+        return $this->encrypt ? encode($this->encrypt->publickey, $encoding) : null;
     }
     
     
@@ -88,9 +93,9 @@ class Account
             throw new RuntimeException("Unable to sign message; no secret sign key");
         }
         
-        $signature = sodium_crypto_sign_detached($message, $this->sign->secretkey);
+        $signature = ed25519_sign($message, $this->sign->secretkey);
         
-        return Encoding::encode($signature, $encoding);
+        return encode($signature, $encoding);
     }
     
     /**
@@ -123,11 +128,11 @@ class Account
             throw new RuntimeException("Unable to verify message; no public sign key");
         }
         
-        $rawSignature = Encoding::decode($signature, $encoding);
+        $rawSignature = decode($signature, $encoding);
         
         return strlen($rawSignature) === SODIUM_CRYPTO_SIGN_BYTES &&
             strlen($this->sign->publickey) === SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES &&
-            sodium_crypto_sign_verify_detached($rawSignature, $message, $this->sign->publickey);
+            ed25519_verify($rawSignature, $message, $this->sign->publickey);
     }
     
     
@@ -151,11 +156,9 @@ class Account
         }
         
         $nonce = $this->getNonce();
-
-        $encryptionKey = sodium_crypto_box_keypair_from_secretkey_and_publickey($this->encrypt->secretkey,
-            $recipient->encrypt->publickey);
+        $encryptionKey = x25519_keypair($this->encrypt->secretkey, $recipient->encrypt->publickey);
         
-        return sodium_crypto_box($message, $nonce, $encryptionKey) . $nonce;
+        return x25519_encrypt($message, $nonce, $encryptionKey) . $nonce;
     }
     
     /**
@@ -170,20 +173,19 @@ class Account
     public function decryptFrom(Account $sender, string $cyphertext): string
     {
         if (!isset($this->encrypt->secretkey)) {
-            throw new \RuntimeException("Unable to decrypt message; no secret encryption key");
+            throw new RuntimeException("Unable to decrypt message; no secret encryption key");
         }
         
         if (!isset($sender->encrypt->publickey)) {
-            throw new \RuntimeException("Unable to decrypt message; no public encryption key for sender");
+            throw new RuntimeException("Unable to decrypt message; no public encryption key for sender");
         }
         
         $encryptedMessage = substr($cyphertext, 0, -24);
         $nonce = substr($cyphertext, -24);
 
-        $encryptionKey = sodium_crypto_box_keypair_from_secretkey_and_publickey($sender->encrypt->secretkey,
-            $this->encrypt->publickey);
+        $encryptionKey = x25519_keypair($sender->encrypt->secretkey, $this->encrypt->publickey);
         
-        $message = sodium_crypto_box_open($encryptedMessage, $nonce, $encryptionKey);
+        $message = x25519_decrypt($encryptedMessage, $nonce, $encryptionKey);
         
         if ($message === false) {
             throw new DecryptException("Failed to decrypt message from " . $sender->getAddress());
