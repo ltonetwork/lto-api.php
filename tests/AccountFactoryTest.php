@@ -12,6 +12,9 @@ use LTO\AccountFactory;
  */
 class AccountFactoryTest extends TestCase
 {
+    /**
+     * @var string
+     */
     public $seedText = "manage manual recall harvest series desert melt police rose hollow moral pledge kitten"
             . " position add";
     
@@ -24,7 +27,7 @@ class AccountFactoryTest extends TestCase
      */
     public static function assertBase58Equals($encoded, $actual, $message = '')
     {
-        $value = base58_encode($actual);
+        $value = is_string($actual) ? base58_encode($actual) : $actual;
         
         $constraint = new IsEqualConstraint($encoded);
 
@@ -37,20 +40,20 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreateAccountSeed()
     {
-        $factory = new AccountFactory('W', 0);
+        $factory = new AccountFactory('L', 0);
         $seed = $factory->createAccountSeed($this->seedText);
         
-        $this->assertEquals("49mgaSSVQw6tDoZrHSr9rFySgHHXwgQbCRwFssboVLWX", base58_encode($seed));
+        $this->assertEquals("ETYQWXzC2h8VXahYdeUTXNPXEkan3vi9ikXbn912ijiw", base58_encode($seed));
     }
 
     
     public function createAddressProvider()
     {
         return [
-            [ "3PPbMwqLtwBGcJrTA5whqJfY95GqnNnFMDX", 'W' ],
-            [ "3PPbMwqLtwBGcJrTA5whqJfY95GqnNnFMDX", 0x57 ],
-            [ "3NBaYzWT2odsyrZ2u1ghsrHinBm4xFRAgLX", 'T' ],
-            [ "3NBaYzWT2odsyrZ2u1ghsrHinBm4xFRAgLX", 0x54 ]
+            [ "3JmCa4jLVv7Yn2XkCnBUGsa7WNFVEMxAfWe", 'L' ],
+            [ "3JmCa4jLVv7Yn2XkCnBUGsa7WNFVEMxAfWe", 0x4C ],
+            [ "3MyuPwbiobZFnZzrtyY8pkaHoQHYmyQxxY1", 'T' ],
+            [ "3MyuPwbiobZFnZzrtyY8pkaHoQHYmyQxxY1", 0x54 ]
         ];
     }
     
@@ -60,28 +63,12 @@ class AccountFactoryTest extends TestCase
      * @param string     $expected
      * @param string|int $network
      */
-    public function testCreateAddressEncrypt($expected, $network)
+    public function testCreateAddress($expected, $network)
     {
         $factory = new AccountFactory($network, 0);
         
-        $publickey = base58_decode("HBqhfdFASRQ5eBBpu2y6c6KKi1az6bMx8v1JxX4iW1Q8");
-        $address = $factory->createAddress($publickey, "encrypt");
-        
-        $this->assertEquals($expected, base58_encode($address));
-    }
-    
-    /**
-     * @dataProvider createAddressProvider
-     * 
-     * @param string     $expected
-     * @param string|int $network
-     */
-    public function testCreateAddressSign($expected, $network)
-    {
-        $factory = new AccountFactory($network, 0);
-        
-        $publickey = base58_decode("BvEdG3ATxtmkbCVj9k2yvh3s6ooktBoSmyp8xwDqCQHp");
-        $address = $factory->createAddress($publickey, "sign");
+        $publickey = base58_decode("GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY");
+        $address = $factory->createAddress($publickey);
         
         $this->assertEquals($expected, base58_encode($address));
     }
@@ -89,6 +76,10 @@ class AccountFactoryTest extends TestCase
     public function convertSignToEncryptProvider()
     {
         return [
+            [
+                (object)['publickey' => '6fDod1xcVj4Zezwyy3tdPGHkuDyMq8bDHQouyp5BjXsX'],
+                (object)['publickey' => 'GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY']
+            ],
             [
                 (object)['publickey' => "EZa2ndj6h95m3xm7DxPQhrtANvhymNC7nWQ3o1vmDJ4x"],
                 (object)['publickey' => "gVVExGUK4J5BsxwUfYsFkkjpn6A7BcvYdmARL28GBRc"]
@@ -106,14 +97,22 @@ class AccountFactoryTest extends TestCase
                 (object)['publickey' => "7TecQdLbPuxt3mWukbZ1g1dTZeA6rxgjMxfS9MRURaEP"]
             ],
             [
-                (object)['secretkey' => "ACsYcMff8UPUc5dvuCMAkqZxcRTjXHMnCc29TZkWLQsZ"],
-                (object)['secretkey' =>
-                    "5DteGKYVUUSSaruCK6H8tpd4oYWfcyNohyhJiYGYGBVzhuEmAmRRNcUJQzA2bk4DqqbtpaE51HTD1i3keTvtbCTL"]
+                (object)['secretkey' => "4q7HKMbwbLcG58iFV3pz4vkRnPTwbrY9Q5JrwnwLEZCC"],
+                (object)[
+                    'secretkey' => "4zsR9xoFpxfnNwLcY4hdRUarwf5xWtLj6FpKGDFBgscPxecPj2qgRNx4kJsFCpe9YDxBRNoeBWTh2SDAdwTySomS"
+                ]
             ],
             [
-                (object)['secretkey' => "BnjFJJarge15FiqcxrB7Mzt68nseBXXR4LQ54qFBsWJN"],
-                (object)['secretkey' =>
-                    "wJ4WH8dD88fSkNdFQRjaAhjFUZzZhV5yiDLDwNUnp6bYwRXrvWV8MJhQ9HL9uqMDG1n7XpTGZx7PafqaayQV8Rp"]
+                (object)['secretkey' => "ACsYcMff8UPUc5dvuCMAkqZxcRTjXHMnCc29TZkWLQsZ"],
+                (object)[
+                    'secretkey' => "5DteGKYVUUSSaruCK6H8tpd4oYWfcyNohyhJiYGYGBVzhuEmAmRRNcUJQzA2bk4DqqbtpaE51HTD1i3keTvtbCTL"
+                ]
+            ],
+            [
+                (object)['secretkey' => "BnjFJJarge15FiqcxrB7Mzt68nseBXXR4LQ54qFBsWHG"],
+                (object)[
+                    'secretkey' => "wJ4WH8dD88fSkNdFQRjaAhjFUZzZhV5yiDLDwNUnp6bYwRXrvWV8MJhQ9HL9uqMDG1n7XpTGZx7PafqaayQV8Rp"
+                ]
             ]
         ];
     }
@@ -130,7 +129,7 @@ class AccountFactoryTest extends TestCase
             $value = base58_decode($value);
         }
         
-        $factory = new AccountFactory('W', 0);
+        $factory = new AccountFactory('L', 0);
 
         $encrypt = $factory->convertSignToEncrypt($sign);
         
@@ -140,57 +139,71 @@ class AccountFactoryTest extends TestCase
         
         $this->assertEquals($expected, $encrypt);
     }
-    
-    
-    public function testSeed()
+
+    public function seedProvider()
     {
-        $factory = new AccountFactory('W', 0);
+        return [
+            [ "3JmCa4jLVv7Yn2XkCnBUGsa7WNFVEMxAfWe", 'L' ],
+            [ "3MyuPwbiobZFnZzrtyY8pkaHoQHYmyQxxY1", 'T' ],
+        ];
+    }
+
+    /**
+     * @dataProvider seedProvider
+     *
+     * @param $expectedAddress
+     * @param $network
+     */
+    public function testSeed($expectedAddress, $network)
+    {
+        $factory = new AccountFactory($network, 0);
         
         $account = $factory->seed($this->seedText);
         
         $this->assertInstanceOf(Account::class, $account);
         
-        $this->assertBase58Equals("FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y", $account->sign->publickey);
         $this->assertBase58Equals(
-            "wJ4WH8dD88fSkNdFQRjaAhjFUZzZhV5yiDLDwNUnp6bYwRXrvWV8MJhQ9HL9uqMDG1n7XpTGZx7PafqaayQV8Rp",
-            $account->sign->secretkey);
-        
-        $this->assertBase58Equals("BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6", $account->encrypt->publickey);
-        $this->assertBase58Equals("BnjFJJarge15FiqcxrB7Mzt68nseBXXR4LQ54qFBsWJN", $account->encrypt->secretkey);
-        
-        $this->assertBase58Equals("3PLSsSDUn3kZdGe8qWEDak9y8oAjLVecXV1", $account->address);
+            "4zsR9xoFpxfnNwLcY4hdRUarwf5xWtLj6FpKGDFBgscPxecPj2qgRNx4kJsFCpe9YDxBRNoeBWTh2SDAdwTySomS",
+            $account->sign->secretkey
+        );
+        $this->assertBase58Equals("GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY", $account->sign->publickey);
+
+        $this->assertBase58Equals("4q7HKMbwbLcG58iFV3pz4vkRnPTwbrY9Q5JrwnwLEZCC", $account->encrypt->secretkey);
+        $this->assertBase58Equals("6fDod1xcVj4Zezwyy3tdPGHkuDyMq8bDHQouyp5BjXsX", $account->encrypt->publickey);
+
+        $this->assertBase58Equals($expectedAddress, $account->address);
     }
 
 
     public function createSecretProvider()
     {
         $sign = [
-            'secretkey' => 'wJ4WH8dD88fSkNdFQRjaAhjFUZzZhV5yiDLDwNUnp6bYwRXrvWV8MJhQ9HL9uqMDG1n7XpTGZx7PafqaayQV8Rp',
-            'publickey' => 'FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y'
+            'secretkey' => '4zsR9xoFpxfnNwLcY4hdRUarwf5xWtLj6FpKGDFBgscPxecPj2qgRNx4kJsFCpe9YDxBRNoeBWTh2SDAdwTySomS',
+            'publickey' => 'GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY'
         ];
         $signSecret = ['secretkey' => $sign['secretkey']];
         
         $encrypt = [
-            'secretkey' => 'BnjFJJarge15FiqcxrB7Mzt68nseBXXR4LQ54qFBsWJN',
-            'publickey' => 'BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6'
+            'secretkey' => '4q7HKMbwbLcG58iFV3pz4vkRnPTwbrY9Q5JrwnwLEZCC',
+            'publickey' => '6fDod1xcVj4Zezwyy3tdPGHkuDyMq8bDHQouyp5BjXsX'
         ];
         $encryptSecret = ['secretkey' => $encrypt['secretkey']];
         
-        $address = '3PLSsSDUn3kZdGe8qWEDak9y8oAjLVecXV1';
+        $address = '3JmCa4jLVv7Yn2XkCnBUGsa7WNFVEMxAfWe';
         
         return [
-            [ compact('sign', 'encrypt', 'address'), true, true ],
-            [ compact('sign', 'encrypt'), true, true ],
-            [ compact('sign', 'address'), true, true ],
-            [ compact('sign'), true, true ],
-            [ compact('encrypt', 'address'), false, true ],
-            [ compact('encrypt'), false, true ],
-            [ compact('address'), false, false ],
-            [ ['sign' => $signSecret, 'encrypt' => $encryptSecret, 'address' => $address], true, true ],
-            [ ['sign' => $signSecret, 'encrypt' => $encryptSecret], true, true ],
-            [ ['sign' => $signSecret], true, true ],
-            [ $sign['secretkey'], true, true ],
-            [ ['encrypt' => $encryptSecret], false, true ]
+            [ compact('sign', 'encrypt', 'address'), true, true, true ],
+            [ compact('sign', 'encrypt'), true, true, true ],
+            [ compact('sign', 'address'), true, true, true ],
+            [ compact('sign'), true, true, true ],
+            [ compact('encrypt', 'address'), false, true, true ],
+            [ compact('encrypt'), false, true, false ],
+            [ compact('address'), false, false, true ],
+            [ ['sign' => $signSecret, 'encrypt' => $encryptSecret, 'address' => $address], true, true, true ],
+            [ ['sign' => $signSecret, 'encrypt' => $encryptSecret], true, true, true ],
+            [ ['sign' => $signSecret], true, true, true ],
+            [ $sign['secretkey'], true, true, true ],
+            [ ['encrypt' => $encryptSecret], false, true, false ]
         ];
     }
     
@@ -198,12 +211,13 @@ class AccountFactoryTest extends TestCase
      * @dataProvider createSecretProvider
      * 
      * @param array|string $data
-     * @param boolean      $hasSign
-     * @param boolean      $hasEncrypt
+     * @param bool         $hasSign
+     * @param bool         $hasEncrypt
+     * @param bool         $hasAddress
      */
-    public function testCreate($data, $hasSign, $hasEncrypt)
+    public function testCreate($data, $hasSign, $hasEncrypt, $hasAddress)
     {
-        $factory = new AccountFactory('W', 0);
+        $factory = new AccountFactory('L', 0);
         $account = $factory->create($data);
         
         $this->assertInstanceOf(Account::class, $account);
@@ -211,22 +225,24 @@ class AccountFactoryTest extends TestCase
         if ($hasSign) {
             $this->assertInternalType('object', $account->sign);
             $this->assertBase58Equals(
-                "wJ4WH8dD88fSkNdFQRjaAhjFUZzZhV5yiDLDwNUnp6bYwRXrvWV8MJhQ9HL9uqMDG1n7XpTGZx7PafqaayQV8Rp",
+                "4zsR9xoFpxfnNwLcY4hdRUarwf5xWtLj6FpKGDFBgscPxecPj2qgRNx4kJsFCpe9YDxBRNoeBWTh2SDAdwTySomS",
                 $account->sign->secretkey);
-            $this->assertBase58Equals("FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y", $account->sign->publickey);
+            $this->assertBase58Equals("GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY", $account->sign->publickey);
         } else {
             $this->assertNull($account->sign);
         }
         
         if ($hasEncrypt) {
             $this->assertInternalType('object', $account->encrypt);
-            $this->assertBase58Equals("BnjFJJarge15FiqcxrB7Mzt68nseBXXR4LQ54qFBsWJN", $account->encrypt->secretkey);
-            $this->assertBase58Equals("BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6", $account->encrypt->publickey);
+            $this->assertBase58Equals("4q7HKMbwbLcG58iFV3pz4vkRnPTwbrY9Q5JrwnwLEZCC", $account->encrypt->secretkey);
+            $this->assertBase58Equals("6fDod1xcVj4Zezwyy3tdPGHkuDyMq8bDHQouyp5BjXsX", $account->encrypt->publickey);
         } else {
             $this->assertNull($account->encrypt);
         }
-        
-        $this->assertBase58Equals("3PLSsSDUn3kZdGe8qWEDak9y8oAjLVecXV1", $account->address);
+
+        if ($hasAddress) {
+            $this->assertBase58Equals("3JmCa4jLVv7Yn2XkCnBUGsa7WNFVEMxAfWe", $account->address);
+        }
     }
     
     /**
@@ -235,7 +251,7 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreateEncryptKeyMismatch()
     {
-        $factory = new AccountFactory('W', 0);
+        $factory = new AccountFactory('L', 0);
         $account = $factory->create([
             'encrypt' => [
                 'publickey' => 'BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6',
@@ -252,7 +268,7 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreateSignKeyMismatch()
     {
-        $factory = new AccountFactory('W', 0);
+        $factory = new AccountFactory('L', 0);
         $account = $factory->create([
             'sign' => [
                 'publickey' => 'FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y',
@@ -270,7 +286,7 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreateKeyMismatch()
     {
-        $factory = new AccountFactory('W', 0);
+        $factory = new AccountFactory('L', 0);
         $account = $factory->create([
             'encrypt' => ['publickey' => 'EZa2ndj6h95m3xm7DxPQhrtANvhymNC7nWQ3o1vmDJ4x'],
             'sign' => ['publickey' => 'FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y']
@@ -281,15 +297,15 @@ class AccountFactoryTest extends TestCase
     
     /**
      * @expectedException LTO\InvalidAccountException
-     * @expectedExceptionMessage Address doesn't match keypair; possible network mismatch
+     * @expectedExceptionMessage Address is of network 'T', not of 'L'
      */
     public function testCreateAddressMismatch()
     {
-        $factory = new AccountFactory('W', 0);
+        $factory = new AccountFactory('L', 0);
         $account = $factory->create([
-            'encrypt' => ['publickey' => 'EZa2ndj6h95m3xm7DxPQhrtANvhymNC7nWQ3o1vmDJ4x'],
-            'sign' => ['publickey' => 'gVVExGUK4J5BsxwUfYsFkkjpn6A7BcvYdmARL28GBRc'],
-            'address' => '3PLSsSDUn3kZdGe8qWEDak9y8oAjLVecXV1'
+            'encrypt' => ['publickey' => '6fDod1xcVj4Zezwyy3tdPGHkuDyMq8bDHQouyp5BjXsX'],
+            'sign' => ['publickey' => 'GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY'],
+            'address' => '3MyuPwbiobZFnZzrtyY8pkaHoQHYmyQxxY1'
         ]);
         
         $this->assertInstanceOf(Account::class, $account);
@@ -316,7 +332,7 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreatePublic($signkey, $encryptkey, $encoding = 'base58')
     {
-        $factory = new AccountFactory('W', 0);
+        $factory = new AccountFactory('L', 0);
         $account = $factory->createPublic($signkey, $encryptkey, $encoding);
         
         $this->assertInstanceOf(Account::class, $account);
@@ -332,7 +348,11 @@ class AccountFactoryTest extends TestCase
         $this->assertObjectNotHasAttribute('secretkey', $account->encrypt);
         $this->assertObjectHasAttribute('publickey', $account->encrypt);
         $this->assertBase58Equals("BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6", $account->encrypt->publickey);
-        
-        $this->assertBase58Equals("3PLSsSDUn3kZdGe8qWEDak9y8oAjLVecXV1", $account->address);
+
+        if (isset($signkey)) {
+            $this->assertBase58Equals("3JoXfhxrA8Mvw7CvQowiNPTAzvgNYYXcn5q", $account->address);
+        } else {
+            $this->assertNull($account->address);
+        }
     }
 }

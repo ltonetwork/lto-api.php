@@ -3,7 +3,6 @@
 
 require 'vendor/autoload.php';
 
-use LTO\Account;
 use LTO\AccountFactory;
 
 if ($argc < 2) {

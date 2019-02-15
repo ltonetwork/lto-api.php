@@ -19,6 +19,7 @@ use function sodium_crypto_box_publickey_from_secretkey as x25519_publickey_from
 // Convert ED25519 keys to X25519 keys
 use function sodium_crypto_sign_ed25519_pk_to_curve25519 as ed25519_to_x25519_publickey;
 use function sodium_crypto_sign_ed25519_sk_to_curve25519 as ed25519_to_x25519_secretkey;
+use function unpack;
 
 /**
  * Create new account (aka wallet)
@@ -89,7 +90,24 @@ class AccountFactory
 
         return (object)compact('publickey', 'secretkey');
     }
-    
+
+    /**
+     * Apply a bitmask for a X25519 secret key.
+     * The masked secret key works with the same public key.
+     *
+     * @return string
+     */
+    protected function applyEncryptSecretBitmask(string $secretkey): string
+    {
+        $bytes = unpack('C*', $secretkey); // 1-based array
+
+        $bytes[1] &= 248;
+        $bytes[32] &= 127;
+        $bytes[32] |= 64;
+
+        return pack('C*', ...$bytes);
+    }
+
     /**
      * Create X25519 encrypt keypairs
      * 
@@ -100,8 +118,10 @@ class AccountFactory
     {
         $keypair = x25519_seed_keypair($seed);
         $publickey = x25519_publickey($keypair);
-        $secretkey = x25519_secretkey($keypair);
-        
+
+        $insecureSecretkey = x25519_secretkey($keypair);
+        $secretkey = $this->applyEncryptSecretBitmask($insecureSecretkey);
+
         return (object)compact('publickey', 'secretkey');
     }
 
@@ -137,7 +157,7 @@ class AccountFactory
         $account->sign = $this->createSignKeys($seed);
         $account->encrypt = $this->createEncryptKeys($seed);
         $account->address = $this->createAddress($account->sign->publickey);
-        
+
         return $account;
     }
     
@@ -153,14 +173,8 @@ class AccountFactory
         $encrypt = (object)[];
         
         if (isset($sign->secretkey)) {
-            $secretkey = ed25519_to_x25519_secretkey($sign->secretkey);
-
-            // Swap bits, on uneven???
-            $bytes = unpack('C*', $secretkey);
-            $i = count($bytes); // 1 based array
-            $bytes[$i] = $bytes[$i] % 2 ? ($bytes[$i] | 0x80) & ~0x40 : $bytes[$i];
-            
-            $encrypt->secretkey = pack('C*', ...$bytes);
+            $encrypt->secretkey = ed25519_to_x25519_secretkey($sign->secretkey);
+            // Bitmask is already applied by libsodium
         }
         
         if (isset($sign->publickey)) {
@@ -186,9 +200,9 @@ class AccountFactory
         
         $secretkey = $keys['secretkey'];
         
-        $publickey = $type === 'sign' ?
-            ed25519_publickey_from_secretkey($secretkey) :
-            x25519_publickey_from_secretkey($secretkey);
+        $publickey = ($type === 'sign')
+            ? ed25519_publickey_from_secretkey($secretkey)
+            : x25519_publickey_from_secretkey($secretkey);
         
         if (isset($keys['publickey']) && $keys['publickey'] !== $publickey) {
             throw new InvalidAccountException("Public {$type} key doesn't match private {$type} key");
@@ -196,46 +210,18 @@ class AccountFactory
         
         return (object)compact('secretkey', 'publickey');
     }
-    
-    /**
-     * Get and verify raw address.
-     * 
-     * @param string $address  Raw address
-     * @param object $sign     Sign keys
-     * @param object $encrypt  Encrypt keys
-     * @return string
-     * @throws InvalidAccountException  if address doesn't match
-     */
-    protected function calcAddress(?string $address, $sign, $encrypt): string
-    {
-        $addrSign = isset($sign->publickey) ? $this->createAddress($sign->publickey, 'sign') : null;
-        $addrEncrypt = isset($encrypt->publickey) ? $this->createAddress($encrypt->publickey, 'encrypt') : null;
-        
-        if (isset($addrSign) && isset($addrEncrypt) && $addrSign !== $addrEncrypt) {
-            throw new InvalidAccountException("Sign key doesn't match encrypt key");
-        }
-        
-        if (isset($address)) {
-            if ((isset($addrSign) && $address !== $addrSign) || (isset($addrEncrypt) && $address !== $addrEncrypt)) {
-                throw new InvalidAccountException("Address doesn't match keypair; possible network mismatch");
-            }
-        } else {
-            $address = $addrSign ?: $addrEncrypt;
-        }
-        
-        return $address;
-    }
-     
+
     /**
      * Create an account from base58 encoded keys.
      * 
      * @param array|string $keys      All keys (array) or private sign key (string)
      * @param string       $encoding
      * @return Account
+     * @throws InvalidAccountException
      */
     public function create($keys, string $encoding = 'base58'): Account
     {
-        $data = self::decode($keys, $encoding);
+        $data = self::decodeRecursive($keys, $encoding);
         
         if (is_string($data)) {
             $data = ['sign' => ['secretkey' => $data]];
@@ -244,14 +230,17 @@ class AccountFactory
         $account = new Account();
         
         $account->sign = isset($data['sign']) ? $this->calcKeys($data['sign'], 'sign') : null;
-        
-        $account->encrypt = isset($data['encrypt']) ?
-            $this->calcKeys($data['encrypt'], 'encrypt') :
-            (isset($account->sign) ? $this->convertSignToEncrypt($account->sign) : null);
-        
-        $address = isset($data['address']) ? $data['address'] : null;
-        $account->address = $this->calcAddress($address, $account->sign, $account->encrypt);
-        
+
+        $account->encrypt = isset($data['encrypt'])
+            ? $this->calcKeys($data['encrypt'], 'encrypt')
+            : (isset($account->sign) ? $this->convertSignToEncrypt($account->sign) : null);
+
+        $account->address = isset($data['address'])
+            ? $data['address']
+            : ($account->sign ? $this->createAddress($account->sign->publickey) : null);
+
+        $this->assertIsValid($account);
+
         return $account;
     }
     
@@ -277,7 +266,77 @@ class AccountFactory
         
         return $this->create($data, $encoding);
     }
-    
+
+
+    /**
+     * Assert that the account is valid and has an address on this network.
+     *
+     * @param Account $account
+     * @throws InvalidAccountException
+     */
+    public function assertIsValid(Account $account): void
+    {
+        $this->assertIsValidAddress($account);
+        $this->assertKeysMatch($account);
+    }
+
+    /**
+     * Assert the address based on the encrypt key and check the network.
+     *
+     * @param Account $account
+     * @throws InvalidAccountException
+     */
+    protected function assertIsValidAddress(Account $account): void
+    {
+        if ($account->address === null) {
+            return;
+        }
+
+        ['network' => $network] = unpack('Cversion/anetwork', $account->address);
+
+        if ($network != $this->network) {
+            throw new InvalidAccountException("Address is of network '$network', not of '{$this->network}'");
+        }
+
+        if (isset($account->sign) && $account->address !== $this->createAddress($account->sign->publickey)) {
+            throw new InvalidAccountException("Address '{$account->address}' doesn't match sign key");
+        }
+    }
+
+    /**
+     * Assert the that encrypt and sign keys have had the same seed and public/private keys match.
+     *
+     * @param Account $account
+     * @throws InvalidAccountException
+     */
+    protected function assertKeysMatch(Account $account): void
+    {
+        if (
+            isset($account->sign->privatekey) &&
+            $account->sign->publickey !== ed25519_publickey_from_secretkey($account->sign->privatekey)
+        ) {
+            throw new InvalidAccountException("Sign public key doesn't private key");
+        }
+
+        if (
+            isset($account->encrypt->privatekey) &&
+            $account->sign->publickey !== x25519_publickey_from_secretkey($account->sign->privatekey)
+        ) {
+            throw new InvalidAccountException("Encrypt public key doesn't private key");
+        }
+
+        $convertedEncryptKeys = $this->convertSignToEncrypt($account->sign);
+
+        if (
+            isset($account->encrypt->publickey) &&
+            isset($convertedEncryptKeys->publickey) &&
+            $account->encrypt->publickey !== $convertedEncryptKeys->publickey
+        ) {
+            throw new InvalidAccountException("Sign key doesn't match encrypt key");
+        }
+    }
+
+
     /**
      * Base58 or base64 decode, recursively
      *
@@ -293,7 +352,7 @@ class AccountFactory
 
         if (is_array($data)) {
             return array_map(function ($item) use ($encoding) {
-                return self::decode($item, $encoding);
+                return self::decodeRecursive($item, $encoding);
             }, $data);
         }
 

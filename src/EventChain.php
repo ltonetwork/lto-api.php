@@ -2,7 +2,6 @@
 
 namespace LTO;
 
-use function blake2b as blake2b;
 use InvalidArgumentException;
 
 /**
@@ -74,7 +73,7 @@ class EventChain
 
         $idBinary = pack('Ca20a20a4', $type, $nonce, $nsHashed, $chksum);
 
-        return encode($idBinary);
+        return encode($idBinary, 'base58');
     }
 
     /**
@@ -147,9 +146,9 @@ class EventChain
      */
     public function getInitialHash(): string
     {
-        $rawId = decode($this->id);
+        $rawId = decode($this->id, 'base58');
         
-        return encode(sha256($rawId));
+        return encode(sha256($rawId), 'base58');
     }
     
     /**
