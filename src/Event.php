@@ -128,19 +128,6 @@ class Event
     }
 
     /**
-     * Get the version a resource might be given when defined through this event.
-     *
-     * @return string
-     */
-    public function getResourceVersion()
-    {
-        $rawHash = sha256($this->body);
-        $hash = encode($rawHash, 'base58');
-
-        return substr($hash, 0, 8);
-    }
-
-    /**
      * Sign this event
      * 
      * @param Account $account

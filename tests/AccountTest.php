@@ -267,15 +267,15 @@ class AccountTest extends TestCase
      */
     protected function assertValidId($signkey, $chain)
     {
-        $signkeyHashed = substr(Keccak::hash(sodium_crypto_generichash($signkey, '', 32), 256), 0, 40);
-        
+        $signkeyHashed = bin2hex(substr(sha256(blake2b($signkey)), 0, 20));
         $decodedId = base58_decode($chain->id);
         
-        $vars = (object)unpack('Cversion/H40nonce/H40keyhash/H8checksum', $decodedId);
+        ['version' => $version, 'keyhash' => $keyhash, 'checksum' => $checksum] =
+            unpack('Cversion/H40nonce/H40keyhash/H8checksum', $decodedId);
         
-        $this->assertAttributeEquals(EventChain::ADDRESS_VERSION, 'version', $vars);
-        $this->assertAttributeEquals(substr($signkeyHashed, 0, 40), 'keyhash', $vars);
-        $this->assertAttributeEquals(substr(bin2hex($decodedId), -8), 'checksum', $vars);
+        $this->assertEquals(EventChain::ADDRESS_VERSION, $version);
+        $this->assertEquals($keyhash, substr($signkeyHashed, 0, 40));
+        $this->assertEquals($checksum, substr(bin2hex($decodedId), -8));
     }
     
     public function testCreateEventChain()
@@ -292,6 +292,6 @@ class AccountTest extends TestCase
 
         $this->assertInstanceOf(EventChain::class, $chain);
         $this->assertValidId($this->account->sign->publickey, $chain);
-        $this->assertEquals("2bGCW3XbfLmSRhotYzcUgqiomiiFLSXKDU43jLMNaf29UXTkpkn2PfvyZkF8yx", $chain->id);
+        $this->assertEquals("2bGCW3XbfLmSRhotYzcUgqiomiiFLHZS1AWDKwh11De7JJDehsnTbMd8jqwyTZ", $chain->id);
     }
 }

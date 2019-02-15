@@ -97,49 +97,6 @@ class EventChain
     }
 
     /**
-     * Create a projection id.
-     *
-     * @param string $nonceSeed  Specify for deterministic id
-     * @return string
-     */
-    public function createProjectionId(?string $nonceSeed = null): string
-    {
-        if (!isset($this->id)) {
-            throw new \BadMethodCallException("Chain id not set");
-        }
-
-        return $this->createId(self::PROJECTION_ADDRESS_VERSION, $this->id, $nonceSeed);
-    }
-
-    /**
-     * Validate if the ID is a valid projection ID for this event chain.
-     *
-     * @param string $projectionId
-     * @return bool
-     */
-    public function isValidProjectionId(string $projectionId): bool
-    {
-        try {
-            $binaryId = decode($projectionId);
-        } catch (InvalidArgumentException $e) {
-            return false;
-        }
-
-        if (strlen($binaryId) !== 45) {
-            return false;
-        }
-
-        $nsHashed = sha256(blake2b($this->id));
-
-        $parts = unpack('Ctype/a20nonce/a20ns/a4checksum', $binaryId);
-        $checksum = sha256(blake2b(substr($binaryId, 0, -4)));
-
-        return $parts['type'] === self::PROJECTION_ADDRESS_VERSION
-            && $parts['ns'] === substr($nsHashed, 0, 20)
-            && $parts['checksum'] === substr($checksum, 0, 4);
-    }
-
-    /**
      * Get the initial hash which is based on the event chain id
      *
      * @return string
