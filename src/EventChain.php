@@ -1,13 +1,6 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace LTO;
-
-use LTO\Event;
-use LTO\Account; 
-use kornrunner\Keccak;
-use LTO\Encoding;
 
 /**
  * Live contracts event chain
@@ -50,7 +43,7 @@ class EventChain
 
     
     /**
-     * Generate an 20 byte random nonce for the id
+     * Generate an 20 byte random nonce for the id.
      * 
      * @return string
      */
@@ -69,12 +62,12 @@ class EventChain
      */
     protected function createId(int $type, string $ns, ?string $nonceSeed = null): string
     {
-        $nsHashed = Keccak::hash(sodium_crypto_generichash($ns, '', 32), 256, true);
+        $nsHashed = self::hash(sodium_crypto_generichash($ns, '', 32));
 
-        $nonce = isset($nonceSeed) ? hash('sha256', $nonceSeed, true) : $this->getRandomNonce();
+        $nonce = isset($nonceSeed) ? self::hash($nonceSeed) : $this->getRandomNonce();
 
         $packed = pack('Ca20a20', $type, $nonce, $nsHashed);
-        $chksum = Keccak::hash(sodium_crypto_generichash($packed), 256, true);
+        $chksum = self::hash(sodium_crypto_generichash($packed));
 
         $idBinary = pack('Ca20a20a4', $type, $nonce, $nsHashed, $chksum);
 
@@ -118,6 +111,7 @@ class EventChain
 
     /**
      * Validate if the ID is a valid projection ID for this event chain.
+     * {@internal `sodium_crypto_generichash` is Blake2b}}
      *
      * @param string $projectionId
      * @return bool
@@ -134,10 +128,10 @@ class EventChain
             return false;
         }
 
-        $nsHashed = Keccak::hash(sodium_crypto_generichash($this->id, '', 32), 256, true);
+        $nsHashed = self::hash(sodium_crypto_generichash($this->id, '', 32));
 
         $parts = unpack('Ctype/a20nonce/a20ns/a4checksum', $binaryId);
-        $checksum = Keccak::hash(sodium_crypto_generichash(substr($binaryId, 0, -4)), 256, true);
+        $checksum = self::hash(sodium_crypto_generichash(substr($binaryId, 0, -4)));
 
         return $parts['type'] === self::PROJECTION_ADDRESS_VERSION
             && $parts['ns'] === substr($nsHashed, 0, 20)
@@ -153,7 +147,7 @@ class EventChain
     {
         $rawId = Encoding::decode($this->id);
         
-        return Encoding::encode(hash('sha256', $rawId, true));
+        return Encoding::encode(self::hash($rawId));
     }
     
     /**
@@ -186,5 +180,16 @@ class EventChain
         $this->latestHash = null;
         
         return $event;
+    }
+
+    /**
+     * Create a raw SHA-256 hash of the input.
+     *
+     * @param string $input
+     * @return string
+     */
+    protected function hash(string $input): string
+    {
+        return hash('sha256', $input, true);
     }
 }

@@ -1,12 +1,8 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace LTO;
 
-use LTO\Account;
-use kornrunner\Keccak;
-use LTO\Encoding;
+use function base58_encode;
 
 /**
  * Create new account (aka wallet)
@@ -51,18 +47,18 @@ class AccountFactory
     
     /**
      * Create the account seed using several hashing algorithms.
-     * 
+     *
+     * {@internal `sodium_crypto_generichash` is Blake2b}}
+     *
      * @param string $seedText  Brainwallet seed string
      * @return string  raw seed (not encoded)
      */
     public function createAccountSeed(string $seedText): string
     {
         $seedBase = pack('La*', $this->getNonce(), $seedText);
-        
-        $secureSeed = Keccak::hash(sodium_crypto_generichash($seedBase, '', 32), 256, true);
-        $seed = hash('sha256', $secureSeed, true);
-        
-        return $seed;
+        $seedHash = self::hash(sodium_crypto_generichash($seedBase, '', 32));
+
+        return self::hash($seedHash);
     }
     
     /**
@@ -108,11 +104,11 @@ class AccountFactory
             $publickey = sodium_crypto_sign_ed25519_pk_to_curve25519($publickey);
         }
         
-        $publickeyHash = substr(Keccak::hash(sodium_crypto_generichash($publickey, '', 32), 256), 0, 40);
-        
+        $publickeyHash = substr(self::hash(sodium_crypto_generichash($publickey, '', 32), false), 0, 40);
+
         $packed = pack('CaH40', self::ADDRESS_VERSION, $this->network, $publickeyHash);
-        $chksum = substr(Keccak::hash(sodium_crypto_generichash($packed), 256), 0, 8);
-        
+        $chksum = substr(self::hash(sodium_crypto_generichash($packed), false), 0, 8);
+
         return pack('CaH40H8', self::ADDRESS_VERSION, $this->network, $publickeyHash, $chksum);
     }
     
@@ -300,5 +296,17 @@ class AccountFactory
         }
 
         return $data;
+    }
+
+    /**
+     * Create a SHA-256 hash of the input.
+     *
+     * @param string $input
+     * @param bool   $raw
+     * @return string
+     */
+    protected static function hash(string $input, bool $raw = true): string
+    {
+        return hash('sha256', $input, $raw);
     }
 }

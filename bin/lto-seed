@@ -7,11 +7,11 @@ use LTO\Account;
 use LTO\AccountFactory;
 
 if ($argc < 2) {
-    echo "USAGE: lto-seed SEED [W|T]\n";
+    echo "USAGE: lto-seed SEED [L|T]\n";
     exit(1);
 }
 
-$factory = new AccountFactory($argv[2] ?? 'W', 0);
+$factory = new AccountFactory($argv[2] ?? 'L', 0);
 $account = $factory->seed($argv[1]);
 
 echo "address: ", base58_encode($account->address), "\n";

@@ -1,13 +1,8 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace LTO;
 
-use LTO\Account;
-use LTO\EventChain;
 use BadMethodCallException;
-use LTO\Encoding;
 
 /**
  * Live Contracts Event

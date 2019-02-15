@@ -1,12 +1,7 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace LTO;
 
-use LTO\Account;
-use LTO\AccountFactory;
-use LTO\HTTPSignatureException;
 use Psr\Http\Message\RequestInterface;
 
 /**

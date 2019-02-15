@@ -1,12 +1,8 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace LTO;
 
-use LTO\DecryptException;
 use RuntimeException;
-use LTO\Encoding;
 
 /**
  * An account (aka wallet)

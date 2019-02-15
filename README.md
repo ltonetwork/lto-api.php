@@ -7,6 +7,8 @@ LTO Network client for PHP
 [![Packagist Stable Version](https://img.shields.io/packagist/v/legalthings/lto-api.svg)](https://packagist.org/packages/legalthings/lto-api)
 [![Packagist License](https://img.shields.io/packagist/l/legalthings/lto-api.svg)](https://packagist.org/packages/legalthings/lto-api)
 
+_Signing and addresses  
+
 Installation
 ---
 
@@ -17,7 +19,25 @@ Usage
 
 ### Creation
 
-#### Create an account
+#### Create an account from seed
+
+```php
+$seedText = "manage manual recall harvest series desert melt police rose hollow moral pledge kitten position add";
+
+$factory = new LTO\AccountFactory('T'); // 'T' for testnet, 'L' for mainnet
+$account = $factory->seed($seedText);
+```
+
+#### Create an account from sign key from
+
+```php
+$secretKey = 'wJ4WH8dD88fSkNdFQRjaAhjFUZzZhV5yiDLDwNUnp6bYwRXrvWV8MJhQ9HL9uqMDG1n7XpTGZx7PafqaayQV8Rp';
+
+$factory = new LTO\AccountFactory('T'); // 'T' for testnet, 'L' for mainnet
+$account = $factory->create($secretKey);
+```
+
+#### Create an account from full info
 
 ```php
 $accountInfo = [
@@ -32,29 +52,11 @@ $accountInfo = [
   ]
 ];
 
-$factory = new LTO\AccountFactory('T'); // 'T' for testnet, 'W' for mainnet or 'L' for the public chain
+$factory = new LTO\AccountFactory('T'); // 'T' for testnet, 'L' for mainnet
 $account = $factory->create($accountInfo);
 ```
 
-#### Create an account with only a secret sign key
-
-```php
-$secretKey = 'wJ4WH8dD88fSkNdFQRjaAhjFUZzZhV5yiDLDwNUnp6bYwRXrvWV8MJhQ9HL9uqMDG1n7XpTGZx7PafqaayQV8Rp';
-
-$factory = new LTO\AccountFactory('T');
-$account = $factory->create($secretKey);
-```
-
-#### Create an account from seed
-
-_Currently the seeded keyset doesn't match when seeded using the Waves API. Seeded results may change to match Waves._
-
-```php
-$seedText = "manage manual recall harvest series desert melt police rose hollow moral pledge kitten position add";
-
-$factory = new LTO\AccountFactory('T');
-$account = $factory->seed($seedText);
-```
+Properties that are specified will be verified. Properties that are omitted will be generated where possible.  
 
 ### Signing (ED25519)
 
