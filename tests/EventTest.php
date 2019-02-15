@@ -94,14 +94,6 @@ class EventTest extends TestCase
     }
 
     /**
-     * @depends testGetMessage
-     */
-    public function testGetResourceVersion(Event $event)
-    {
-        $this->assertEquals('4RaPGFmq', $event->getResourceVersion());
-    }
-    
-    /**
      * @expectedException BadMethodCallException
      */
     public function testVerifySignatureNoSignature()

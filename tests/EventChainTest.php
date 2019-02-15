@@ -2,6 +2,7 @@
 
 namespace LTO;
 
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use LTO\Account;
 use LTO\EventChain;
@@ -59,29 +60,31 @@ class EventChainTest extends TestCase
     public function testInitForSeedNonce()
     {
         $account = $this->createMock(Account::class);
-        $account->sign = (object)['publickey' => base58_decode("8MeRTc26xZqPmQ3Q29RJBwtgtXDPwR7P9QNArymjPLVQ")];
-        
+        $account->sign = (object)['publickey' => base58_decode("GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY")];
+
+        /** @var EventChain&MockObject $chain */
         $chain = $this->createPartialMock(EventChain::class, ['getRandomNonce']);
         $chain->expects($this->never())->method('getRandomNonce');
         
         $chain->initFor($account, 'foo');
         
-        $this->assertAttributeEquals('2b6QYLttL2R3CLGL4fUB9vaXXX4c5HJanjV5QecmAYLCrD52o6is1fRMGShUUF', 'id', $chain);
-        $this->assertEquals('8FjrD9Req4C61RcawRC5HaTUvuetU2BwABTiQBVheU2R', $chain->getLatestHash());
+        $this->assertAttributeEquals('2b6QYLttL2R3CLGL4fUB9vaXXX4c5PRhHhCS51CZQodgu7ay9BpMNdJ6mZ8hyF', 'id', $chain);
+        $this->assertEquals('5S5qWhWs228toGUXX9DULHLF8Xfr7Xd8R2Lc4zQd4krj', $chain->getLatestHash());
     }
     
     public function testInitFor()
     {
         $account = $this->createMock(Account::class);
-        $account->sign = (object)['publickey' => base58_decode("8MeRTc26xZqPmQ3Q29RJBwtgtXDPwR7P9QNArymjPLVQ")];
-        
+        $account->sign = (object)['publickey' => base58_decode("GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY")];
+
+        /** @var EventChain&MockObject $chain */
         $chain = $this->createPartialMock(EventChain::class, ['getRandomNonce']);
         $chain->expects($this->once())->method('getRandomNonce')->willReturn(str_repeat("\0", 20));
         
         $chain->initFor($account);
         
-        $this->assertAttributeEquals('2ar3wSjTm1fA33qgckZ5Kxn1x89gKKGi6TJsZjRoqb7sjUE8GZXjLaYCbCa2GX', 'id', $chain);
-        $this->assertEquals('3NTzfLcXq1D5BRzhj9EyVbmAcLsz1pa6ZjdxRySbYze1', $chain->getLatestHash());
+        $this->assertAttributeEquals('2ar3wSjTm1fA33qgckZ5Kxn1x89gKRPpbR2EE61c5rRMnNk4cedDhYQxBE1E7k', 'id', $chain);
+        $this->assertEquals('3mG9WaAizdw15Xouv4adFGY131Bims8m5BTQVyv1YU7n', $chain->getLatestHash());
     }
     
     /**

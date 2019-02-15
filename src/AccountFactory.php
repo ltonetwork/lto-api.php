@@ -344,7 +344,7 @@ class AccountFactory
      * @param string       $encoding  'raw', 'base58' or 'base64'
      * @return string|array
      */
-    protected static function decode($data, string $encoding = 'base58')
+    protected static function decodeRecursive($data, string $encoding = 'base58')
     {
         if ($encoding === 'raw') {
             return $data;

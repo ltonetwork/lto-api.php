@@ -12,46 +12,45 @@ class Event
 {
     /**
      * Base58 encoded JSON string with the body of the event.
-     * 
      * @var string
      */
     public $body;
 
     /**
      * Time when the event was signed.
-     * 
      * @var int
      */
     public $timestamp;
     
     /**
      * Hash to the previous event
-     * 
      * @var string
      */
     public $previous;
     
     /**
      * URI of the public key used to sign the event
-     * 
      * @var string
      */
     public $signkey;
     
     /**
      * Base58 encoded signature of the event
-     * 
      * @var string
      */
     public $signature;
     
     /**
      * Base58 encoded SHA256 hash of the event
-     * 
      * @var string
      */
     public $hash;
-    
+
+    /**
+     * The original event, in case the event was rebased.
+     * @var Event
+     */
+    public $original;
     
     /**
      * Class constructor
@@ -62,7 +61,7 @@ class Event
     public function __construct($body = null, string $previous = null)
     {
         if (isset($body)) {
-            $this->body = encode(json_encode($body));
+            $this->body = encode(json_encode($body), 'base58');
             $this->timestamp = time();
         }
         
@@ -84,15 +83,18 @@ class Event
         if (!isset($this->signkey)) {
             throw new BadMethodCallException("First set signkey before creating message");
         }
-        
-        $message = join("\n", [
-            $this->body,
-            $this->timestamp,
-            $this->previous,
-            $this->signkey
-        ]);
-        
-        return $message;
+
+        $parts = array_merge(
+            [
+                $this->body,
+                $this->timestamp,
+                $this->previous,
+                $this->signkey
+            ],
+            $this->original !== null ? [$this->original->hash] : []
+        );
+
+        return join("\n", $parts);
     }
     
     /**
@@ -122,7 +124,8 @@ class Event
         $signature = decode($this->signature, 'base58');
         $signkey = decode($this->signkey, 'base58');
         
-        return strlen($signature) === SODIUM_CRYPTO_SIGN_BYTES &&
+        return
+            strlen($signature) === SODIUM_CRYPTO_SIGN_BYTES &&
             strlen($signkey) === SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES &&
             ed25519_verify($signature, $this->getMessage(), $signkey);
     }
