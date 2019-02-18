@@ -2,6 +2,8 @@
 
 namespace LTO;
 
+use InvalidArgumentException;
+
 /**
  * Base58 or base64 encode a string
  *

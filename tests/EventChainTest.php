@@ -111,4 +111,48 @@ class EventChainTest extends TestCase
         
         $chain->initFor($account);
     }
+
+
+    public function testCreateResourceIdSeedNonce()
+    {
+        $chain = $this->createPartialMock(EventChain::class, ['getRandomNonce']);
+        $chain->expects($this->never())->method('getRandomNonce');
+        $chain->id = '2b6QYLttL2R3CLGL4fUB9vaXXX4c5HJanjV5QecmAYLCrD52o6is1fRMGShUUF';
+
+        $this->assertEquals('2z4AmxL122aaTLyVy6rhEfXHGJMGuUnViUhw3D7XC4VcycnkEwkHXXdxg73vLb', $chain->createResourceId('foo'));
+    }
+
+    public function testCreateResourceId()
+    {
+        $chain = $this->createPartialMock(EventChain::class, ['getRandomNonce']);
+        $chain->expects($this->once())->method('getRandomNonce')->willReturn(str_repeat("\0", 20));
+        $chain->id = '2b6QYLttL2R3CLGL4fUB9vaXXX4c5HJanjV5QecmAYLCrD52o6is1fRMGShUUF';
+
+        $this->assertEquals('2yopB4AaT1phJ4YrXBwbQhimguSM9Wkd2CXjCHvZs7HHrswqiQZ9rSkp5cGwJG', $chain->createResourceId());
+    }
+
+    public function projectionIdProvider()
+    {
+        return [
+            [true, '2z4AmxL122aaTLyVy6rhEfXHGJMGuUnViUhw3D7XC4VcycnkEwkHXXdxg73vLb'],
+            [true, '2yopB4AaT1phJ4YrXBwbQhimguSM9Wkd2CXjCHvZs7HHrswqiQZ9rSkp5cGwJG'],
+            [true, '315qxHsiGMAHxHVjiNN2aU2MWthjDTJr4Z71cNFgppCpZPhtX237eJ97itWHSX'],
+            [false, '2z4AmxL122aaTLyVy6rhEfXHGJMGueqGvF1FmfWVHECt7xEc6VSSqCCSZUfq7D'],
+            [false, '2yopB4AaT1phJ4YrXBwbQhimguSM9goQDxq3vkKXxGzZ1DPhZxFKA7KHvVwSKf'],
+            [false, '2z4AmxL12'],
+            [false, '2ytJBjPHGLuEKYD5oQs54a367ucFkZaKYSXXkzjHbqHMS3kBknSUtrmosTNHKL'],
+            [false, '2b6QYLttL2R3CLGL4fUB9vaXXX4c5HJanjV5QecmAYLCrD52o6is1fRMGShUUF']
+        ];
+    }
+
+    /**
+     * @dataProvider projectionIdProvider
+     */
+    public function testIsValidResourceId($expected, $projectionId)
+    {
+        $chain = new EventChain();
+        $chain->id = '2b6QYLttL2R3CLGL4fUB9vaXXX4c5HJanjV5QecmAYLCrD52o6is1fRMGShUUF';
+
+        $this->assertEquals($expected, $chain->isValidResourceId($projectionId));
+    }
 }

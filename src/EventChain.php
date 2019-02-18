@@ -9,8 +9,8 @@ use InvalidArgumentException;
  */
 class EventChain
 {
-    const ADDRESS_VERSION = 0x40;
-    const PROJECTION_ADDRESS_VERSION = 0x50;
+    const CHAIN_ID = 0x40;
+    const RESOURCE_ID = 0x50;
 
     /**
      * Unique identifier
@@ -92,7 +92,7 @@ class EventChain
             throw new \InvalidArgumentException("Unable to create new event chain; public sign key unknown");
         }
         
-        $this->id = $this->createId(self::ADDRESS_VERSION, $account->sign->publickey, $nonceSeed);
+        $this->id = $this->createId(self::CHAIN_ID, $account->sign->publickey, $nonceSeed);
         $this->latestHash = $this->getInitialHash();
     }
 
@@ -138,5 +138,47 @@ class EventChain
         $this->latestHash = null;
         
         return $event;
+    }
+
+    /**
+     * Create a resource id.
+     *
+     * @param string $nonceSeed  Specify for deterministic id
+     * @return string
+     */
+    public function createResourceId(?string $nonceSeed = null): string
+    {
+        if (!isset($this->id)) {
+            throw new \BadMethodCallException("Chain id not set");
+        }
+
+        return $this->createId(self::RESOURCE_ID, decode($this->id, 'base58'), $nonceSeed);
+    }
+
+    /**
+     * Check if the ID is a valid resource ID for this event chain.
+     *
+     * @param string $id
+     * @return bool
+     */
+    public function isValidResourceId(string $id): bool
+    {
+        try {
+            $binaryId = decode($id, 'base58');
+        } catch (InvalidArgumentException $e) {
+            return false;
+        }
+
+        if (strlen($binaryId) !== 45) {
+            return false;
+        }
+
+        $nsHashed = sha256(blake2b(decode($this->id, 'base58')));
+        $parts = unpack('Ctype/a20nonce/a20ns/a4checksum', $binaryId);
+        $checksum = sha256(blake2b(substr($binaryId, 0, -4)));
+
+        return $parts['type'] === self::RESOURCE_ID
+            && $parts['ns'] === substr($nsHashed, 0, 20)
+            && $parts['checksum'] === substr($checksum, 0, 4);
     }
 }

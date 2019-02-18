@@ -273,7 +273,7 @@ class AccountTest extends TestCase
         ['version' => $version, 'keyhash' => $keyhash, 'checksum' => $checksum] =
             unpack('Cversion/H40nonce/H40keyhash/H8checksum', $decodedId);
         
-        $this->assertEquals(EventChain::ADDRESS_VERSION, $version);
+        $this->assertEquals(EventChain::CHAIN_ID, $version);
         $this->assertEquals($keyhash, substr($signkeyHashed, 0, 40));
         $this->assertEquals($checksum, substr(bin2hex($decodedId), -8));
     }
