@@ -7,7 +7,7 @@ LTO Network client for PHP
 [![Packagist Stable Version](https://img.shields.io/packagist/v/legalthings/lto-api.svg)](https://packagist.org/packages/legalthings/lto-api)
 [![Packagist License](https://img.shields.io/packagist/l/legalthings/lto-api.svg)](https://packagist.org/packages/legalthings/lto-api)
 
-_Signing and addresses  
+_Signing and addresses work both for the (private) event chain as for the public chain._ 
 
 Installation
 ---
@@ -28,7 +28,7 @@ $factory = new LTO\AccountFactory('T'); // 'T' for testnet, 'L' for mainnet
 $account = $factory->seed($seedText);
 ```
 
-#### Create an account from sign key from
+#### Create an account from sign key
 
 ```php
 $secretKey = 'wJ4WH8dD88fSkNdFQRjaAhjFUZzZhV5yiDLDwNUnp6bYwRXrvWV8MJhQ9HL9uqMDG1n7XpTGZx7PafqaayQV8Rp';
