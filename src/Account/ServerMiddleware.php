@@ -42,8 +42,8 @@ class ServerMiddleware implements MiddlewareInterface
     /**
      * Process an incoming server request (PSR-15).
      *
-     * @param ServerRequest  $request
-     * @param RequestHandler $handler
+     * @param ServerRequest           $request
+     * @param RequestHandlerInterface $handler
      * @return Response
      */
     public function process(ServerRequest $request, RequestHandlerInterface $handler): Response
@@ -59,7 +59,7 @@ class ServerMiddleware implements MiddlewareInterface
     public function asDoublePass(): callable
     {
         return function (ServerRequest $request, Response $response, callable $next): Response {
-            $fn = function(ServerRequest $request) use ($response, $next) {
+            $fn = function (ServerRequest $request) use ($response, $next) {
                 return $next($request, $response, $next);
             };
 

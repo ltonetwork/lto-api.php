@@ -54,7 +54,7 @@ class Event
     
     /**
      * Class constructor
-     * 
+     *
      * @param object|array $body
      * @param string       $previous
      */
@@ -70,7 +70,7 @@ class Event
     
     /**
      * Get the message used for hash and signature
-     * 
+     *
      * @return string
      * @throws BadMethodCallException if called before the body or signkey is set
      */
@@ -99,7 +99,7 @@ class Event
     
     /**
      * Get the base58 encoded hash of the event
-     * 
+     *
      * @return string
      */
     public function getHash(): string
@@ -111,7 +111,7 @@ class Event
     
     /**
      * Verify that the signature is valid
-     * 
+     *
      * @return bool
      * @throw BadMethodCallException if signature or signkey is not set
      */
@@ -132,23 +132,28 @@ class Event
 
     /**
      * Sign this event
-     * 
+     *
      * @param Account $account
      * @return $this
+     * @throws \RuntimeException if account secret sign key is not set
      */
-    public function signWith(Account $account): self
+    public function signWith(Account $account)
     {
-        return $account->signEvent($this);
+        $account->signEvent($this);
+
+        return $this;
     }
     
     /**
      * Add this event to the chain
-     * 
+     *
      * @param EventChain $chain
      * @return $this
      */
-    public function addTo(EventChain $chain): self
+    public function addTo(EventChain $chain)
     {
-        return $chain->add($this);
+        $chain->add($this);
+
+        return $this;
     }
 }

@@ -40,7 +40,7 @@ function decode(string $string, string $encoding): string
     }
 
     if ($encoding === 'base64') {
-        $string = base64_decode($string);
+        $string = base64_decode($string, true);
     }
 
     if ($string === false) {

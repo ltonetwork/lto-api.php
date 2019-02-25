@@ -109,7 +109,6 @@ class AccountTest extends TestCase
 
     public function testSignAndVerifyOtherAccount()
     {
-        $base58 = new \StephenHill\Base58();
         $account = $this->createPartialMock(Account::class, ['getNonce']);
         $account->method('getNonce')->willReturn(str_repeat("\0", 24));
         

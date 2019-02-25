@@ -15,19 +15,19 @@ class Account
 {
     /**
      * Account public address
-     * @var string
+     * @var string|null
      */
     public $address;
     
     /**
      * Sign keys
-     * @var object
+     * @var \stdClass|null
      */
     public $sign;
     
     /**
      * Encryption keys
-     * @var object
+     * @var \stdClass|null
      */
     public $encrypt;
     
@@ -35,7 +35,7 @@ class Account
     /**
      * Get a random nonce
      * @codeCoverageIgnore
-     * 
+     *
      * @return string
      */
     protected function getNonce()
@@ -46,41 +46,41 @@ class Account
     
     /**
      * Get base58 encoded address
-     * 
+     *
      * @param string $encoding  'raw', 'base58' or 'base64'
      * @return string|null
      */
     public function getAddress(string $encoding = 'base58'): ?string
     {
-        return $this->address ? encode($this->address, $encoding) : null;
+        return $this->address !== null ? encode($this->address, $encoding) : null;
     }
     
     /**
      * Get base58 encoded public sign key
-     * 
+     *
      * @param string $encoding  'raw', 'base58' or 'base64'
      * @return string|null
      */
     public function getPublicSignKey(string $encoding = 'base58'): ?string
     {
-        return $this->sign ? encode($this->sign->publickey, $encoding) : null;
+        return $this->sign !== null ? encode($this->sign->publickey, $encoding) : null;
     }
     
     /**
      * Get base58 encoded public encryption key
-     * 
+     *
      * @param string $encoding  'raw', 'base58' or 'base64'
      * @return string|null
      */
     public function getPublicEncryptKey(string $encoding = 'base58'): ?string
     {
-        return $this->encrypt ? encode($this->encrypt->publickey, $encoding) : null;
+        return $this->encrypt !== null ? encode($this->encrypt->publickey, $encoding) : null;
     }
     
     
     /**
      * Create an encoded signature of a message.
-     * 
+     *
      * @param string $message
      * @param string $encoding  'raw', 'base58' or 'base64'
      * @return string
@@ -99,7 +99,7 @@ class Account
     
     /**
      * Sign an event
-     * 
+     *
      * @param Event $event
      * @return Event
      * @throws \RuntimeException if secret sign key is not set
@@ -115,7 +115,7 @@ class Account
     
     /**
      * Verify a signature of a message
-     * 
+     *
      * @param string $signature
      * @param string $message
      * @param string $encoding   signature encoding 'raw', 'base58' or 'base64'
@@ -139,8 +139,8 @@ class Account
     /**
      * Encrypt a message for another account.
      * The nonce is appended.
-     * 
-     * @param Account $recipient 
+     *
+     * @param Account $recipient
      * @param string  $message
      * @return string
      * @throws \RuntimeException if secret encrypt key of sender or public encrypt key of recipient is not set
@@ -163,8 +163,8 @@ class Account
     
     /**
      * Decrypt a message from another account.
-     * 
-     * @param Account $sender 
+     *
+     * @param Account $sender
      * @param string  $cyphertext
      * @return string
      * @throws \RuntimeException if secret encrypt key of recipient or public encrypt key of sender is not set
@@ -196,7 +196,7 @@ class Account
     
     /**
      * Create a new event chain for this account
-     * 
+     *
      * @param mixed $nonceSeed  Seed the nonce, rather than using a random nonce.
      * @return EventChain
      * @throws \BadMethodCallException

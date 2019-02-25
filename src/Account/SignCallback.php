@@ -35,7 +35,7 @@ class SignCallback
      *
      * @param string $message
      * @param string $algorithm
-     * @return bool
+     * @return string
      */
     public function __invoke(string $message, string $algorithm)
     {
@@ -46,7 +46,7 @@ class SignCallback
         }
 
         if ($hashAlgo !== null) {
-            $message = hash($hashAlgo, $message,true);
+            $message = hash($hashAlgo, $message, true);
         }
 
         return $this->account->sign($message);

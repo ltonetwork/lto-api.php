@@ -21,7 +21,6 @@ use function sodium_crypto_sign_ed25519_sk_to_curve25519 as ed25519_to_x25519_se
 // Blake2B hashing
 use function sodium_crypto_generichash as blake2b;
 
-
 /**
  * Create new account (aka wallet)
  */
@@ -31,19 +30,19 @@ class AccountFactory
     
     /**
      * Address scheme
-     * @var string 
+     * @var string
      */
     protected $network;
     
     /**
      * Incrementing nonce (4 bytes)
-     * @var string 
+     * @var int
      */
     protected $nonce;
     
     /**
      * Class constructor
-     * 
+     *
      * @param int|string $network 'W' or 'T' (1 byte)
      * @param int        $nonce   (4 bytes)
      */
@@ -55,7 +54,7 @@ class AccountFactory
     
     /**
      * Get the new nonce.
-     * 
+     *
      * @return int
      */
     protected function getNonce(): int
@@ -79,7 +78,7 @@ class AccountFactory
     
     /**
      * Create ED25519 sign keypairs
-     * 
+     *
      * @param string $seed
      * @return \stdClass
      */
@@ -111,7 +110,7 @@ class AccountFactory
 
     /**
      * Create X25519 encrypt keypairs
-     * 
+     *
      * @param string $seed
      * @return \stdClass
      */
@@ -128,7 +127,7 @@ class AccountFactory
 
     /**
      * Create an address from a public key
-     * 
+     *
      * @param string $publickey  Raw public sign key
      * @return string  raw (not encoded)
      */
@@ -145,7 +144,7 @@ class AccountFactory
     
     /**
      * Create a new account from a seed
-     * 
+     *
      * @param string $seedText  Brainwallet seed string
      * @return Account
      */
@@ -165,7 +164,7 @@ class AccountFactory
     
     /**
      * Convert sign keys to encrypt keys.
-     * 
+     *
      * @param object|string $sign
      * @return \stdClass
      */
@@ -187,7 +186,7 @@ class AccountFactory
     
     /**
      * Get and verify the raw public and private key.
-     * 
+     *
      * @param array  $keys
      * @param string $type  'sign' or 'encrypt'
      * @return \stdClass
@@ -214,7 +213,7 @@ class AccountFactory
 
     /**
      * Create an account from base58 encoded keys.
-     * 
+     *
      * @param array|string $keys      All keys (array) or private sign key (string)
      * @param string       $encoding
      * @return Account
@@ -238,7 +237,7 @@ class AccountFactory
 
         $account->address = isset($data['address'])
             ? $data['address']
-            : ($account->sign ? $this->createAddress($account->sign->publickey) : null);
+            : ($account->sign !== null ? $this->createAddress($account->sign->publickey) : null);
 
         $this->assertIsValid($account);
 
@@ -247,7 +246,7 @@ class AccountFactory
     
     /**
      * Create an account from public keys.
-     * 
+     *
      * @param string|null $sign
      * @param string|null $encrypt
      * @param string      $encoding  Encoding of keys 'raw', 'base58' or 'base64'
@@ -313,15 +312,13 @@ class AccountFactory
      */
     protected function assertKeysMatch(Account $account): void
     {
-        if (
-            isset($account->sign->privatekey) &&
+        if (isset($account->sign->privatekey) &&
             $account->sign->publickey !== ed25519_publickey_from_secretkey($account->sign->privatekey)
         ) {
             throw new InvalidAccountException("Sign public key doesn't private key");
         }
 
-        if (
-            isset($account->encrypt->privatekey) &&
+        if (isset($account->encrypt->privatekey) &&
             $account->sign->publickey !== x25519_publickey_from_secretkey($account->sign->privatekey)
         ) {
             throw new InvalidAccountException("Encrypt public key doesn't private key");
@@ -329,8 +326,7 @@ class AccountFactory
 
         $convertedEncryptKeys = $this->convertSignToEncrypt($account->sign);
 
-        if (
-            isset($account->encrypt->publickey) &&
+        if (isset($account->encrypt->publickey) &&
             isset($convertedEncryptKeys->publickey) &&
             $account->encrypt->publickey !== $convertedEncryptKeys->publickey
         ) {

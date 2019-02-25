@@ -25,15 +25,15 @@ class EventChain
     public $events = [];
 
     /**
-     * Hash of the latest event on the chain
-     * @var string
+     * Hash of the latest event on the chain.
+     * @var string|null
      */
     protected $latestHash;
     
     
     /**
      * Class constructor
-     * 
+     *
      * @param string $id
      * @param string $latestHash
      */
@@ -46,7 +46,7 @@ class EventChain
     
     /**
      * Generate an 20 byte random nonce for the id.
-     * 
+     *
      * @return string
      */
     protected function getRandomNonce(): string
@@ -78,11 +78,11 @@ class EventChain
 
     /**
      * Initialize a new event chain
-     * 
+     *
      * @param Account $account
      * @param string  $nonceSeed  Specify for deterministic id
      */
-    public function initFor(Account $account, ?string $nonceSeed = null)
+    public function initFor(Account $account, ?string $nonceSeed = null): void
     {
         if (isset($this->id)) {
             throw new \BadMethodCallException("Chain id already set");
@@ -111,12 +111,12 @@ class EventChain
     /**
      * Get the latest hash.
      * Expecting a new event to use this as previous property.
-     * 
+     *
      * @return string|null
      */
     public function getLatestHash(): ?string
     {
-        if (empty($this->events)) {
+        if ($this->events === []) {
             return $this->latestHash;
         }
 
@@ -126,7 +126,7 @@ class EventChain
     
     /**
      * Add a new event
-     * 
+     *
      * @param Event $event
      * @return Event
      */

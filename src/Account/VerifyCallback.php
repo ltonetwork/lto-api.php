@@ -64,7 +64,7 @@ class VerifyCallback
         }
 
         if ($hashAlgo !== null) {
-            $message = hash($hashAlgo, $message,true);
+            $message = hash($hashAlgo, $message, true);
         }
 
         return $account->verify($signature, $message, 'raw');
