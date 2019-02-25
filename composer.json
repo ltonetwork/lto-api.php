@@ -27,12 +27,15 @@
         "php": ">=7.2.0",
         "ext-json": "*",
         "ext-sodium": "2.* || 7.*",
-        "ext-base58": "*",
+        "legalthings/base58-compat": "^0.1.0",
         "psr/http-message": "^1.0",
         "psr/http-server-middleware": "^1.0"
     },
     "require-dev": {
         "jasny/php-code-quality": "^2.3"
+    },
+    "suggests": {
+        "ext-base58": "Base58 extension performs much better"
     },
     "autoload": {
         "psr-4": {
