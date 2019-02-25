@@ -1,19 +1,19 @@
 language: php
 
 php:
-  - 7.1
   - 7.2
+  - 7.3
+  - 7.4snapshot
+  - nightly
+
+matrix:
+  allow_failures:
+    - php: 7.4snapshot
+    - php: nightly
 
 branches:
   only:
     - master
-    - php7
-
-before_install:
-  - sudo add-apt-repository ppa:ondrej/php -y
-  - sudo apt-get -qq update
-  - sudo apt-get install libsodium-dev
-  - pecl install libsodium
 
 install:
   - composer install
@@ -24,4 +24,3 @@ script:
 
 after_success:
   - php "$HOME/ocular.phar" code-coverage:upload --format=php-clover cache/logs/clover.xml
-
