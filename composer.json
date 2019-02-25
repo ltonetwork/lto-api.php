@@ -1,25 +1,34 @@
 {
-    "name": "legalthings/lto-api",
-    "description": "LegalThings One client",
+    "name": "lto/api",
+    "description": "LTO Network client",
     "type": "library",
     "license": "MIT",
     "authors": [
         {
             "name": "LegalThings",
             "email": "info@legalthings.io"
+        },
+        {
+            "name": "Arnold Daniels",
+            "email": "arnold@jasny.net",
+            "homepage": "https://www.jasny.net"
         }
     ],
     "support": {
         "issues": "https://github.com/legalthings/lto-api.php/issues",
         "source": "https://github.com/legalthings/lto-api.php"
     },
-    "bin": ["bin/lto-sign"],
+    "bin": [
+        "bin/lto-account",
+        "bin/lto-seed",
+        "bin/lto-sign"
+    ],
     "require": {
-        "php": "~7.1",
+        "php": ">=7.2.0",
         "ext-json": "*",
         "ext-sodium": "2.* || 7.*",
+        "ext/base58": "*",
         "psr/http-message": "^1.0",
-        "legalthings/base58-compat": "^0.1.0",
         "psr/http-server-middleware": "^1.0"
     },
     "require-dev": {
@@ -37,5 +46,19 @@
         "psr-4": {
             "LTO\\Tests\\": "tests/"
         }
-    }
+    },
+    "scripts": {
+        "test": [
+            "phpstan analyse",
+            "phpunit",
+            "phpcs -p src"
+        ]
+    },
+    "config": {
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "optimize-autoloader": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

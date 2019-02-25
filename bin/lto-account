@@ -5,17 +5,13 @@ require 'vendor/autoload.php';
 
 use LTO\AccountFactory;
 
-$data = '';
+if ($argc < 2) {
+    echo "USAGE: lto-account SECRETKEY [L|T]\n";
+    exit(1);
+}
 
-do {
-    $chunk = fread(STDIN, 8192);
-    $data .= $chunk;
-} while ($chunk && (substr($chunk, -1) === "\n" || strlen($chunk) === 8192));
-
-$message = trim($data);
-
-$factory = new AccountFactory($argv[1] ?? 'L', 0);
-$account = $factory->seed($data);
+$factory = new AccountFactory($argv[2] ?? 'L', 0);
+$account = $factory->create($argv[1]);
 
 echo "address: ", base58_encode($account->address), "\n";
 echo "sign:", "\n";

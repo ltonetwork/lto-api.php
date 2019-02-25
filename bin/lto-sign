@@ -3,17 +3,17 @@
 
 require 'vendor/autoload.php';
 
-use LTO\Account;
 use LTO\AccountFactory;
+use function LTO\sha256;
 
 if ($argc < 2) {
-    echo "USAGE: lto-sign PRIVATEKEY [base58|base64|raw]\n";
+    echo "USAGE: lto-sign SECRETKEY\n";
     echo "write the message and close with ctrl-d\n";
     exit(1);
 }
 
-$factory = new AccountFactory('W', 0);
-$account = $factory->create($argv[1], isset($argv[2]) ? $argv[2] : 'base58');
+$factory = new AccountFactory('L', 0);
+$account = $factory->create($argv[1]);
 
 $data = '';
 
@@ -24,8 +24,5 @@ do {
 
 $message = trim($data);
 
-echo "\n\n", json_encode([
-  "signature" => $account->sign($message, 'base58'),
-  "hash" => base58_encode(hash('sha256', $message, true))
-], JSON_PRETTY_PRINT), "\n";
-
+echo "signature: ", $account->sign($message, 'base58'), "\n";
+echo "hash:      ", base58_encode(sha256($message)), "\n";
