@@ -1,6 +1,6 @@
 <?php
 
-namespace LTO;
+namespace LTO\Tests;
 
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Constraint\IsEqual as IsEqualConstraint;

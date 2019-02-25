@@ -2,7 +2,7 @@
 
 namespace LTO;
 
-use InvalidArgumentException;
+use function sodium_crypto_generichash as blake2b;
 
 /**
  * Live contracts event chain
@@ -165,7 +165,7 @@ class EventChain
     {
         try {
             $binaryId = decode($id, 'base58');
-        } catch (InvalidArgumentException $e) {
+        } catch (\InvalidArgumentException $e) {
             return false;
         }
 

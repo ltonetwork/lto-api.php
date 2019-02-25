@@ -2,7 +2,6 @@
 
 namespace LTO;
 
-use RuntimeException;
 use function sodium_crypto_sign_detached as ed25519_sign;
 use function sodium_crypto_sign_verify_detached as ed25519_verify;
 use function sodium_crypto_box_keypair_from_secretkey_and_publickey as x25519_keypair;
@@ -85,12 +84,12 @@ class Account
      * @param string $message
      * @param string $encoding  'raw', 'base58' or 'base64'
      * @return string
-     * @throws RuntimeException if secret sign key is not set
+     * @throws \RuntimeException if secret sign key is not set
      */
     public function sign(string $message, string $encoding = 'base58'): string
     {
         if (!isset($this->sign->secretkey)) {
-            throw new RuntimeException("Unable to sign message; no secret sign key");
+            throw new \RuntimeException("Unable to sign message; no secret sign key");
         }
         
         $signature = ed25519_sign($message, $this->sign->secretkey);
@@ -103,6 +102,7 @@ class Account
      * 
      * @param Event $event
      * @return Event
+     * @throws \RuntimeException if secret sign key is not set
      */
     public function signEvent(Event $event): Event
     {
@@ -120,12 +120,12 @@ class Account
      * @param string $message
      * @param string $encoding   signature encoding 'raw', 'base58' or 'base64'
      * @return boolean
-     * @throws RuntimeException if public sign key is not set
+     * @throws \RuntimeException if public sign key is not set
      */
     public function verify(string $signature, string $message, string $encoding = 'base58'): bool
     {
         if (!isset($this->sign->publickey)) {
-            throw new RuntimeException("Unable to verify message; no public sign key");
+            throw new \RuntimeException("Unable to verify message; no public sign key");
         }
         
         $rawSignature = decode($signature, $encoding);
@@ -143,16 +143,16 @@ class Account
      * @param Account $recipient 
      * @param string  $message
      * @return string
-     * @throws RuntimeException if secret encrypt key of sender or public encrypt key of recipient is not set
+     * @throws \RuntimeException if secret encrypt key of sender or public encrypt key of recipient is not set
      */
     public function encryptFor(Account $recipient, string $message): string
     {
         if (!isset($this->encrypt->secretkey)) {
-            throw new RuntimeException("Unable to encrypt message; no secret encryption key");
+            throw new \RuntimeException("Unable to encrypt message; no secret encryption key");
         }
         
         if (!isset($recipient->encrypt->publickey)) {
-            throw new RuntimeException("Unable to encrypt message; no public encryption key for recipient");
+            throw new \RuntimeException("Unable to encrypt message; no public encryption key for recipient");
         }
         
         $nonce = $this->getNonce();
@@ -167,17 +167,17 @@ class Account
      * @param Account $sender 
      * @param string  $cyphertext
      * @return string
-     * @throws RuntimeException if secret encrypt key of recipient or public encrypt key of sender is not set
+     * @throws \RuntimeException if secret encrypt key of recipient or public encrypt key of sender is not set
      * @throws DecryptException if message can't be decrypted
      */
     public function decryptFrom(Account $sender, string $cyphertext): string
     {
         if (!isset($this->encrypt->secretkey)) {
-            throw new RuntimeException("Unable to decrypt message; no secret encryption key");
+            throw new \RuntimeException("Unable to decrypt message; no secret encryption key");
         }
         
         if (!isset($sender->encrypt->publickey)) {
-            throw new RuntimeException("Unable to decrypt message; no public encryption key for sender");
+            throw new \RuntimeException("Unable to decrypt message; no public encryption key for sender");
         }
         
         $encryptedMessage = substr($cyphertext, 0, -24);

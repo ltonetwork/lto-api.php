@@ -2,8 +2,6 @@
 
 namespace LTO;
 
-use InvalidArgumentException;
-
 /**
  * Base58 or base64 encode a string
  *
@@ -61,15 +59,4 @@ function decode(string $string, string $encoding): string
 function sha256(string $input): string
 {
     return hash('sha256', $input, true);
-}
-
-/**
- * Create a raw Blake2b hash of the input.
- *
- * @param string $input
- * @return string
- */
-function blake2b(string $input): string
-{
-    return sodium_crypto_generichash($input);
 }

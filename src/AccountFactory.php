@@ -2,8 +2,6 @@
 
 namespace LTO;
 
-use function base58_encode;
-
 // ED25519 sign functions
 use function sodium_crypto_sign_seed_keypair as ed25519_seed_keypair;
 use function sodium_crypto_sign_publickey as ed25519_publickey;
@@ -19,7 +17,10 @@ use function sodium_crypto_box_publickey_from_secretkey as x25519_publickey_from
 // Convert ED25519 keys to X25519 keys
 use function sodium_crypto_sign_ed25519_pk_to_curve25519 as ed25519_to_x25519_publickey;
 use function sodium_crypto_sign_ed25519_sk_to_curve25519 as ed25519_to_x25519_secretkey;
-use function unpack;
+
+// Blake2B hashing
+use function sodium_crypto_generichash as blake2b;
+
 
 /**
  * Create new account (aka wallet)
@@ -251,6 +252,7 @@ class AccountFactory
      * @param string|null $encrypt
      * @param string      $encoding  Encoding of keys 'raw', 'base58' or 'base64'
      * @return Account
+     * @throws InvalidAccountException
      */
     public function createPublic(?string $sign = null, ?string $encrypt = null, string $encoding = 'base58'): Account
     {

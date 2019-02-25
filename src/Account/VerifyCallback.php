@@ -1,0 +1,72 @@
+<?php declare(strict_types=1);
+
+namespace LTO\Account;
+
+use LTO\AccountFactory;
+use LTO\InvalidAccountException;
+
+/**
+ * Callback to verify a signature.
+ * This can be used as callback for the HttpSignature service.
+ */
+class VerifyCallback
+{
+    /**
+     * @var AccountFactory
+     */
+    protected $accountFactory;
+
+    /**
+     * Public key encoding.
+     * @var string
+     * @options raw,base58,base64
+     */
+    protected $encoding;
+
+    /**
+     * Class constructor.
+     *
+     * @param AccountFactory $accountFactory
+     * @param string         $encoding        Public key encoding for `keyId`.
+     */
+    public function __construct(AccountFactory $accountFactory, string $encoding = 'base58')
+    {
+        if (!in_array($encoding, ['raw', 'base58', 'base64'], true)) {
+            throw new \InvalidArgumentException('Unsupported encoding: '. $encoding);
+        }
+
+        $this->accountFactory = $accountFactory;
+        $this->encoding = $encoding;
+    }
+
+    /**
+     * Invoke the callback.
+     *
+     * @param string $message
+     * @param string $signature
+     * @param string $publicKey
+     * @param string $algorithm
+     * @return bool
+     * @throws InvalidAccountException
+     */
+    public function __invoke(string $message, string $signature, string $publicKey, string $algorithm)
+    {
+        list($encryptAlgo, $hashAlgo) = explode('-', $algorithm, 2) + [null, null];
+
+        if ($encryptAlgo !== 'ed25519' || ($hashAlgo !== null && !in_array($hashAlgo, hash_algos(), true))) {
+            throw new \InvalidArgumentException('Unsupported algorithm: ' . $algorithm);
+        }
+
+        try {
+            $account = $this->accountFactory->createPublic($publicKey, null, $this->encoding);
+        } catch (InvalidAccountException $exception) {
+            return false;
+        }
+
+        if ($hashAlgo !== null) {
+            $message = hash($hashAlgo, $message,true);
+        }
+
+        return $account->verify($signature, $message, 'raw');
+    }
+}

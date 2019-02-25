@@ -1,12 +1,13 @@
 <?php
 
-declare(strict_types=1);
+namespace LTO\Tests;
 
-namespace LTO;
-
-use PHPUnit\Framework\TestCase;
+use LTO\Event;
+use LTO\EventChain;
 use LTO\Account;
-use kornrunner\Keccak;
+use PHPUnit\Framework\TestCase;
+use function LTO\sha256;
+use function sodium_crypto_generichash as blake2b;
 
 /**
  * @covers \LTO\Account

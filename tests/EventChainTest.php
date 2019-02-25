@@ -1,7 +1,8 @@
 <?php
 
-namespace LTO;
+namespace LTO\Tests;
 
+use LTO\Event;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use LTO\Account;

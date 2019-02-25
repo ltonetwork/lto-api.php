@@ -135,49 +135,92 @@ You need the chain id and the hash of the last event to use an existing chain.
 
 ### HTTP Authentication
 
-Signing HTTP Messages is described IETF draft [draft-cavage-http-signatures-09](https://tools.ietf.org/id/draft-cavage-http-signatures-09.html).
+Signing HTTP Messages is described IETF draft [draft-cavage-http-signatures-10](https://tools.ietf.org/id/draft-cavage-http-signatures-10.html).
 
-HTTP Signature Authentication is applied to [PSR-7 requests](https://www.php-fig.org/psr/psr-7/#33-psrhttpmessageresponseinterface).
+The [HTTP Authentication library](https://github.com/legalthings/http-signature-php) can be used to sign and verify
+[PSR-7 requests](https://www.php-fig.org/psr/psr-7/#33-psrhttpmessageresponseinterface).
 
-#### Sign HTTP Request
+This library can be used in conjunction with the HTTP authentication library. The `keyId` should be the base58 encoded
+public key.
+
+#### Creating the HTTP Authentication service
 
 ```php
-$request = new GuzzleHttp\Psr7\Request('GET', 'http://httpbin.org/get');
+use LTO\HttpSignature\HttpSignature;
 
-$httpSignature = new LTO\HTTPSignature($request, ['(request-target)', 'date']);
-$signedRequest = $httpSignature->signWith($account);
+$secretKey = 'wJ4WH8dD88fSkNdFQRjaAhjFUZzZhV5yiDLDwNUnp6bYwRXrvWV8MJhQ9HL9uqMDG1n7XpTGZx7PafqaayQV8Rp';
 
-$client = new GuzzleHttp\Client();
-$client->send($request);
+$factory = new LTO\AccountFactory('T'); // 'T' for testnet, 'L' for mainnet
+$ourAccount = $factory->create($secretKey);
+
+$service = new HttpSignature(
+    ['ed25519', 'ed25519-sha256'],
+    new SignCallback($ourAccount),
+    new VerifyCallback($accountFactory)
+);
 ```
 
-#### Verify signed HTTP request
+#### Server middleware
 
-Verifying a signed HTTP request requires using a PSR-7 compliant framework. Assume that `Response` is an implementation
-of `Psr\Http\Message\ResponseInterface`.
+Create server middleware to verify incoming requests.
+
+The `LTO\Account\ServerMiddleware` can be used to set the `account` attribute for a server request that contains a
+`signature_key_id` attribute.
 
 ```php
-function handleRequest(Psr\Http\Message\RequestInterface $request)
-{
-    $accountFactory = new LTO\AccountFactory('T');
+use LTO\HttpSignature\ServerMiddleware as SignatureMiddleware;
+use LTO\Account\ServerMiddleware as AccountMiddleware;
+use Relay\RelayBuilder;
 
-    $requiredHeaders = $this->getMethod() === 'POST'
-        ? ['(request-target)', 'date', 'content-type', 'content-length', 'digest']
-        : ['(request-target)', 'date'];
+$factory = new LTO\AccountFactory('T'); // 'T' for testnet, 'L' for mainnet
+$ourAccount = $factory->create($secretKey);
 
-    try {
-        $httpSignature = new LTO\HTTPSignature($this->getRequest(), $requiredHeaders);
-        $httpSignature->useAccountFactory($accountFactory)->verify();
+$service = new HttpSignature(
+    ['ed25519', 'ed25519-sha256'],
+    function() { throw new \LogicException('sign not supported'); },
+    new VerifyCallback($accountFactory)
+);
 
-        $account = $httpSignature->getAccount();
-        // The account can be used for access control
+$signatureMiddleware = new SignatureMiddleware($service);
+$accountMiddleware = new AccountMiddleware($factory);
 
-        $response = (new Response())->withStatusCode(200);
-    } catch (LTO\HTTPSignatureException $e) {
-        $wwwAuthHeader = sprintf('Signature algorithm="ed25519-sha256",headers="%s"', join(' ', $requiredHeaders));
-        $response = (new Response())->withStatusCode(401)->withHeader("WWW-Authenticate", $wwwAuthHeader);
-    }
+$relayBuilder = new RelayBuilder($resolver);
+$relay = $relayBuilder->newInstance([
+    $signatureMiddleware->asDoublePass(),
+    $accountMiddleware->asDoublePass(),
+]);
+```
 
-    return $response;
-}
+The server middleware implements the PSR-15 `MiddlewareInterface` for single pass support and returns a callback for
+double pass with the `asDoublePass()` method.
+
+#### Client middleware
+
+Create client middleware to sign outgoing requests.
+
+```php
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Client;
+use LTO\HttpSignature\ClientMiddleware;
+
+$secretKey = 'wJ4WH8dD88fSkNdFQRjaAhjFUZzZhV5yiDLDwNUnp6bYwRXrvWV8MJhQ9HL9uqMDG1n7XpTGZx7PafqaayQV8Rp';
+
+$factory = new LTO\AccountFactory('T'); // 'T' for testnet, 'L' for mainnet
+$ourAccount = $factory->create($secretKey);
+
+$service = new HttpSignature(
+    ['ed25519', 'ed25519-sha256'],
+    new SignCallback($ourAccount),
+    function() { throw new \LogicException('verify not supported'); }
+);
+
+$middleware = new ClientMiddleware(
+    $service->withAlgorithm('ed25519-sha256'),
+    $ourAccount->getPublicKey()
+);
+
+$stack = new HandlerStack();
+$stack->push($middleware->forGuzzle());
+
+$client = new Client(['handler' => $stack]);
 ```
