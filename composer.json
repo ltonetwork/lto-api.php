@@ -37,6 +37,9 @@
     "suggests": {
         "ext-base58": "Base58 extension performs much better"
     },
+    "conflict": {
+        "legalthings/lto-api": "*"
+    },
     "autoload": {
         "psr-4": {
             "LTO\\": "src/"
