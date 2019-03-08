@@ -2,12 +2,14 @@
 
 namespace LTO;
 
+use JsonSerializable;
+use OutOfBoundsException;
 use function sodium_crypto_generichash as blake2b;
 
 /**
  * Live contracts event chain
  */
-class EventChain
+class EventChain implements JsonSerializable
 {
     const CHAIN_ID = 0x40;
     const RESOURCE_ID = 0x50;
@@ -121,6 +123,7 @@ class EventChain
         }
 
         $lastEvent = end($this->events);
+
         return $lastEvent->getHash();
     }
     
@@ -180,5 +183,87 @@ class EventChain
         return $parts['type'] === self::RESOURCE_ID
             && $parts['ns'] === substr($nsHashed, 0, 20)
             && $parts['checksum'] === substr($checksum, 0, 4);
+    }
+
+
+    /**
+     * Create a partial chain starting from the given hash.
+     *
+     * @param string $hash
+     * @return EventChain
+     * @throws OutOfBoundsException
+     */
+    public function getPartialAfter(string $hash): EventChain
+    {
+        if ($hash === $this->getInitialHash()) {
+            return $this;
+        }
+
+        $newEvents = $this->getEventsAfter($hash);
+
+        $partialChain = clone $this;
+        $partialChain->events = $newEvents;
+
+        if ($newEvents === []) {
+            $partialChain->latestHash = $this->getLatestHash();
+        }
+
+        return $partialChain;
+    }
+
+    /**
+     * Get all events that follow the specified event.
+     *
+     * @param string $hash  Event hash. Initial hash will not work.
+     * @return Event[]
+     * @throws OutOfBoundsException if event for the given hash can't be found.
+     */
+    protected function getEventsAfter(string $hash): array
+    {
+        $events = null;
+
+        foreach ($this->events as $event) {
+            if ($events !== null) {
+                $events[] = $event;
+            }
+
+            if ($event->hash === $hash) {
+                $events = [];
+            }
+        }
+
+        if ($events === null) {
+            throw new OutOfBoundsException("Event '$hash' not found");
+        }
+
+        return $events;
+    }
+
+    /**
+     * Called upon cloning.
+     */
+    public function __clone()
+    {
+        foreach ($this->events as $key => $event) {
+            $this->events[$key] = clone $event;
+        }
+    }
+
+    /**
+     * Prepare for JSON serialization.
+     *
+     * @return \stdClass
+     */
+    public function jsonSerialize()
+    {
+        $serializeEvent = static function(Event $event) {
+            return $event->jsonSerialize();
+        };
+
+        return (object)[
+            'id' => $this->id,
+            'events' => array_map($serializeEvent, $this->events),
+            'latest_hash' => $this->getLatestHash(),
+        ];
     }
 }

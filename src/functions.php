@@ -36,15 +36,16 @@ function encode(string $string, string $encoding): string
 function decode(string $string, string $encoding): string
 {
     if ($encoding === 'base58') {
-        $string = base58_decode($string);
+        $string = @base58_decode($string);
     }
 
     if ($encoding === 'base64') {
-        $string = base64_decode($string, true);
+        $string = @base64_decode($string, true);
     }
 
     if ($string === false) {
-        throw new \InvalidArgumentException("Failed to decode from '$encoding'");
+        $err = error_get_last();
+        throw new \InvalidArgumentException("Failed to decode from '$encoding'. " . ($err['message'] ?? ''));
     }
 
     return $string;

@@ -3,12 +3,13 @@
 namespace LTO;
 
 use BadMethodCallException;
+use JsonSerializable;
 use function sodium_crypto_sign_verify_detached as ed25519_verify;
 
 /**
  * Live Contracts Event
  */
-class Event
+class Event implements JsonSerializable
 {
     /**
      * Base58 encoded JSON string with the body of the event.
@@ -104,9 +105,11 @@ class Event
      */
     public function getHash(): string
     {
-        $hash = sha256($this->getMessage());
+        if ($this->hash === null) {
+            $this->hash = encode(sha256($this->getMessage()), 'base58');
+        }
 
-        return encode($hash, 'base58');
+        return $this->hash;
     }
     
     /**
@@ -155,5 +158,24 @@ class Event
         $chain->add($this);
 
         return $this;
+    }
+
+    /**
+     * Prepare for JSON serialization.
+     *
+     * @return \stdClass
+     */
+    public function jsonSerialize()
+    {
+        $data = (object)get_object_vars($this);
+
+        if ($this->original === null) {
+            unset($data->original);
+        } else {
+            $data->original = $this->original->jsonSerialize();
+            unset($data->original->body);
+        }
+
+        return $data;
     }
 }
