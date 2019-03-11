@@ -41,7 +41,7 @@ class SignCallbackTest extends TestCase
         $algo = 'ed25519' . ($hashAlgo !== null ? '-' . $hashAlgo : '');
 
         $sign = new SignCallback($account);
-        $ret = $sign('hello', $algo);
+        $ret = $sign('hello', '', $algo);
 
         $this->assertEquals('__mock_signature__', $ret);
     }
@@ -79,6 +79,6 @@ class SignCallbackTest extends TestCase
         $this->expectExceptionMessage('Unsupported algorithm: ' . $algo);
 
         $sign = new SignCallback($account);
-        $sign('hello', $algo);
+        $sign('hello', '', $algo);
     }
 }

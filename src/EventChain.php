@@ -256,7 +256,7 @@ class EventChain implements JsonSerializable
      */
     public function jsonSerialize()
     {
-        $serializeEvent = static function(Event $event) {
+        $serializeEvent = static function (Event $event) {
             return $event->jsonSerialize();
         };
 

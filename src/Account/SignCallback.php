@@ -34,10 +34,11 @@ class SignCallback
      * Invoke the callback
      *
      * @param string $message
+     * @param string $keyId
      * @param string $algorithm
      * @return string
      */
-    public function __invoke(string $message, string $algorithm)
+    public function __invoke(string $message, string $keyId, string $algorithm): string
     {
         list($encryptAlgo, $hashAlgo) = explode('-', $algorithm, 2) + [null, null];
 
