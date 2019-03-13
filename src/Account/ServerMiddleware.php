@@ -33,7 +33,7 @@ class ServerMiddleware implements MiddlewareInterface
      * @param AccountFactory $accountFactory
      * @param string         $encoding        Public key encoding.
      */
-    public function __construct(AccountFactory $accountFactory, $encoding = 'raw')
+    public function __construct(AccountFactory $accountFactory, $encoding = 'base58')
     {
         $this->accountFactory = $accountFactory;
         $this->encoding = $encoding;

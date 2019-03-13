@@ -31,11 +31,11 @@ class SignCallback
     }
 
     /**
-     * Invoke the callback
+     * Invoke the callback.
      *
      * @param string $message
      * @param string $keyId
-     * @param string $algorithm
+     * @param string $algorithm  'ed25519' or 'ed25519-sha256'
      * @return string
      */
     public function __invoke(string $message, string $keyId, string $algorithm): string
@@ -50,6 +50,6 @@ class SignCallback
             $message = hash($hashAlgo, $message, true);
         }
 
-        return $this->account->sign($message);
+        return $this->account->sign($message, 'base64');
     }
 }

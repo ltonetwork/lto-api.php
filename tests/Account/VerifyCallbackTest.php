@@ -35,7 +35,7 @@ class VerifyCallbackTest extends TestCase
         $account = $this->createMock(Account::class);
         $account->sign = (object)['publickey' => 'GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY'];
         $account->expects($this->once())->method('verify')
-            ->with('__mock_signature__', $message, 'raw')
+            ->with('__mock_signature__', $message, 'base64')
             ->willReturn(true);
 
         $accountFactory = $this->createMock(AccountFactory::class);
@@ -71,7 +71,7 @@ class VerifyCallbackTest extends TestCase
         $account = $this->createMock(Account::class);
         $account->sign = (object)['publickey' => $rawKey];
         $account->expects($this->once())->method('verify')
-            ->with('__mock_signature__', 'hello', 'raw')
+            ->with('__mock_signature__', 'hello', 'base64')
             ->willReturn(true);
 
         $accountFactory = $this->createMock(AccountFactory::class);
@@ -128,7 +128,7 @@ class VerifyCallbackTest extends TestCase
         $account = $this->createMock(Account::class);
         $account->sign = (object)['publickey' => $rawKey];
         $account->expects($this->once())->method('verify')
-            ->with('__mock_signature__', 'hello', 'raw')
+            ->with('__mock_signature__', 'hello', 'base64')
             ->willReturn(false);
 
         $accountFactory = $this->createMock(AccountFactory::class);
