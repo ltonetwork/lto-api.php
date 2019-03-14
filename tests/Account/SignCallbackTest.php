@@ -34,6 +34,8 @@ class SignCallbackTest extends TestCase
             'secretkey' => base58_decode('4zsR9xoFpxfnNwLcY4hdRUarwf5xWtLj6FpKGDFBgscPxecPj2qgRNx4kJsFCpe9YDxBRNoeBWTh2SDAdwTySomS'),
             'publickey' => base58_decode('GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY')
         ];
+        $account->expects($this->any())->method('getPublicSignKey')
+            ->willReturn('GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY');
         $account->expects($this->once())->method('sign')
             ->with($message)
             ->willReturn('__mock_signature__'); // Would normally return the signature
@@ -41,7 +43,7 @@ class SignCallbackTest extends TestCase
         $algo = 'ed25519' . ($hashAlgo !== null ? '-' . $hashAlgo : '');
 
         $sign = new SignCallback($account);
-        $ret = $sign('hello', '', $algo);
+        $ret = $sign('hello', 'GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY', $algo);
 
         $this->assertEquals('__mock_signature__', $ret);
     }
@@ -75,10 +77,12 @@ class SignCallbackTest extends TestCase
             'secretkey' => base58_decode('4zsR9xoFpxfnNwLcY4hdRUarwf5xWtLj6FpKGDFBgscPxecPj2qgRNx4kJsFCpe9YDxBRNoeBWTh2SDAdwTySomS'),
             'publickey' => base58_decode('GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY')
         ];
+        $account->expects($this->any())->method('getPublicSignKey')
+            ->willReturn('GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY');
 
         $this->expectExceptionMessage('Unsupported algorithm: ' . $algo);
 
         $sign = new SignCallback($account);
-        $sign('hello', '', $algo);
+        $sign('hello', 'GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY', $algo);
     }
 }
