@@ -46,6 +46,10 @@ class SignCallback
             throw new \InvalidArgumentException('Unsupported algorithm: ' . $algorithm);
         }
 
+        if ($keyId !== $this->account->getPublicSignKey()) {
+            throw new \InvalidArgumentException('keyId doesn\'t match account public key');
+        }
+
         if ($hashAlgo !== null) {
             $message = hash($hashAlgo, $message, true);
         }
