@@ -50,6 +50,6 @@ class SignCallback
             $message = hash($hashAlgo, $message, true);
         }
 
-        return $this->account->sign($message, 'base64');
+        return $this->account->sign($message, 'raw'); // HttpSignature service will base64 encode.
     }
 }

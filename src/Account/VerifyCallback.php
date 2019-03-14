@@ -43,7 +43,7 @@ class VerifyCallback
      * Invoke the callback.
      *
      * @param string $message
-     * @param string $signature  Base64 encoded signature
+     * @param string $signature  Raw signature
      * @param string $publicKey  Encoded public key (default base58)
      * @param string $algorithm  'ed25519' or 'ed25519-sha256'
      * @return bool
@@ -67,6 +67,6 @@ class VerifyCallback
             $message = hash($hashAlgo, $message, true);
         }
 
-        return $account->verify($signature, $message, 'base64');
+        return $account->verify($signature, $message, 'raw');
     }
 }
