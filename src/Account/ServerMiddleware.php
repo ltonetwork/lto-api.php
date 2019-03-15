@@ -5,6 +5,7 @@ namespace LTO\Account;
 use Psr\Http\Message\ServerRequestInterface as ServerRequest;
 use Psr\Http\Message\ResponseInterface as Response;
 use LTO\AccountFactory;
+use LTO\Account;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
@@ -21,11 +22,17 @@ class ServerMiddleware implements MiddlewareInterface
     protected $accountFactory;
 
     /**
+     * @var Account|null
+     */
+    protected $trustedAccount;
+
+    /**
      * Public key encoding.
      * @var string
      * @options raw,base58,base64
      */
     protected $encoding;
+
 
     /**
      * Class constructor.
@@ -38,6 +45,55 @@ class ServerMiddleware implements MiddlewareInterface
         $this->accountFactory = $accountFactory;
         $this->encoding = $encoding;
     }
+
+    /**
+     * Get a copy with a trusted account.
+     * Requests signed with this account, may use the `X-Original-Key-Id` header.
+     *
+     * @param Account $account
+     * @return self
+     */
+    public function withTrustedAccount(Account $account)
+    {
+        if ($this->trustedAccount === $account) {
+            return $this;
+        }
+
+        $clone = clone $this;
+        $clone->trustedAccount = $account;
+
+        return $clone;
+    }
+
+    /**
+     * Get a copy without a trusted account.
+     * The `X-Original-Key-Id` header is ignored.
+     *
+     * @return self
+     */
+    public function withoutTrustedAccount()
+    {
+        if ($this->trustedAccount === null) {
+            return $this;
+        }
+
+        $clone = clone $this;
+        $clone->trustedAccount = null;
+
+        return $clone;
+    }
+
+    /**
+     * Get the trusted account.
+     * Requests signed with this account, may use the `X-Original-Key-Id` header.
+     *
+     * @return Account|null
+     */
+    public function getTrustedAccount(): ?Account
+    {
+        return $this->trustedAccount;
+    }
+
 
     /**
      * Process an incoming server request (PSR-15).
@@ -78,11 +134,26 @@ class ServerMiddleware implements MiddlewareInterface
     {
         $keyId = $request->getAttribute('signature_key_id');
 
+        if ($this->isTrustedKeyId($keyId) && $request->hasHeader('X-Original-Key-Id')) {
+            $keyId = $request->getHeaderLine('X-Original-Key-Id');
+        }
+
         if ($keyId !== null) {
             $account = $this->accountFactory->createPublic($keyId, null, $this->encoding);
             $request = $request->withAttribute('account', $account);
         }
 
         return $next($request);
+    }
+
+    /**
+     * Check if the keyId is a trusted if
+     *
+     * @param string|null|mixed $key
+     * @return bool
+     */
+    protected function isTrustedKeyId($key): bool
+    {
+        return $this->trustedAccount !== null && $this->trustedAccount->getPublicSignKey($this->encoding) === $key;
     }
 }
