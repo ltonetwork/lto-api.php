@@ -40,7 +40,7 @@ class SignCallback
      */
     public function __invoke(string $message, string $keyId, string $algorithm): string
     {
-        list($encryptAlgo, $hashAlgo) = explode('-', $algorithm, 2) + [null, null];
+        [$encryptAlgo, $hashAlgo] = explode('-', $algorithm, 2) + [null, null];
 
         if ($encryptAlgo !== 'ed25519' || ($hashAlgo !== null && !in_array($hashAlgo, hash_algos(), true))) {
             throw new \InvalidArgumentException('Unsupported algorithm: ' . $algorithm);

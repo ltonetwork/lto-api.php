@@ -195,7 +195,7 @@ class EventChain implements JsonSerializable
      */
     public function getPartialAfter(string $hash): EventChain
     {
-        if ($hash === $this->getInitialHash()) {
+        if ($hash === ($this->events === [] ? $this->getLatestHash() : $this->events[0]->previous)) {
             return $this;
         }
 
