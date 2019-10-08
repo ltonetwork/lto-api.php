@@ -114,13 +114,8 @@ _Note: You need to add an identity as first event on the chain. This is **not** 
 
 ```php
 $body = [
-  "$schema": "http://specs.livecontracts.io/01-draft/12-comment/schema.json#",
-  "identity": {
-    "$schema": "http://specs.livecontracts.io/01-draft/02-identity/schema.json#",
-    "id": "1bb5a451-d496-42b9-97c3-e57404d2984f"
-  },
-  "content_media_type": "text/plain",
-  "content": "Hello world!"
+  '$schema' => "http://specs.example.com/message#",
+  'content' => "Hello world!"
 ];
 
 $chainId = "JEKNVnkbo3jqSHT8tfiAKK4tQTFK7jbx8t18wEEnygya";
