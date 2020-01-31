@@ -40,7 +40,7 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreateAccountSeed()
     {
-        $factory = new AccountFactory('L', 0);
+        $factory = new AccountFactory('L');
         $seed = $factory->createAccountSeed($this->seedText);
         
         $this->assertEquals("ETYQWXzC2h8VXahYdeUTXNPXEkan3vi9ikXbn912ijiw", base58_encode($seed));
@@ -65,7 +65,7 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreateAddress($expected, $network)
     {
-        $factory = new AccountFactory($network, 0);
+        $factory = new AccountFactory($network);
         
         $publickey = base58_decode("GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY");
         $address = $factory->createAddress($publickey);
@@ -129,7 +129,7 @@ class AccountFactoryTest extends TestCase
             $value = base58_decode($value);
         }
         
-        $factory = new AccountFactory('L', 0);
+        $factory = new AccountFactory('L');
 
         $encrypt = $factory->convertSignToEncrypt($sign);
         
@@ -150,13 +150,10 @@ class AccountFactoryTest extends TestCase
 
     /**
      * @dataProvider seedProvider
-     *
-     * @param $expectedAddress
-     * @param $network
      */
     public function testSeed($expectedAddress, $network)
     {
-        $factory = new AccountFactory($network, 0);
+        $factory = new AccountFactory($network);
         
         $account = $factory->seed($this->seedText);
         
@@ -170,6 +167,36 @@ class AccountFactoryTest extends TestCase
 
         $this->assertBase58Equals("4q7HKMbwbLcG58iFV3pz4vkRnPTwbrY9Q5JrwnwLEZCC", $account->encrypt->secretkey);
         $this->assertBase58Equals("6fDod1xcVj4Zezwyy3tdPGHkuDyMq8bDHQouyp5BjXsX", $account->encrypt->publickey);
+
+        $this->assertBase58Equals($expectedAddress, $account->address);
+    }
+
+    public function seedWithNonceProvider()
+    {
+        return [
+            [ "3JhivHUEKbnAaepFDCywrpGAeWDo8n3qJAw", 'L' ],
+            [ "3MvRkALcdHDsbCHMuQLcQhGLwYFrgUSjw2Z", 'T' ],
+        ];
+    }
+    /**
+     * @dataProvider seedWithNonceProvider
+     */
+    public function testSeedWithNonce($expectedAddress, $network)
+    {
+        $factory = new AccountFactory($network);
+
+        $account = $factory->seed($this->seedText, 3);
+
+        $this->assertInstanceOf(Account::class, $account);
+
+        $this->assertBase58Equals(
+            "243K6QejCRvS5tvqfo8gJfspsMmhWcHbRNpbndFZiwaUTe6ocL2cboF4UhD9XrvkKPbxkUdSRNFdM46ptBMWF1ZF",
+            $account->sign->secretkey
+        );
+        $this->assertBase58Equals("7ZosBupws3tdFXHSc4TsEm7FdVqJdTUrbjtoZJgdYZMF", $account->sign->publickey);
+
+        $this->assertBase58Equals("GfMZt7HYLuwbMuZoEjL8kZupup8ZDzprsL2HeZeMH71o", $account->encrypt->secretkey);
+        $this->assertBase58Equals("gETKttutfEWZizA4YkKkafGonk8d3wmbViQL6MRet2k", $account->encrypt->publickey);
 
         $this->assertBase58Equals($expectedAddress, $account->address);
     }
@@ -217,7 +244,7 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreate($data, $hasSign, $hasEncrypt, $hasAddress)
     {
-        $factory = new AccountFactory('L', 0);
+        $factory = new AccountFactory('L');
         $account = $factory->create($data);
         
         $this->assertInstanceOf(Account::class, $account);
@@ -251,7 +278,7 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreateEncryptKeyMismatch()
     {
-        $factory = new AccountFactory('L', 0);
+        $factory = new AccountFactory('L');
         $account = $factory->create([
             'encrypt' => [
                 'publickey' => 'BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6',
@@ -268,7 +295,7 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreateSignKeyMismatch()
     {
-        $factory = new AccountFactory('L', 0);
+        $factory = new AccountFactory('L');
         $account = $factory->create([
             'sign' => [
                 'publickey' => 'FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y',
@@ -286,7 +313,7 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreateKeyMismatch()
     {
-        $factory = new AccountFactory('L', 0);
+        $factory = new AccountFactory('L');
         $account = $factory->create([
             'encrypt' => ['publickey' => 'EZa2ndj6h95m3xm7DxPQhrtANvhymNC7nWQ3o1vmDJ4x'],
             'sign' => ['publickey' => 'FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y']
@@ -301,7 +328,7 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreateAddressMismatch()
     {
-        $factory = new AccountFactory('L', 0);
+        $factory = new AccountFactory('L');
         $account = $factory->create([
             'encrypt' => ['publickey' => '6fDod1xcVj4Zezwyy3tdPGHkuDyMq8bDHQouyp5BjXsX'],
             'sign' => ['publickey' => 'GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY'],
@@ -332,7 +359,7 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreatePublic($signkey, $encryptkey, $encoding = 'base58')
     {
-        $factory = new AccountFactory('L', 0);
+        $factory = new AccountFactory('L');
         $account = $factory->createPublic($signkey, $encryptkey, $encoding);
         
         $this->assertInstanceOf(Account::class, $account);

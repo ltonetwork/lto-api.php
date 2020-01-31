@@ -30,9 +30,9 @@ class EventChain implements JsonSerializable
      * Hash of the latest event on the chain.
      * @var string|null
      */
-    protected $latestHash;
-    
-    
+    protected $latest_hash;
+
+
     /**
      * Class constructor
      *
@@ -42,14 +42,15 @@ class EventChain implements JsonSerializable
     public function __construct(string $id = null, string $latestHash = null)
     {
         $this->id = $id;
-        $this->latestHash = $latestHash ?: (isset($id) ? $this->getInitialHash() : null);
+        $this->latest_hash = $latestHash ?: (isset($id) ? $this->getInitialHash() : null);
     }
 
-    
+
     /**
      * Generate an 20 byte random nonce for the id.
      *
      * @return string
+     * @throws \Exception
      */
     protected function getRandomNonce(): string
     {
@@ -95,7 +96,7 @@ class EventChain implements JsonSerializable
         }
         
         $this->id = $this->createId(self::CHAIN_ID, $account->sign->publickey, $nonceSeed);
-        $this->latestHash = $this->getInitialHash();
+        $this->latest_hash = $this->getInitialHash();
     }
 
     /**
@@ -119,7 +120,7 @@ class EventChain implements JsonSerializable
     public function getLatestHash(): ?string
     {
         if ($this->events === []) {
-            return $this->latestHash;
+            return $this->latest_hash;
         }
 
         $lastEvent = end($this->events);
@@ -138,7 +139,7 @@ class EventChain implements JsonSerializable
         $event->previous = $this->getLatestHash();
         
         $this->events[] = $event;
-        $this->latestHash = null;
+        $this->latest_hash = null;
         
         return $event;
     }
@@ -205,10 +206,41 @@ class EventChain implements JsonSerializable
         $partialChain->events = $newEvents;
 
         if ($newEvents === []) {
-            $partialChain->latestHash = $this->getLatestHash();
+            $partialChain->latest_hash = $this->getLatestHash();
         }
 
         return $partialChain;
+    }
+
+    /**
+     * Check if this chain has the genesis event or is empty.
+     */
+    public function isPartial(): bool
+    {
+        return count($this->events) > 0
+            ? $this->events[0]->previous !== $this->getInitialHash()
+            : $this->previous_hash !== null;
+    }
+
+    /**
+     * Check if the chain has events.
+     */
+    public function hasEvents(): bool
+    {
+        return count($this->events) !== 0;
+    }
+
+    /**
+     * Get a partial chain without any events.
+     *
+     * @return EventChain
+     */
+    public function getPartialWithoutEvents(): EventChain
+    {
+        $partial = $this->withoutEvents();
+        $partial->previous_hash = $this->getLatestHash();
+
+        return $partial;
     }
 
     /**

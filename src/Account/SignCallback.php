@@ -35,8 +35,9 @@ class SignCallback
      *
      * @param string $message
      * @param string $keyId
-     * @param string $algorithm  'ed25519' or 'ed25519-sha256'
+     * @param string $algorithm 'ed25519' or 'ed25519-sha256'
      * @return string
+     * @throws \RuntimeException
      */
     public function __invoke(string $message, string $keyId, string $algorithm): string
     {
