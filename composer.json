@@ -32,7 +32,7 @@
         "psr/http-server-middleware": "^1.0"
     },
     "require-dev": {
-        "jasny/php-code-quality": "^2.3"
+        "jasny/php-code-quality": "~2.3.0"
     },
     "suggests": {
         "ext-base58": "Base58 extension performs much better"

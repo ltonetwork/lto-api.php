@@ -20,11 +20,12 @@ before_install:
   - wget https://github.com/bitcoin/libbase58/archive/v0.1.4.tar.gz -O libbase58-0.1.4.tar.gz
   - tar -xzf libbase58-0.1.4.tar.gz
   - pushd libbase58-0.1.4 && autoreconf --install && ./configure --prefix=/usr && make && sudo make install && popd
+  - pecl install base58-beta
+  - pecl install --soft sodium
 
 install:
   - composer install
   - wget https://scrutinizer-ci.com/ocular.phar -O "$HOME/ocular.phar"
-  - pecl install base58-beta
 
 script:
   - vendor/bin/phpunit --coverage-clover cache/logs/clover.xml
