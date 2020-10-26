@@ -1,7 +1,7 @@
 LTO Network client for PHP
 ===
 
-[![Build Status](https://travis-ci.org/legalthings/lto-api.php.svg?branch=master)](https://travis-ci.org/legalthings/lto-api.php)
+[![Build Status](https://travis-ci.org/ltonetwork/lto-api.php.svg?branch=master)](https://travis-ci.org/ltonetwork/lto-api.php)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/legalthings/lto-api.php/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/legalthings/lto-api.php/?branch=master)
 [![Code Coverage](https://scrutinizer-ci.com/g/legalthings/lto-api.php/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/legalthings/lto-api.php/?branch=master)
 [![Packagist Stable Version](https://img.shields.io/packagist/v/lto/api.svg)](https://packagist.org/packages/lto/api)
