@@ -20,15 +20,23 @@ before_install:
   - wget https://github.com/bitcoin/libbase58/archive/v0.1.4.tar.gz -O libbase58-0.1.4.tar.gz
   - tar -xzf libbase58-0.1.4.tar.gz
   - pushd libbase58-0.1.4 && autoreconf --install && ./configure --prefix=/usr && make && sudo make install && popd
-  - pecl install base58-beta
-  - pecl install --soft sodium
+  - test "$TRAVIS_PHP_VERSION" != "nightly" || export COMPOSER_FLAGS="$COMPOSER_FLAGS --ignore-platform-reqs"
 
 install:
-  - composer install
+  - pecl install base58-beta
+  - pecl install --soft sodium
+  - composer install $COMPOSER_FLAGS
   - wget https://scrutinizer-ci.com/ocular.phar -O "$HOME/ocular.phar"
 
+before_script: |
+  if (php -m | grep -q -i xdebug); then
+    export PHPUNIT_FLAGS="--coverage-clover cache/logs/clover.xml"
+  else
+    export PHPUNIT_FLAGS="--no-coverage"
+  fi
+
 script:
-  - vendor/bin/phpunit --coverage-clover cache/logs/clover.xml
+  - vendor/bin/phpunit $PHPUNIT_FLAGS
 
 after_success:
-  - php "$HOME/ocular.phar" code-coverage:upload --format=php-clover cache/logs/clover.xml
+  - test "$PHPUNIT_FLAGS" == "--no-coverage" || php "$HOME/ocular.phar" code-coverage:upload --format=php-clover cache/logs/clover.xml

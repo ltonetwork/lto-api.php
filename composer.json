@@ -26,7 +26,7 @@
     "require": {
         "php": ">=7.2.0",
         "ext-json": "*",
-        "ext-sodium": "2.* || 7.*",
+        "ext-sodium": "2.* || 7.* || 8.*",
         "legalthings/base58-compat": "^0.1.0",
         "psr/http-message": "^1.0",
         "psr/http-server-middleware": "^1.0"
