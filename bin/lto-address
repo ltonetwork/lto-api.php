@@ -1,0 +1,29 @@
+#!/usr/bin/env php
+<?php
+
+require 'vendor/autoload.php';
+
+use LTO\AccountFactory;
+use function sodium_crypto_generichash as blake2b;
+use function LTO\sha256;
+
+$data = '';
+
+do {
+    $chunk = fread(STDIN, 8192);
+    $data .= $chunk;
+} while ($chunk && (substr($chunk, -1) === "\n" || strlen($chunk) === 8192));
+
+$data = trim($data);
+$network = $argv[1] ?? 'L';
+
+$publickeyHash = substr(sha256(blake2b($data)), 0, 20);
+$prefix = pack('Ca', AccountFactory::ADDRESS_VERSION, $network);
+
+$base = $prefix . $publickeyHash;
+$chksum = substr(sha256(blake2b($base)), 0, 4);
+
+$address = $base . $chksum;
+
+echo "address: ", base58_encode($address), "\n";
+

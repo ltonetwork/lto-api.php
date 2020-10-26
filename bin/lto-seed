@@ -24,3 +24,8 @@ echo "  publickey: ", base58_encode($account->sign->publickey), "\n";
 echo "encrypt:", "\n";
 echo "  secretkey: ", base58_encode($account->encrypt->secretkey), "\n";
 echo "  publickey: ", base58_encode($account->encrypt->publickey), "\n";
+echo "pem: |", "\n",
+    "  -----BEGIN PRIVATE KEY-----", "\n",
+    "  " . base64_encode(base64_decode("MC4CAQAwBQYDK2VwBCIEIA==") . $seed), "\n",
+    "  -----END PRIVATE KEY-----", "\n";
+
