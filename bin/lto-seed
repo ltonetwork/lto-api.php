@@ -15,7 +15,7 @@ do {
 $message = trim($data);
 
 $factory = new AccountFactory($argv[1] ?? 'L', 0);
-$account = $factory->seed($data);
+$account = $factory->seed($message);
 
 echo "address: ", base58_encode($account->address), "\n";
 echo "sign:", "\n";
