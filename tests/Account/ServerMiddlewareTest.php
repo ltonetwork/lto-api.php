@@ -2,7 +2,7 @@
 
 namespace LTO\Tests\Account;
 
-use Jasny\TestHelper;
+use Jasny\PHPUnit\CallbackMockTrait;
 use LTO\Account;
 use LTO\Account\ServerMiddleware;
 use LTO\AccountFactory;
@@ -17,7 +17,7 @@ use function LTO\encode;
  */
 class ServerMiddlewareTest extends TestCase
 {
-    use TestHelper;
+    use CallbackMockTrait;
 
     public function keyProvider()
     {

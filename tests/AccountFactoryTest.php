@@ -43,7 +43,7 @@ class AccountFactoryTest extends TestCase
         $factory = new AccountFactory('L', 0);
         $seed = $factory->createAccountSeed($this->seedText);
         
-        $this->assertEquals("ETYQWXzC2h8VXahYdeUTXNPXEkan3vi9ikXbn912ijiw", base58_encode($seed));
+        $this->assertSame("ETYQWXzC2h8VXahYdeUTXNPXEkan3vi9ikXbn912ijiw", base58_encode($seed));
     }
 
     
@@ -70,7 +70,7 @@ class AccountFactoryTest extends TestCase
         $publickey = base58_decode("GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY");
         $address = $factory->createAddress($publickey);
         
-        $this->assertEquals($expected, base58_encode($address));
+        $this->assertSame($expected, base58_encode($address));
     }
 
     public function convertSignToEncryptProvider()
@@ -223,7 +223,7 @@ class AccountFactoryTest extends TestCase
         $this->assertInstanceOf(Account::class, $account);
 
         if ($hasSign) {
-            $this->assertInternalType('object', $account->sign);
+            $this->assertIsObject($account->sign);
             $this->assertBase58Equals(
                 "4zsR9xoFpxfnNwLcY4hdRUarwf5xWtLj6FpKGDFBgscPxecPj2qgRNx4kJsFCpe9YDxBRNoeBWTh2SDAdwTySomS",
                 $account->sign->secretkey);
@@ -233,7 +233,7 @@ class AccountFactoryTest extends TestCase
         }
         
         if ($hasEncrypt) {
-            $this->assertInternalType('object', $account->encrypt);
+            $this->assertIsObject($account->encrypt);
             $this->assertBase58Equals("4q7HKMbwbLcG58iFV3pz4vkRnPTwbrY9Q5JrwnwLEZCC", $account->encrypt->secretkey);
             $this->assertBase58Equals("6fDod1xcVj4Zezwyy3tdPGHkuDyMq8bDHQouyp5BjXsX", $account->encrypt->publickey);
         } else {
@@ -246,11 +246,12 @@ class AccountFactoryTest extends TestCase
     }
     
     /**
-     * @expectedException LTO\InvalidAccountException
-     * @expectedExceptionMessage Public encrypt key doesn't match private encrypt key
      */
     public function testCreateEncryptKeyMismatch()
     {
+        $this->expectException(\LTO\InvalidAccountException::class);
+        $this->expectExceptionMessage('Public encrypt key doesn\'t match private encrypt key');
+
         $factory = new AccountFactory('L', 0);
         $account = $factory->create([
             'encrypt' => [
@@ -263,11 +264,12 @@ class AccountFactoryTest extends TestCase
     }
     
     /**
-     * @expectedException LTO\InvalidAccountException
-     * @expectedExceptionMessage Public sign key doesn't match private sign key
      */
     public function testCreateSignKeyMismatch()
     {
+        $this->expectException(\LTO\InvalidAccountException::class);
+        $this->expectExceptionMessage('Public sign key doesn\'t match private sign key');
+
         $factory = new AccountFactory('L', 0);
         $account = $factory->create([
             'sign' => [
@@ -281,11 +283,12 @@ class AccountFactoryTest extends TestCase
     }
     
     /**
-     * @expectedException LTO\InvalidAccountException
-     * @expectedExceptionMessage Sign key doesn't match encrypt key
      */
     public function testCreateKeyMismatch()
     {
+        $this->expectException(\LTO\InvalidAccountException::class);
+        $this->expectExceptionMessage('Sign key doesn\'t match encrypt key');
+
         $factory = new AccountFactory('L', 0);
         $account = $factory->create([
             'encrypt' => ['publickey' => 'EZa2ndj6h95m3xm7DxPQhrtANvhymNC7nWQ3o1vmDJ4x'],
@@ -296,11 +299,12 @@ class AccountFactoryTest extends TestCase
     }
     
     /**
-     * @expectedException LTO\InvalidAccountException
-     * @expectedExceptionMessage Address is of network 'T', not of 'L'
      */
     public function testCreateAddressMismatch()
     {
+        $this->expectException(\LTO\InvalidAccountException::class);
+        $this->expectExceptionMessage('Address is of network \'T\', not of \'L\'');
+
         $factory = new AccountFactory('L', 0);
         $account = $factory->create([
             'encrypt' => ['publickey' => '6fDod1xcVj4Zezwyy3tdPGHkuDyMq8bDHQouyp5BjXsX'],

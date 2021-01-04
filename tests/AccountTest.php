@@ -19,7 +19,7 @@ class AccountTest extends TestCase
      */
     public $account;
     
-    public function setUp()
+    public function setUp(): void
     {
         $this->account = $this->createPartialMock(Account::class, ['getNonce']);
         $this->account->method('getNonce')->willReturn(str_repeat("\0", 24));
@@ -63,12 +63,11 @@ class AccountTest extends TestCase
         );
     }
     
-    /**
-     * @expectedException RuntimeException
-     * @expectedExceptionMessage Unable to sign message; no secret sign key
-     */
     public function testSignNoKey()
     {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Unable to sign message; no secret sign key');
+
         $account = new Account();
         
         $account->sign("hello");
@@ -76,23 +75,11 @@ class AccountTest extends TestCase
     
     public function testSignEvent()
     {
-        $message = join("\n", [
-            "HeFMDcuveZQYtBePVUugLyWtsiwsW4xp7xKdv",
-            '2018-03-01T00:00:00+00:00',
-            "72gRWx4C1Egqz9xvUBCYVdgh7uLc5kmGbjXFhiknNCTW",
-            "GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY"
-        ]);
-        
         $event = $this->createMock(Event::class);
-        $event->expects($this->once())->method('getMessage')->willReturn($message);
-        $event->expects($this->once())->method('getHash')->willReturn('47FmxvJ4v1Bnk4SGSwrHcncX5t5u3eAjmc6QJgbR5nn8');
-        
+        $event->expects($this->once())->method('signWith')->with($this->account)->willReturnSelf();
+
         $ret = $this->account->signEvent($event);
         $this->assertSame($event, $ret);
-        
-        $this->assertAttributeEquals('GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY', 'signkey', $event);
-        $this->assertAttributeEquals('4pwrLbWSYqE7st7fCGc2fW2eA33DP1uE4sBm6onfwYNk4M8Av9u4Mqx1R77sVzRRofQgoHGTLRh8pRBRzp5JGBo9', 'signature', $event);
-        $this->assertAttributeEquals('47FmxvJ4v1Bnk4SGSwrHcncX5t5u3eAjmc6QJgbR5nn8', 'hash', $event);
     }
     
     public function testSignAndVerify()
@@ -196,11 +183,10 @@ class AccountTest extends TestCase
         $this->assertFalse($this->account->verify($signature, 'not this'));
     }
 
-    /**
-     * @expectedException \InvalidArgumentException
-     */
     public function testVerifyInvalid()
     {
+        $this->expectException(\InvalidArgumentException::class);
+
         $signature = 'not a real signature';
         
         $this->assertFalse(@$this->account->verify($signature, 'hello'));
@@ -249,10 +235,11 @@ class AccountTest extends TestCase
     
     /**
      * Try to encrypt a message with your own keys.
-     * @expectedException LTO\DecryptException
      */
     public function testDecryptFromFail()
     {
+        $this->expectException(\LTO\DecryptException::class);
+
         $cyphertext = base58_decode('2246pmtzDem9GB15GmtULMXB7Vrr1wciQcHsQvrUsmapeaBQzqHNUcS4KYYu7D');
         
         $this->account->decryptFrom($this->account, $cyphertext);

@@ -96,26 +96,25 @@ class VerifyCallbackTest extends TestCase
 
     /**
      * @dataProvider invalidAlgorithmProvider
-     * @expectedException \InvalidArgumentException
      */
     public function testInvalidAlgorithm(string $algo)
     {
         $accountFactory = $this->createMock(AccountFactory::class);
         $accountFactory->expects($this->never())->method('createPublic');
 
+        $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Unsupported algorithm: ' . $algo);
 
         $verify = new VerifyCallback($accountFactory, 'base58');
         $verify('hello', '__mock_signature__', 'GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY', $algo);
     }
 
-    /**
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage Unsupported encoding: binary
-     */
     public function testInvalidEncoding()
     {
         $accountFactory = $this->createMock(AccountFactory::class);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Unsupported encoding: binary");
 
         new VerifyCallback($accountFactory, 'binary');
     }

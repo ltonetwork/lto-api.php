@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace LTO;
 
@@ -33,7 +35,7 @@ class Account
     
     
     /**
-     * Get a random nonce
+     * Get a random nonce.
      * @codeCoverageIgnore
      *
      * @return string
@@ -98,7 +100,7 @@ class Account
     }
     
     /**
-     * Sign an event
+     * Sign an event.
      *
      * @param Event $event
      * @return Event
@@ -106,11 +108,19 @@ class Account
      */
     public function signEvent(Event $event): Event
     {
-        $event->signkey = $this->getPublicSignKey();
-        $event->signature = $this->sign($event->getMessage());
-        $event->hash = $event->getHash();
-        
-        return $event;
+        return $event->signWith($this);
+    }
+
+    /**
+     * Sign a transaction.
+     *
+     * @template T
+     * @param Transaction&T $transaction
+     * @return Transaction&T
+     */
+    public function signTransaction(Transaction $transaction): Transaction
+    {
+        return $transaction->signWith($this);
     }
     
     /**

@@ -14,7 +14,7 @@ Installation
 
     composer require lto/api
 
-Usage
+Accounts
 ---
 
 ### Creation
@@ -100,6 +100,24 @@ $message = $account->decryptFrom($sender, $cyphertext);
 
 You can use `$account->decryptFrom($account, $message);` to decrypt a message from yourself.
 
+## Public layer
+
+```php
+use LTO\Transaction\Transfer;
+use LTO\PublicNode;
+
+$amount = 1000.0; // Amount of LTO to transfer
+$recipient = "3Jo1JCrBvnWCg37VDxMXAjYhsS9rRDLBSze";
+
+$transferTx = (new Transfer($amount, $recipient))
+    ->signWith($account);
+    
+$node = new PublicNode('https://nodes.lto.network');
+$node->broadcast($transferTx);
+```
+
+## Private layer
+
 ### Event chain
 
 #### Create a new event chain
@@ -119,7 +137,7 @@ $body = [
 ];
 
 $chainId = "JEKNVnkbo3jqSHT8tfiAKK4tQTFK7jbx8t18wEEnygya";
-$chainLastHash" = "3yMApqCuCjXDWPrbjfR5mjCPTHqFG8Pux1TxQrEM35jj";
+$chainLastHash = "3yMApqCuCjXDWPrbjfR5mjCPTHqFG8Pux1TxQrEM35jj";
 
 $chain = new LTO\EventChain($chainId, $chainLastHash);
 
@@ -209,7 +227,7 @@ use Jasny\HttpDigest\ClientMiddleware as DigestMiddleware;
 use Jasny\HttpDigest\Negitiation\DigestNegotiator;
 use Jasny\HttpSignature\HttpSignature;
 use Jasny\HttpSignature\ClientMiddleware as SignatureMiddleware;
-k
+
 $secretKey = 'wJ4WH8dD88fSkNdFQRjaAhjFUZzZhV5yiDLDwNUnp6bYwRXrvWV8MJhQ9HL9uqMDG1n7XpTGZx7PafqaayQV8Rp';
 
 $factory = new LTO\AccountFactory('T'); // 'T' for testnet, 'L' for mainnet
