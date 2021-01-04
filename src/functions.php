@@ -61,3 +61,23 @@ function sha256(string $input): string
 {
     return hash('sha256', $input, true);
 }
+
+/**
+ * Check if address is a valid LTO Network address.
+ *
+ * @param string $address
+ * @param string $encoding  'raw', 'base58' or 'base64'
+ * @return bool
+ */
+function is_valid_address(string $address, string $encoding): bool
+{
+    if ($encoding === 'base58' && !preg_match('/^[1-9A-HJ-NP-Za-km-z]+$/', $address)) {
+        return false;
+    }
+
+    if ($encoding === 'base64' && !preg_match('/^[A-Za-z0-9+/]+={0,2}$/', $address)) {
+        return false;
+    }
+
+    return strlen(decode($address, $encoding)) === 26;
+}
