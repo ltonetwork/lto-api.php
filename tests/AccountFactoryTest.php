@@ -17,7 +17,7 @@ class AccountFactoryTest extends TestCase
      */
     public $seedText = "manage manual recall harvest series desert melt police rose hollow moral pledge kitten"
             . " position add";
-    
+
     /**
      * Asserts variable is equals to Base58 encoded string.
      *
@@ -40,8 +40,8 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreateAccountSeed()
     {
-        $factory = new AccountFactory('L', 0);
-        $seed = $factory->createAccountSeed($this->seedText);
+        $factory = new AccountFactory('L');
+        $seed = $factory->createAccountSeed($this->seedText, 0);
         
         $this->assertSame("ETYQWXzC2h8VXahYdeUTXNPXEkan3vi9ikXbn912ijiw", base58_encode($seed));
     }
@@ -65,7 +65,7 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreateAddress($expected, $network)
     {
-        $factory = new AccountFactory($network, 0);
+        $factory = new AccountFactory($network);
         
         $publickey = base58_decode("GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY");
         $address = $factory->createAddress($publickey);
@@ -129,7 +129,7 @@ class AccountFactoryTest extends TestCase
             $value = base58_decode($value);
         }
         
-        $factory = new AccountFactory('L', 0);
+        $factory = new AccountFactory('L');
 
         $encrypt = $factory->convertSignToEncrypt($sign);
         
@@ -156,7 +156,7 @@ class AccountFactoryTest extends TestCase
      */
     public function testSeed($expectedAddress, $network)
     {
-        $factory = new AccountFactory($network, 0);
+        $factory = new AccountFactory($network);
         
         $account = $factory->seed($this->seedText);
         
@@ -217,7 +217,7 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreate($data, $hasSign, $hasEncrypt, $hasAddress)
     {
-        $factory = new AccountFactory('L', 0);
+        $factory = new AccountFactory('L');
         $account = $factory->create($data);
         
         $this->assertInstanceOf(Account::class, $account);
@@ -252,7 +252,7 @@ class AccountFactoryTest extends TestCase
         $this->expectException(\LTO\InvalidAccountException::class);
         $this->expectExceptionMessage('Public encrypt key doesn\'t match private encrypt key');
 
-        $factory = new AccountFactory('L', 0);
+        $factory = new AccountFactory('L');
         $account = $factory->create([
             'encrypt' => [
                 'publickey' => 'BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6',
@@ -270,7 +270,7 @@ class AccountFactoryTest extends TestCase
         $this->expectException(\LTO\InvalidAccountException::class);
         $this->expectExceptionMessage('Public sign key doesn\'t match private sign key');
 
-        $factory = new AccountFactory('L', 0);
+        $factory = new AccountFactory('L');
         $account = $factory->create([
             'sign' => [
                 'publickey' => 'FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y',
@@ -289,7 +289,7 @@ class AccountFactoryTest extends TestCase
         $this->expectException(\LTO\InvalidAccountException::class);
         $this->expectExceptionMessage('Sign key doesn\'t match encrypt key');
 
-        $factory = new AccountFactory('L', 0);
+        $factory = new AccountFactory('L');
         $account = $factory->create([
             'encrypt' => ['publickey' => 'EZa2ndj6h95m3xm7DxPQhrtANvhymNC7nWQ3o1vmDJ4x'],
             'sign' => ['publickey' => 'FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y']
@@ -305,7 +305,7 @@ class AccountFactoryTest extends TestCase
         $this->expectException(\LTO\InvalidAccountException::class);
         $this->expectExceptionMessage('Address is of network \'T\', not of \'L\'');
 
-        $factory = new AccountFactory('L', 0);
+        $factory = new AccountFactory('L');
         $account = $factory->create([
             'encrypt' => ['publickey' => '6fDod1xcVj4Zezwyy3tdPGHkuDyMq8bDHQouyp5BjXsX'],
             'sign' => ['publickey' => 'GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY'],
@@ -336,7 +336,7 @@ class AccountFactoryTest extends TestCase
      */
     public function testCreatePublic($signkey, $encryptkey, $encoding = 'base58')
     {
-        $factory = new AccountFactory('L', 0);
+        $factory = new AccountFactory('L');
         $account = $factory->createPublic($signkey, $encryptkey, $encoding);
         
         $this->assertInstanceOf(Account::class, $account);

@@ -33,44 +33,27 @@ class AccountFactory
      * @var string
      */
     protected $network;
-    
-    /**
-     * Incrementing nonce (4 bytes)
-     * @var int
-     */
-    protected $nonce;
-    
+
     /**
      * Class constructor
      *
      * @param int|string $network 'W' or 'T' (1 byte)
-     * @param int        $nonce   (4 bytes)
      */
-    public function __construct($network, int $nonce = null)
+    public function __construct($network)
     {
         $this->network = is_int($network) ? chr($network) : substr($network, 0, 1);
-        $this->nonce = isset($nonce) ? $nonce : 0;
     }
-    
-    /**
-     * Get the new nonce.
-     *
-     * @return int
-     */
-    protected function getNonce(): int
-    {
-        return $this->nonce;
-    }
-    
+
     /**
      * Create the account seed using several hashing algorithms.
      *
      * @param string $seedText  Brainwallet seed string
+     * @param int    $nonce     Incrementing nonce
      * @return string  raw seed (not encoded)
      */
-    public function createAccountSeed(string $seedText): string
+    public function createAccountSeed(string $seedText, int $nonce): string
     {
-        $seedBase = pack('La*', $this->getNonce(), $seedText);
+        $seedBase = pack('La*', $nonce, $seedText);
         $seedHash = sha256(blake2b($seedBase));
 
         return sha256($seedHash);
@@ -146,11 +129,12 @@ class AccountFactory
      * Create a new account from a seed
      *
      * @param string $seedText  Brainwallet seed string
+     * @param int    $nonce     Incrementing nonce
      * @return Account
      */
-    public function seed(string $seedText): Account
+    public function seed(string $seedText, int $nonce = 0): Account
     {
-        $seed = $this->createAccountSeed($seedText);
+        $seed = $this->createAccountSeed($seedText, $nonce);
         
         $account = new Account();
         
