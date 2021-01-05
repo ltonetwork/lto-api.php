@@ -6,50 +6,39 @@ namespace LTO\Transaction;
 
 use LTO\Transaction;
 use function LTO\decode;
+use function LTO\encode;
 use function LTO\is_valid_address;
 
 /**
- * LTO Transfer transaction.
+ * LTO Anchor transaction.
+ *
+ * Caveat; the transaction schema supports multiple anchors per transaction, but this is disallowed by the consensus
+ *   model.
  */
-class Transfer extends Transaction
+class Anchor extends Transaction
 {
     /** Minimum transaction fee for a transfer transaction in LTO */
-    public const MINIMUM_FEE = 100000000;
+    public const MINIMUM_FEE = 35000000;
 
     /** Transaction type */
-    public const TYPE = 4;
+    public const TYPE = 15;
 
     /** Transaction version */
-    public const VERSION  = 2;
+    public const VERSION  = 1;
 
-    /** @var int */
-    public $amount;
-
-    /** @var string */
-    public $recipient;
-
-    /** @var string */
-    public $attachment = '';
+    /** @var string[] */
+    public $anchors = [];
 
 
     /**
      * Transfer constructor.
      *
-     * @param int    $amount      Amount of LTO (*10^8)
-     * @param string $recipient   Recipient address (base58 encoded)
+     * @param string $hash
+     * @param string $encoding 'raw', 'hex', 'base58', or 'base64'
      */
-    public function __construct(int $amount, string $recipient)
+    public function __construct(string $hash, string $encoding = 'raw')
     {
-        if ($amount <= 0) {
-            throw new \InvalidArgumentException("Invalid amount; should be greater than 0");
-        }
-
-        if (!is_valid_address($recipient, 'base58')) {
-            throw new \InvalidArgumentException("Invalid recipient address; is it base58 encoded?");
-        }
-
-        $this->amount = $amount;
-        $this->recipient = $recipient;
+        $this->anchors[] = encode(decode($hash, $encoding), 'base58');
         $this->fee = self::MINIMUM_FEE;
     }
 
@@ -66,20 +55,28 @@ class Transfer extends Transaction
             throw new \BadMethodCallException("Timestamp not set");
         }
 
-        $binaryAttachment = decode($this->attachment, 'base58');
-
-        return pack(
-            'CCa32JJJa26na*',
+        $packed = pack(
+            'CCa32n',
             self::TYPE,
             self::VERSION,
             decode($this->senderPublicKey, 'base58'),
-            $this->timestamp,
-            $this->amount,
-            $this->fee,
-            decode($this->recipient, 'base58'),
-            strlen($binaryAttachment),
-            $binaryAttachment
+            count($this->anchors)
         );
+
+        foreach ($this->anchors as $anchor) {
+            $rawHash = decode($anchor, 'base58');
+            $packed .= pack('na*', strlen($rawHash), $rawHash);
+        }
+
+        $packed .= pack(
+            'JJ',
+            $this->timestamp,
+            $this->fee
+        );
+
+        $bytes = array_values(unpack('C*', $packed));
+
+        return $packed;
     }
 
     /**
@@ -96,9 +93,7 @@ class Transfer extends Transaction
                 'senderPublicKey' => $this->senderPublicKey,
                 'fee' => $this->fee,
                 'timestamp' => $this->timestamp,
-                'amount' => $this->amount,
-                'recipient' => $this->recipient,
-                'attachment' => $this->attachment,
+                'anchors' => $this->anchors,
                 'proofs' => $this->proofs,
             ] +
             ($this->height !== null ? ['height' => $this->height] : []);
@@ -120,5 +115,18 @@ class Transfer extends Transaction
         }
 
         return static::createFromData($data);
+    }
+
+    /**
+     * Get the anchor hash.
+     *
+     * @param string $encoding 'raw', 'hex', 'base58', or 'base64'
+     * @return string
+     */
+    public function getAnchor(string $encoding = 'raw'): string
+    {
+        return $encoding === 'base58'
+            ? $this->anchors[0]
+            : encode(decode($this->anchors[0], 'base58'), $encoding);
     }
 }

@@ -11,6 +11,7 @@ abstract class Transaction implements \JsonSerializable
 {
     protected const TYPES = [
         4 => Transaction\Transfer::class,
+        15 => Transaction\Anchor::class,
     ];
 
 
@@ -25,6 +26,9 @@ abstract class Transaction implements \JsonSerializable
 
     /** @var int|null epoch in milliseconds */
     public $timestamp = null;
+
+    /** @var int */
+    public $fee;
 
     /** @var string[] */
     public $proofs = [];

@@ -6,7 +6,7 @@ namespace LTO;
  * Base58 or base64 encode a string
  *
  * @param string $string
- * @param string $encoding  'raw', 'base58' or 'base64'
+ * @param string $encoding  'raw', 'hex', 'base58' or 'base64'
  * @return string
  */
 function encode(string $string, string $encoding): string
@@ -17,6 +17,10 @@ function encode(string $string, string $encoding): string
 
     if ($encoding === 'base64') {
         $string = base64_encode($string);
+    }
+
+    if ($encoding === 'hex') {
+        $string = bin2hex($string);
     }
 
     if ($string === false) {
@@ -30,7 +34,7 @@ function encode(string $string, string $encoding): string
  * Base58 or base64 decode a string
  *
  * @param string $string
- * @param string $encoding  'raw', 'base58' or 'base64'
+ * @param string $encoding  'raw', 'hex', 'base58' or 'base64'
  * @return string
  */
 function decode(string $string, string $encoding): string
@@ -41,6 +45,10 @@ function decode(string $string, string $encoding): string
 
     if ($encoding === 'base64') {
         $string = @base64_decode($string, true);
+    }
+
+    if ($encoding === 'hex') {
+        $string = hex2bin($string);
     }
 
     if ($string === false) {
