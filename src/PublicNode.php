@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpComposerExtensionStubsInspection */
 
 declare(strict_types=1);
 
@@ -12,12 +12,20 @@ class PublicNode
     /** @var string */
     protected $url;
 
+    /** @var string|null */
+    protected $apiKey;
+
     /**
      * Constructor.
      */
-    public function __construct(string $url)
+    public function __construct(string $url, ?string $apiKey = null)
     {
+        if (!function_exists('curl_init')) {
+            throw new \Exception("Curl extension not available");
+        }
+
         $this->url = $url;
+        $this->apiKey = $apiKey;
     }
 
     /**
@@ -29,6 +37,14 @@ class PublicNode
     }
 
     /**
+     * Get the node URL.
+     */
+    public function getApiKey(): string
+    {
+        return $this->apiKey;
+    }
+
+    /**
      * Fetch a transaction by id.
      *
      * @param string $id
@@ -37,7 +53,7 @@ class PublicNode
      */
     public function getTransaction(string $id): Transaction
     {
-        $tx = $this->sendGetRequest('/transactions/info/' . $id);
+        $tx = $this->get('/transactions/info/' . $id);
 
         return Transaction::fromData($tx);
     }
@@ -51,7 +67,7 @@ class PublicNode
     public function getUnconfirmed(): array
     {
         $transactions = [];
-        $txs = $this->sendGetRequest('/transactions/unconfirmed');
+        $txs = $this->get('/transactions/unconfirmed');
 
         foreach ($txs as $tx) {
             $transactions[] = Transaction::fromData($tx);
@@ -71,70 +87,98 @@ class PublicNode
             throw new \BadMethodCallException("Transaction is not signed");
         }
 
-        $tx = $this->sendPostRequest('/transactions/broadcast', $transaction);
+        $tx = $this->post('/transactions/broadcast', $transaction);
 
         return Transaction::fromData($tx);
     }
 
 
     /**
-     * Send a HTTP request to the node.
+     * Send a HTTP GET request to the node.
      *
      * @param string $path
      * @return mixed
      * @throws BadResponseException
      */
-    protected function sendGetRequest(string $path)
+    public function get(string $path)
     {
-        return $this->curlExec(
-            rtrim($this->url, '/') . $path,
-            [
-                CURLOPT_HEADER => true,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HTTPHEADER => [
-                    'Accept: application/json'
-                ]
-            ]
-        );
+        return $this->curlExec([
+            CURLOPT_URL => rtrim($this->url, '/') . $path,
+            CURLOPT_HTTPHEADER => $this->headers([
+                'Accept: application/json'
+            ])
+        ]);
     }
 
     /**
-     * Send a HTTP request to the node.
+     * Send a HTTP POST request to the node.
      *
      * @param string $path
      * @param mixed  $data  Will be serialized to JSON
      * @return mixed
      * @throws BadResponseException
      */
-    protected function sendPostRequest(string $path, $data)
+    public function post(string $path, $data)
     {
-        return $this->curlExec(
-            rtrim($this->url, '/') . $path,
-            [
-                CURLOPT_HEADER => true,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_HTTPHEADER => [
-                    'Content-Type: application/json'
-                ],
-                CURLOPT_POSTFIELDS => json_encode($data),
-            ]
-        );
+        return $this->curlExec([
+            CURLOPT_URL => rtrim($this->url, '/') . $path,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_HTTPHEADER => $this->headers([
+                'Content-Type: application/json',
+                'Accept: application/json'
+            ]),
+            CURLOPT_POSTFIELDS => json_encode($data),
+        ]);
+    }
+
+    /**
+     * Send a HTTP DELETE request to the node.
+     *
+     * @param string $path
+     * @return mixed
+     * @throws BadResponseException
+     */
+    public function delete(string $path)
+    {
+        return $this->curlExec([
+            CURLOPT_URL => rtrim($this->url, '/') . $path,
+            CURLOPT_CUSTOMREQUEST => 'DELETE',
+            CURLOPT_HTTPHEADER => $this->headers([
+                'Accept: application/json',
+            ]),
+        ]);
+    }
+
+    /**
+     * Add / modify the headers.
+     *
+     * @param array $headers
+     * @return array
+     */
+    protected function headers(array $headers):array
+    {
+        if ($this->apiKey !== null) {
+            $headers[] = 'X-Api-Key: ' . $this->apiKey;
+        }
+
+        return $headers;
     }
 
     /**
      * Execute curl request.
      * @codeCoverageIgnore
      *
-     * @param string           $url
      * @param array<int,mixed> $opts  Options for curl_setopt
      * @return mixed
      * @throws BadResponseException
      */
-    public function curlExec(string $url, array $opts)
+    public function curlExec(array $opts)
     {
-        $curl = curl_init($url);
+        $curl = curl_init();
+
         curl_setopt_array($curl, $opts);
+        curl_setopt($curl, CURLOPT_HEADER, true);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 
         $response = curl_exec($curl);
 
