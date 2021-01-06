@@ -78,6 +78,20 @@ class Account
     {
         return $this->encrypt !== null ? encode($this->encrypt->publickey, $encoding) : null;
     }
+
+    /**
+     * Get network chain id.
+     */
+    public function getNetwork(): ?string
+    {
+        if ($this->address === null) {
+            return null;
+        }
+
+        ['network' => $network] = unpack('Cversion/anetwork', $this->address);
+
+        return $network;
+    }
     
     
     /**

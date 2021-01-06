@@ -89,3 +89,14 @@ function is_valid_address(string $address, string $encoding): bool
 
     return strlen(decode($address, $encoding)) === 26;
 }
+
+/**
+ * Get the public properties of an object as associative array.
+ *
+ * @param object $object
+ * @return array
+ */
+function get_public_properties(object $object): array
+{
+    return get_object_vars($object);
+}

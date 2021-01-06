@@ -206,7 +206,7 @@ class TransferTest extends TestCase
     public function testFromDataWithMissingKeys()
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid data, missing keys: amount, fee, recipient, attachment, sender, senderPublicKey, timestamp, proofs");
+        $this->expectExceptionMessage("Invalid data, missing keys: amount, recipient, attachment, sender, senderPublicKey, timestamp, fee, proofs");
 
         Transaction::fromData(['type' => 4]);
     }

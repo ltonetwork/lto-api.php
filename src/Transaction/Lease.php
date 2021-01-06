@@ -9,15 +9,15 @@ use function LTO\decode;
 use function LTO\is_valid_address;
 
 /**
- * LTO Transfer transaction.
+ * LTO transaction to start leasing.
  */
-class Transfer extends Transaction
+class Lease extends Transaction
 {
     /** Minimum transaction fee */
     public const MINIMUM_FEE = 100000000;
 
     /** Transaction type */
-    public const TYPE = 4;
+    public const TYPE = 8;
 
     /** Transaction version */
     public const VERSION  = 2;
@@ -27,9 +27,6 @@ class Transfer extends Transaction
 
     /** @var string */
     public $recipient;
-
-    /** @var string */
-    public $attachment = '';
 
 
     /**
@@ -66,19 +63,16 @@ class Transfer extends Transaction
             throw new \BadMethodCallException("Timestamp not set");
         }
 
-        $binaryAttachment = decode($this->attachment, 'base58');
-
         return pack(
-            'CCa32JJJa26na*',
+            'CCCa32a26JJJ',
             self::TYPE,
             self::VERSION,
+            0,
             decode($this->senderPublicKey, 'base58'),
-            $this->timestamp,
+            decode($this->recipient, 'base58'),
             $this->amount,
             $this->fee,
-            decode($this->recipient, 'base58'),
-            strlen($binaryAttachment),
-            $binaryAttachment
+            $this->timestamp
         );
     }
 

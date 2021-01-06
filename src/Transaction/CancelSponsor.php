@@ -9,46 +9,34 @@ use function LTO\decode;
 use function LTO\is_valid_address;
 
 /**
- * LTO Transfer transaction.
+ * LTO transaction to stop sponsoring an account.
  */
-class Transfer extends Transaction
+class CancelSponsor extends Transaction
 {
     /** Minimum transaction fee */
-    public const MINIMUM_FEE = 100000000;
+    public const MINIMUM_FEE = 500000000;
 
     /** Transaction type */
-    public const TYPE = 4;
+    public const TYPE = 19;
 
     /** Transaction version */
-    public const VERSION  = 2;
-
-    /** @var int */
-    public $amount;
+    public const VERSION  = 1;
 
     /** @var string */
     public $recipient;
-
-    /** @var string */
-    public $attachment = '';
 
 
     /**
      * Class constructor.
      *
-     * @param int    $amount      Amount of LTO (*10^8)
      * @param string $recipient   Recipient address (base58 encoded)
      */
-    public function __construct(int $amount, string $recipient)
+    public function __construct(string $recipient)
     {
-        if ($amount <= 0) {
-            throw new \InvalidArgumentException("Invalid amount; should be greater than 0");
-        }
-
         if (!is_valid_address($recipient, 'base58')) {
             throw new \InvalidArgumentException("Invalid recipient address; is it base58 encoded?");
         }
 
-        $this->amount = $amount;
         $this->recipient = $recipient;
         $this->fee = self::MINIMUM_FEE;
     }
@@ -66,19 +54,15 @@ class Transfer extends Transaction
             throw new \BadMethodCallException("Timestamp not set");
         }
 
-        $binaryAttachment = decode($this->attachment, 'base58');
-
         return pack(
-            'CCa32JJJa26na*',
+            'CCaa32a26JJ',
             self::TYPE,
             self::VERSION,
+            $this->getNetwork(),
             decode($this->senderPublicKey, 'base58'),
-            $this->timestamp,
-            $this->amount,
-            $this->fee,
             decode($this->recipient, 'base58'),
-            strlen($binaryAttachment),
-            $binaryAttachment
+            $this->timestamp,
+            $this->fee
         );
     }
 

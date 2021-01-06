@@ -9,47 +9,31 @@ use function LTO\decode;
 use function LTO\is_valid_address;
 
 /**
- * LTO Transfer transaction.
+ * LTO transaction to cancel leasing.
  */
-class Transfer extends Transaction
+class CancelLease extends Transaction
 {
     /** Minimum transaction fee */
     public const MINIMUM_FEE = 100000000;
 
     /** Transaction type */
-    public const TYPE = 4;
+    public const TYPE = 9;
 
     /** Transaction version */
     public const VERSION  = 2;
 
-    /** @var int */
-    public $amount;
-
     /** @var string */
-    public $recipient;
-
-    /** @var string */
-    public $attachment = '';
+    public $leaseId;
 
 
     /**
      * Class constructor.
      *
-     * @param int    $amount      Amount of LTO (*10^8)
-     * @param string $recipient   Recipient address (base58 encoded)
+     * @param string $leaseId   Transaction ID of the lease transaction (base58 encoded)
      */
-    public function __construct(int $amount, string $recipient)
+    public function __construct(string $leaseId)
     {
-        if ($amount <= 0) {
-            throw new \InvalidArgumentException("Invalid amount; should be greater than 0");
-        }
-
-        if (!is_valid_address($recipient, 'base58')) {
-            throw new \InvalidArgumentException("Invalid recipient address; is it base58 encoded?");
-        }
-
-        $this->amount = $amount;
-        $this->recipient = $recipient;
+        $this->leaseId = $leaseId;
         $this->fee = self::MINIMUM_FEE;
     }
 
@@ -66,19 +50,15 @@ class Transfer extends Transaction
             throw new \BadMethodCallException("Timestamp not set");
         }
 
-        $binaryAttachment = decode($this->attachment, 'base58');
-
         return pack(
-            'CCa32JJJa26na*',
+            'CCaa32JJa32',
             self::TYPE,
             self::VERSION,
+            $this->getNetwork(),
             decode($this->senderPublicKey, 'base58'),
-            $this->timestamp,
-            $this->amount,
             $this->fee,
-            decode($this->recipient, 'base58'),
-            strlen($binaryAttachment),
-            $binaryAttachment
+            $this->timestamp,
+            decode($this->leaseId, 'base58')
         );
     }
 
@@ -89,6 +69,7 @@ class Transfer extends Transaction
     {
         return
             ['type' => self::TYPE, 'version' => self::VERSION] +
+            ['chainId' => ord($this->getNetwork())] +
             parent::jsonSerialize();
     }
 

@@ -6,50 +6,51 @@ namespace LTO\Transaction;
 
 use LTO\Transaction;
 use function LTO\decode;
+use function LTO\encode;
 use function LTO\is_valid_address;
 
 /**
- * LTO Transfer transaction.
+ * LTO transaction to invoke an association.
  */
-class Transfer extends Transaction
+class Association extends Transaction
 {
     /** Minimum transaction fee */
     public const MINIMUM_FEE = 100000000;
 
     /** Transaction type */
-    public const TYPE = 4;
+    public const TYPE = 16;
 
     /** Transaction version */
-    public const VERSION  = 2;
+    public const VERSION  = 1;
+
+    /** @var string */
+    public $party;
 
     /** @var int */
-    public $amount;
+    public $associationType;
 
     /** @var string */
-    public $recipient;
-
-    /** @var string */
-    public $attachment = '';
+    public $hash;
 
 
     /**
      * Class constructor.
      *
-     * @param int    $amount      Amount of LTO (*10^8)
-     * @param string $recipient   Recipient address (base58 encoded)
+     * @param string $party     Recipient address (base58 encoded)
+     * @param int    $type      Association type
+     * @param string $hash      Association hash
+     * @param string $encoding  'raw', 'hex', 'base58', or 'base64'
      */
-    public function __construct(int $amount, string $recipient)
+    public function __construct(string $party, int $type, string $hash = '', string $encoding = 'hex')
     {
-        if ($amount <= 0) {
-            throw new \InvalidArgumentException("Invalid amount; should be greater than 0");
+        if (!is_valid_address($party, 'base58')) {
+            throw new \InvalidArgumentException("Invalid party address; is it base58 encoded?");
         }
 
-        if (!is_valid_address($recipient, 'base58')) {
-            throw new \InvalidArgumentException("Invalid recipient address; is it base58 encoded?");
-        }
+        $this->party = $party;
+        $this->associationType = $type;
+        $this->hash = encode(decode($hash, $encoding), 'base58');
 
-        $this->amount = $amount;
-        $this->recipient = $recipient;
         $this->fee = self::MINIMUM_FEE;
     }
 
@@ -66,20 +67,27 @@ class Transfer extends Transaction
             throw new \BadMethodCallException("Timestamp not set");
         }
 
-        $binaryAttachment = decode($this->attachment, 'base58');
+        $rawHash = $this->hash !== null
+            ? decode($this->hash, 'base58')
+            : '';
 
-        return pack(
-            'CCa32JJJa26na*',
+        $packed = pack(
+            'CCaa32a26NCa*JJ',
             self::TYPE,
             self::VERSION,
+            $this->getNetwork(),
             decode($this->senderPublicKey, 'base58'),
+            decode($this->party, 'base58'),
+            $this->associationType,
+            strlen($rawHash),
+            $rawHash,
             $this->timestamp,
-            $this->amount,
-            $this->fee,
-            decode($this->recipient, 'base58'),
-            strlen($binaryAttachment),
-            $binaryAttachment
+            $this->fee
         );
+
+        $unpacked = array_values(unpack('C*', $packed));
+
+        return $packed;
     }
 
     /**

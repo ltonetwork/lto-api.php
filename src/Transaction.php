@@ -11,7 +11,14 @@ abstract class Transaction implements \JsonSerializable
 {
     protected const TYPES = [
         4 => Transaction\Transfer::class,
+        8 => Transaction\Lease::class,
+        9 => Transaction\CancelLease::class,
+        11 => Transaction\MassTransfer::class,
         15 => Transaction\Anchor::class,
+        16 => Transaction\Association::class,
+        17 => Transaction\RevokeAssociation::class,
+        18 => Transaction\Sponsor::class,
+        19 => Transaction\CancelSponsor::class,
     ];
 
 
@@ -65,6 +72,20 @@ abstract class Transaction implements \JsonSerializable
     }
 
     /**
+     * Get the network id based on the sender address.
+     */
+    public function getNetwork(): string
+    {
+        if ($this->sender === null) {
+            throw new \BadMethodCallException("Sender not set");
+        }
+
+        ['network' => $network] = unpack('Cversion/anetwork', decode($this->sender, 'base58'));
+
+        return $network;
+    }
+
+    /**
      * Broadcast transaction to a node.
      *
      * @param PublicNode $node
@@ -85,6 +106,23 @@ abstract class Transaction implements \JsonSerializable
 
 
     /**
+     * Get data for JSON serialization.
+     */
+    public function jsonSerialize()
+    {
+        $data = ['type' => 0, 'version' => 0] + get_public_properties($this);
+
+        if ($data['id'] === null) {
+            unset($data['id']);
+        }
+        if ($data['height'] === null) {
+            unset($data['height']);
+        }
+
+        return $data;
+    }
+
+    /**
      * Assert that there are no missing keys in the data.
      *
      * @throws \InvalidArgumentException
@@ -96,6 +134,22 @@ abstract class Transaction implements \JsonSerializable
 
         if ($missingKeys !== []) {
             throw new \InvalidArgumentException("Invalid data, missing keys: " . join(', ', $missingKeys));
+        }
+    }
+
+    /**
+     * Assert that the tx type and version of the data matches the expected values.
+     *
+     * @throws \InvalidArgumentException
+     */
+    protected static function assertTypeAndVersion(array $data, int $type, int $version): void
+    {
+        if (isset($data['type']) && (int)$data['type'] !== $type) {
+            throw new \InvalidArgumentException("Invalid type {$data['type']}, should be {$type}");
+        }
+
+        if (isset($data['version']) && (int)$data['version'] !== $version) {
+            throw new \InvalidArgumentException("Invalid version {$data['version']}, should be {$version}");
         }
     }
 

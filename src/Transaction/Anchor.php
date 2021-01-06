@@ -17,7 +17,7 @@ use function LTO\is_valid_address;
  */
 class Anchor extends Transaction
 {
-    /** Minimum transaction fee for a transfer transaction in LTO */
+    /** Minimum transaction fee */
     public const MINIMUM_FEE = 35000000;
 
     /** Transaction type */
@@ -31,12 +31,12 @@ class Anchor extends Transaction
 
 
     /**
-     * Transfer constructor.
+     * Class constructor.
      *
      * @param string $hash
      * @param string $encoding 'raw', 'hex', 'base58', or 'base64'
      */
-    public function __construct(string $hash, string $encoding = 'raw')
+    public function __construct(string $hash, string $encoding = 'hex')
     {
         $this->anchors[] = encode(decode($hash, $encoding), 'base58');
         $this->fee = self::MINIMUM_FEE;
@@ -85,18 +85,8 @@ class Anchor extends Transaction
     public function jsonSerialize()
     {
         return
-            ($this->id !== null ? ['id' => $this->id] : []) +
-            [
-                'type' => self::TYPE,
-                'version' => self::VERSION,
-                'sender' => $this->sender,
-                'senderPublicKey' => $this->senderPublicKey,
-                'fee' => $this->fee,
-                'timestamp' => $this->timestamp,
-                'anchors' => $this->anchors,
-                'proofs' => $this->proofs,
-            ] +
-            ($this->height !== null ? ['height' => $this->height] : []);
+            ['type' => self::TYPE, 'version' => self::VERSION] +
+            parent::jsonSerialize();
     }
 
     /**
@@ -105,14 +95,7 @@ class Anchor extends Transaction
     public static function fromData(array $data)
     {
         static::assertNoMissingKeys($data);
-
-        if (isset($data['type']) && $data['type'] !== self::TYPE) {
-            throw new \InvalidArgumentException("Invalid type {$data['type']}, should be " . self::TYPE);
-        }
-
-        if (isset($data['version']) && $data['version'] !== self::VERSION) {
-            throw new \InvalidArgumentException("Invalid version {$data['version']}, should be " . self::VERSION);
-        }
+        static::assertTypeAndVersion($data, self::TYPE, self::VERSION);
 
         return static::createFromData($data);
     }
@@ -123,7 +106,7 @@ class Anchor extends Transaction
      * @param string $encoding 'raw', 'hex', 'base58', or 'base64'
      * @return string
      */
-    public function getAnchor(string $encoding = 'raw'): string
+    public function getAnchor(string $encoding = 'hex'): string
     {
         return $encoding === 'base58'
             ? $this->anchors[0]
