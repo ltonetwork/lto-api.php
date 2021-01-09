@@ -7,15 +7,15 @@ namespace LTO\Tests\Transaction;
 use LTO\AccountFactory;
 use LTO\PublicNode;
 use LTO\Transaction;
-use LTO\Transaction\Transfer;
+use LTO\Transaction\Lease;
 use PHPUnit\Framework\TestCase;
 use function LTO\decode;
 
 /**
  * @covers \LTO\Transaction
- * @covers \LTO\Transaction\Transfer
+ * @covers \LTO\Transaction\Lease
  */
-class TransferTest extends TestCase
+class LeaseTest extends TestCase
 {
     protected const ACCOUNT_SEED = "df3dd6d884714288a39af0bd973a1771c9f00f168cf040d6abb6a50dd5e055d8";
 
@@ -29,7 +29,7 @@ class TransferTest extends TestCase
 
     public function testConstruct()
     {
-        $transaction = new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
+        $transaction = new Lease('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
 
         $this->assertEquals(10000, $transaction->amount);
         $this->assertEquals(100000000, $transaction->fee);
@@ -41,7 +41,7 @@ class TransferTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Invalid amount; should be greater than 0");
 
-        new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', -100);
+        new Lease('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', -100);
     }
 
     public function invalidRecipientProvider()
@@ -61,34 +61,13 @@ class TransferTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Invalid recipient address; is it base58 encoded?");
 
-        new Transfer($recipient, 10000);
-    }
-
-    public function attachmentProvider()
-    {
-        return [
-            'raw' => ["Hello", 'raw'],
-            'hex' => [bin2hex("Hello"), 'hex'],
-            'base58' => [base58_encode("Hello"), 'base58'],
-            'base64' => [base64_encode("Hello"), 'base64'],
-        ];
-    }
-
-    /**
-     * @dataProvider attachmentProvider
-     */
-    public function testSetAttachment(string $message, string $encoding)
-    {
-        $transaction = new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
-        $transaction->setAttachment($message, $encoding);
-
-        $this->assertEquals('9Ajdvzr', $transaction->attachment);
+        new Lease($recipient, 10000);
     }
 
 
     public function testToBinaryNoSender()
     {
-        $transaction = new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
+        $transaction = new Lease('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
         $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
 
         $this->expectException(\BadMethodCallException::class);
@@ -99,7 +78,7 @@ class TransferTest extends TestCase
 
     public function testToBinaryNoTimestamp()
     {
-        $transaction = new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
+        $transaction = new Lease('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
         $transaction->senderPublicKey = '4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz';
 
         $this->expectException(\BadMethodCallException::class);
@@ -111,7 +90,7 @@ class TransferTest extends TestCase
 
     public function testSign()
     {
-        $transaction = new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
+        $transaction = new Lease('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
         $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
 
         $this->assertFalse($transaction->isSigned());
@@ -123,7 +102,7 @@ class TransferTest extends TestCase
 
         $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
         $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
-        $this->assertEquals('fn8c7LUg6pTEkrK9C69E8fhhkdv4jeFrB8qWKfMf51rv79p21DoytK2vH8cJKFVSWE5V2tTrXcFtxbAyg2PXbHo', $transaction->proofs[0]);
+        $this->assertEquals('2A8jVZinijix8PvYZS3bPHbbYRA7yDJhSU1czEDzmeMq3ewpiRTPWhDtEPUG9tK7BSmv2Xo1VCzSAChsEn9cNTrF', $transaction->proofs[0]);
 
         // Unchanged
         $this->assertEquals((new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp(), $transaction->timestamp);
@@ -134,24 +113,23 @@ class TransferTest extends TestCase
     public function dataProvider()
     {
         $data = [
-            'type' => 4,
-            'version' => 2,
-            'sender' => '3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM',
-            'senderPublicKey' => '7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7',
-            'fee' => 100000000,
-            'timestamp' => 1609773456000,
-            'amount' => 120000000,
-            'recipient' => '3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh',
-            'attachment' => '9Ajdvzr',
-            'proofs' => [
-                '57Ysp2ugieiidpiEtutzyfJkEugxG43UXXaKEqzU3c2oLmN8qd3hzEFQoNL93R1SvyXemnnTBNtfhfCM2PenmQqa',
+            "type" => 8,
+            "version" => 2,
+            "amount" => 120000000,
+            "recipient" => "3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh",
+            "sender" => "3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM",
+            "senderPublicKey" => "7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7",
+            "timestamp" => 1610148915000,
+            "fee" => 100000000,
+            "proofs" => [
+                "5MXTj9WfF3nWeJe5VCqRamXexhRR3sJxbSDbvtSzaFaPSdD6RYpDU4BfDEYaSzwfsTgp4iUfLhevpVxZr6yTdUYs"
             ],
         ];
 
         return [
             'new' => [$data, null, null],
-            'unconfirmed' => [$data, '7cCeL1qwd9i6u8NgMNsQjBPxVhrME2BbfZMT1DF9p4Yi', null],
-            'confirmed' => [$data, '7cCeL1qwd9i6u8NgMNsQjBPxVhrME2BbfZMT1DF9p4Yi', 1215007],
+            'unconfirmed' => [$data, 'AfanxjNfgtdmaJ4bz4dDg5e5ELUvXtRnuWe6Q49K6u3v', null],
+            'confirmed' => [$data, 'AfanxjNfgtdmaJ4bz4dDg5e5ELUvXtRnuWe6Q49K6u3v', 1221375],
         ];
     }
 
@@ -163,21 +141,20 @@ class TransferTest extends TestCase
         if ($id !== null) $data += ['id' => $id];
         if ($height !== null) $data += ['height' => $height];
 
-        /** @var Transfer $transaction */
+        /** @var Lease $transaction */
         $transaction = Transaction::fromData($data);
 
-        $this->assertInstanceOf(Transfer::class, $transaction);
+        $this->assertInstanceOf(Lease::class, $transaction);
 
         $this->assertEquals($id, $transaction->id);
         $this->assertEquals('3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM', $transaction->sender);
         $this->assertEquals('7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7', $transaction->senderPublicKey);
         $this->assertEquals(100000000, $transaction->fee);
-        $this->assertEquals(1609773456000, $transaction->timestamp);
+        $this->assertEquals(1610148915000, $transaction->timestamp);
         $this->assertEquals(120000000, $transaction->amount);
         $this->assertEquals('3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh', $transaction->recipient);
-        $this->assertEquals('9Ajdvzr', $transaction->attachment);
         $this->assertEquals(
-            ['57Ysp2ugieiidpiEtutzyfJkEugxG43UXXaKEqzU3c2oLmN8qd3hzEFQoNL93R1SvyXemnnTBNtfhfCM2PenmQqa'],
+            ['5MXTj9WfF3nWeJe5VCqRamXexhRR3sJxbSDbvtSzaFaPSdD6RYpDU4BfDEYaSzwfsTgp4iUfLhevpVxZr6yTdUYs'],
             $transaction->proofs
         );
         $this->assertEquals($height, $transaction->height);
@@ -186,9 +163,9 @@ class TransferTest extends TestCase
     public function testFromDataWithMissingKeys()
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid data, missing keys: amount, recipient, attachment, sender, senderPublicKey, timestamp, fee, proofs");
+        $this->expectExceptionMessage("Invalid data, missing keys: amount, recipient, sender, senderPublicKey, timestamp, fee, proofs");
 
-        Transaction::fromData(['type' => 4]);
+        Transaction::fromData(['type' => 8]);
     }
 
     public function testFromDataWithIncorrectType()
@@ -197,9 +174,9 @@ class TransferTest extends TestCase
         $data['type'] = 99;
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid type 99, should be 4");
+        $this->expectExceptionMessage("Invalid type 99, should be 8");
 
-        Transfer::fromData($data);
+        Lease::fromData($data);
     }
 
     public function testFromDataWithIncorrectVersion()
@@ -210,7 +187,7 @@ class TransferTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Invalid version 99, should be 2");
 
-        Transfer::fromData($data);
+        Lease::fromData($data);
     }
 
     /**
@@ -221,14 +198,13 @@ class TransferTest extends TestCase
         if ($id !== null) $data += ['id' => $id];
         if ($height !== null) $data += ['height' => $height];
 
-        $transaction = new Transfer('3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh', 120000000);
+        $transaction = new Lease('3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh', 120000000);
         $transaction->id = $id;
         $transaction->sender = '3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM';
         $transaction->senderPublicKey = '7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7';
         $transaction->fee = 100000000;
-        $transaction->timestamp = 1609773456000;
-        $transaction->attachment = '9Ajdvzr';
-        $transaction->proofs[] = '57Ysp2ugieiidpiEtutzyfJkEugxG43UXXaKEqzU3c2oLmN8qd3hzEFQoNL93R1SvyXemnnTBNtfhfCM2PenmQqa';
+        $transaction->timestamp = 1610148915000;
+        $transaction->proofs[] = '5MXTj9WfF3nWeJe5VCqRamXexhRR3sJxbSDbvtSzaFaPSdD6RYpDU4BfDEYaSzwfsTgp4iUfLhevpVxZr6yTdUYs';
         $transaction->height = $height;
 
         $this->assertEquals($data, $transaction->jsonSerialize());
@@ -236,10 +212,10 @@ class TransferTest extends TestCase
 
     public function testBroadcast()
     {
-        $transaction = new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
+        $transaction = new Lease('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
 
         $broadcastedTransaction = clone $transaction;
-        $broadcastedTransaction->id = '7cCeL1qwd9i6u8NgMNsQjBPxVhrME2BbfZMT1DF9p4Yi';
+        $broadcastedTransaction->id = 'AfanxjNfgtdmaJ4bz4dDg5e5ELUvXtRnuWe6Q49K6u3v';
 
         $node = $this->createMock(PublicNode::class);
         $node->expects($this->once())->method('broadcast')

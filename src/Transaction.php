@@ -91,7 +91,7 @@ abstract class Transaction implements \JsonSerializable
      * @param PublicNode $node
      * @return static
      */
-    public function broadcastTo(PublicNode $node): self
+    final public function broadcastTo(PublicNode $node): self
     {
         return $node->broadcast($this);
     }
@@ -107,8 +107,10 @@ abstract class Transaction implements \JsonSerializable
 
     /**
      * Get data for JSON serialization.
+     *
+     * @return array<string,mixed>
      */
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         $data = ['type' => 0, 'version' => 0] + get_public_properties($this);
 
@@ -162,7 +164,7 @@ abstract class Transaction implements \JsonSerializable
     public static function fromData(array $data)
     {
         if (get_called_class() !== __CLASS__) {
-            throw new \LogicException(__CLASS__ . " must override the fromData method");
+            throw new \LogicException(__CLASS__ . " must override the fromData method"); // @codeCoverageIgnore
         }
 
         if (!isset($data['type'])) {

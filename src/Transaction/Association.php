@@ -67,20 +67,30 @@ class Association extends Transaction
             throw new \BadMethodCallException("Timestamp not set");
         }
 
-        $rawHash = $this->hash !== null
-            ? decode($this->hash, 'base58')
-            : '';
-
         $packed = pack(
-            'CCaa32a26NCa*JJ',
-            self::TYPE,
-            self::VERSION,
+            'CCaa32a26N',
+            static::TYPE,
+            static::VERSION,
             $this->getNetwork(),
             decode($this->senderPublicKey, 'base58'),
             decode($this->party, 'base58'),
-            $this->associationType,
-            strlen($rawHash),
-            $rawHash,
+            $this->associationType
+        );
+
+        if ($this->hash !== '') {
+            $rawHash = decode($this->hash, 'base58');
+            $packed .= pack(
+                'Cna*',
+                1,
+                strlen($rawHash),
+                $rawHash
+            );
+        } else {
+            $packed .= pack('C', 0);
+        }
+
+        $packed .= pack(
+            'JJ',
             $this->timestamp,
             $this->fee
         );
@@ -91,12 +101,12 @@ class Association extends Transaction
     }
 
     /**
-     * Get data for JSON serialization.
+     * @inheritDoc
      */
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         return
-            ['type' => self::TYPE, 'version' => self::VERSION] +
+            ['type' => static::TYPE, 'version' => static::VERSION] +
             parent::jsonSerialize();
     }
 
@@ -105,9 +115,22 @@ class Association extends Transaction
      */
     public static function fromData(array $data)
     {
-        static::assertNoMissingKeys($data);
-        static::assertTypeAndVersion($data, self::TYPE, self::VERSION);
+        static::assertNoMissingKeys($data, ['id', 'height', 'hash']);
+        static::assertTypeAndVersion($data, static::TYPE, static::VERSION);
 
         return static::createFromData($data);
+    }
+
+    /**
+     * Get the anchor hash.
+     *
+     * @param string $encoding 'raw', 'hex', 'base58', or 'base64'
+     * @return string
+     */
+    public function getHash(string $encoding = 'hex'): string
+    {
+        return $encoding === 'base58'
+            ? $this->hash
+            : encode(decode($this->hash, 'base58'), $encoding);
     }
 }

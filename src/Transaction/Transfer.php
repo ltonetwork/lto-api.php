@@ -6,6 +6,7 @@ namespace LTO\Transaction;
 
 use LTO\Transaction;
 use function LTO\decode;
+use function LTO\encode;
 use function LTO\is_valid_address;
 
 /**
@@ -38,7 +39,7 @@ class Transfer extends Transaction
      * @param int    $amount      Amount of LTO (*10^8)
      * @param string $recipient   Recipient address (base58 encoded)
      */
-    public function __construct(int $amount, string $recipient)
+    public function __construct(string $recipient, int $amount)
     {
         if ($amount <= 0) {
             throw new \InvalidArgumentException("Invalid amount; should be greater than 0");
@@ -70,8 +71,8 @@ class Transfer extends Transaction
 
         return pack(
             'CCa32JJJa26na*',
-            self::TYPE,
-            self::VERSION,
+            static::TYPE,
+            static::VERSION,
             decode($this->senderPublicKey, 'base58'),
             $this->timestamp,
             $this->amount,
@@ -83,12 +84,12 @@ class Transfer extends Transaction
     }
 
     /**
-     * Get data for JSON serialization.
+     * @inheritDoc
      */
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         return
-            ['type' => self::TYPE, 'version' => self::VERSION] +
+            ['type' => static::TYPE, 'version' => static::VERSION] +
             parent::jsonSerialize();
     }
 
@@ -98,8 +99,22 @@ class Transfer extends Transaction
     public static function fromData(array $data)
     {
         static::assertNoMissingKeys($data);
-        static::assertTypeAndVersion($data, self::TYPE, self::VERSION);
+        static::assertTypeAndVersion($data, static::TYPE, static::VERSION);
 
         return static::createFromData($data);
+    }
+
+    /**
+     * Set the transaction attachment message.
+     *
+     * @param string $message
+     * @param string $encoding  Encoding the message is in; 'raw', 'hex', 'base58', or 'base64'.
+     * @return $this
+     */
+    public function setAttachment(string $message, string $encoding = 'raw'): self
+    {
+        $this->attachment = encode(decode($message, $encoding), 'base58');
+
+        return $this;
     }
 }

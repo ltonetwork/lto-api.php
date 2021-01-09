@@ -21,7 +21,7 @@ class PublicNode
     public function __construct(string $url, ?string $apiKey = null)
     {
         if (!function_exists('curl_init')) {
-            throw new \Exception("Curl extension not available");
+            throw new \Exception("Curl extension not available"); // @codeCoverageIgnore
         }
 
         $this->url = $url;

@@ -56,8 +56,8 @@ class CancelSponsor extends Transaction
 
         return pack(
             'CCaa32a26JJ',
-            self::TYPE,
-            self::VERSION,
+            static::TYPE,
+            static::VERSION,
             $this->getNetwork(),
             decode($this->senderPublicKey, 'base58'),
             decode($this->recipient, 'base58'),
@@ -67,12 +67,12 @@ class CancelSponsor extends Transaction
     }
 
     /**
-     * Get data for JSON serialization.
+     * @inheritDoc
      */
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         return
-            ['type' => self::TYPE, 'version' => self::VERSION] +
+            ['type' => static::TYPE, 'version' => static::VERSION] +
             parent::jsonSerialize();
     }
 
@@ -82,7 +82,7 @@ class CancelSponsor extends Transaction
     public static function fromData(array $data)
     {
         static::assertNoMissingKeys($data);
-        static::assertTypeAndVersion($data, self::TYPE, self::VERSION);
+        static::assertTypeAndVersion($data, static::TYPE, static::VERSION);
 
         return static::createFromData($data);
     }

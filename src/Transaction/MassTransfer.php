@@ -6,6 +6,7 @@ namespace LTO\Transaction;
 
 use LTO\Transaction;
 use function LTO\decode;
+use function LTO\encode;
 use function LTO\is_valid_address;
 
 /**
@@ -59,8 +60,8 @@ class MassTransfer extends Transaction
 
         $packed = pack(
             'CCa32n',
-            self::TYPE,
-            self::VERSION,
+            static::TYPE,
+            static::VERSION,
             decode($this->senderPublicKey, 'base58'),
             count($this->transfers)
         );
@@ -81,18 +82,16 @@ class MassTransfer extends Transaction
             $binaryAttachment
         );
 
-        $unpacked = array_values(unpack('C*', $packed));
-
         return $packed;
     }
 
     /**
-     * Get data for JSON serialization.
+     * @inheritDoc
      */
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         return
-            ['type' => self::TYPE, 'version' => self::VERSION] +
+            ['type' => static::TYPE, 'version' => static::VERSION] +
             parent::jsonSerialize();
     }
 
@@ -102,7 +101,7 @@ class MassTransfer extends Transaction
     public static function fromData(array $data)
     {
         static::assertNoMissingKeys($data);
-        static::assertTypeAndVersion($data, self::TYPE, self::VERSION);
+        static::assertTypeAndVersion($data, static::TYPE, static::VERSION);
 
         return static::createFromData($data);
     }
@@ -110,11 +109,11 @@ class MassTransfer extends Transaction
     /**
      * Add a transfer
      *
-     * @param int    $amount      Amount of LTO (*10^8)
      * @param string $recipient   Recipient address (base58 encoded)
+     * @param int    $amount      Amount of LTO (*10^8)
      * @return $this
      */
-    public function addTransfer(int $amount, string $recipient): self
+    public function addTransfer(string $recipient, int $amount): self
     {
         if ($amount <= 0) {
             throw new \InvalidArgumentException("Invalid amount; should be greater than 0");
@@ -129,7 +128,21 @@ class MassTransfer extends Transaction
             'recipient' => $recipient,
         ];
 
-        $this->fee = self::BASE_FEE + (count($this->transfers) * self::ITEM_FEE);
+        $this->fee += self::ITEM_FEE;
+
+        return $this;
+    }
+
+    /**
+     * Set the transaction attachment message.
+     *
+     * @param string $message
+     * @param string $encoding  Encoding the message is in; 'raw', 'hex', 'base58', or 'base64'.
+     * @return $this
+     */
+    public function setAttachment(string $message, string $encoding = 'raw'): self
+    {
+        $this->attachment = encode(decode($message, $encoding), 'base58');
 
         return $this;
     }

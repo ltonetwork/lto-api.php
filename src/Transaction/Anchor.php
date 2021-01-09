@@ -57,8 +57,8 @@ class Anchor extends Transaction
 
         $packed = pack(
             'CCa32n',
-            self::TYPE,
-            self::VERSION,
+            static::TYPE,
+            static::VERSION,
             decode($this->senderPublicKey, 'base58'),
             count($this->anchors)
         );
@@ -74,18 +74,16 @@ class Anchor extends Transaction
             $this->fee
         );
 
-        $bytes = array_values(unpack('C*', $packed));
-
         return $packed;
     }
 
     /**
-     * Get data for JSON serialization.
+     * @inheritDoc
      */
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         return
-            ['type' => self::TYPE, 'version' => self::VERSION] +
+            ['type' => static::TYPE, 'version' => static::VERSION] +
             parent::jsonSerialize();
     }
 
@@ -95,7 +93,7 @@ class Anchor extends Transaction
     public static function fromData(array $data)
     {
         static::assertNoMissingKeys($data);
-        static::assertTypeAndVersion($data, self::TYPE, self::VERSION);
+        static::assertTypeAndVersion($data, static::TYPE, static::VERSION);
 
         return static::createFromData($data);
     }
@@ -106,7 +104,7 @@ class Anchor extends Transaction
      * @param string $encoding 'raw', 'hex', 'base58', or 'base64'
      * @return string
      */
-    public function getAnchor(string $encoding = 'hex'): string
+    public function getHash(string $encoding = 'hex'): string
     {
         return $encoding === 'base58'
             ? $this->anchors[0]

@@ -299,13 +299,13 @@ class AccountFactory
         if (isset($account->sign->privatekey) &&
             $account->sign->publickey !== ed25519_publickey_from_secretkey($account->sign->privatekey)
         ) {
-            throw new InvalidAccountException("Sign public key doesn't private key");
+            throw new InvalidAccountException("Sign public key doesn't match private key");
         }
 
         if (isset($account->encrypt->privatekey) &&
             $account->sign->publickey !== x25519_publickey_from_secretkey($account->sign->privatekey)
         ) {
-            throw new InvalidAccountException("Encrypt public key doesn't private key");
+            throw new InvalidAccountException("Encrypt public key doesn't match private key");
         }
 
         $convertedEncryptKeys = $this->convertSignToEncrypt($account->sign);

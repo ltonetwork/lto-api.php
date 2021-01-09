@@ -120,7 +120,7 @@ class Account
      * @return Event
      * @throws \RuntimeException if secret sign key is not set
      */
-    public function signEvent(Event $event): Event
+    final public function signEvent(Event $event): Event
     {
         return $event->signWith($this);
     }
@@ -132,7 +132,7 @@ class Account
      * @param Transaction&T $transaction
      * @return Transaction&T
      */
-    public function signTransaction(Transaction $transaction): Transaction
+    final public function signTransaction(Transaction $transaction): Transaction
     {
         return $transaction->signWith($this);
     }

@@ -32,10 +32,10 @@ class Lease extends Transaction
     /**
      * Class constructor.
      *
-     * @param int    $amount      Amount of LTO (*10^8)
      * @param string $recipient   Recipient address (base58 encoded)
+     * @param int    $amount      Amount of LTO (*10^8)
      */
-    public function __construct(int $amount, string $recipient)
+    public function __construct(string $recipient, int $amount)
     {
         if ($amount <= 0) {
             throw new \InvalidArgumentException("Invalid amount; should be greater than 0");
@@ -65,8 +65,8 @@ class Lease extends Transaction
 
         return pack(
             'CCCa32a26JJJ',
-            self::TYPE,
-            self::VERSION,
+            static::TYPE,
+            static::VERSION,
             0,
             decode($this->senderPublicKey, 'base58'),
             decode($this->recipient, 'base58'),
@@ -77,12 +77,12 @@ class Lease extends Transaction
     }
 
     /**
-     * Get data for JSON serialization.
+     * @inheritDoc
      */
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         return
-            ['type' => self::TYPE, 'version' => self::VERSION] +
+            ['type' => static::TYPE, 'version' => static::VERSION] +
             parent::jsonSerialize();
     }
 
@@ -92,7 +92,7 @@ class Lease extends Transaction
     public static function fromData(array $data)
     {
         static::assertNoMissingKeys($data);
-        static::assertTypeAndVersion($data, self::TYPE, self::VERSION);
+        static::assertTypeAndVersion($data, static::TYPE, static::VERSION);
 
         return static::createFromData($data);
     }

@@ -25,6 +25,8 @@ class CancelLease extends Transaction
     /** @var string */
     public $leaseId;
 
+    /** @var Lease|null */
+    public $lease;
 
     /**
      * Class constructor.
@@ -52,8 +54,8 @@ class CancelLease extends Transaction
 
         return pack(
             'CCaa32JJa32',
-            self::TYPE,
-            self::VERSION,
+            static::TYPE,
+            static::VERSION,
             $this->getNetwork(),
             decode($this->senderPublicKey, 'base58'),
             $this->fee,
@@ -63,14 +65,22 @@ class CancelLease extends Transaction
     }
 
     /**
-     * Get data for JSON serialization.
+     * @inheritDoc
      */
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
-        return
-            ['type' => self::TYPE, 'version' => self::VERSION] +
+        $data =
+            ['type' => static::TYPE, 'version' => static::VERSION] +
             ['chainId' => ord($this->getNetwork())] +
             parent::jsonSerialize();
+
+        if ($this->lease !== null) {
+            $data['lease'] = $this->lease->jsonSerialize();
+        } else {
+            unset($data['lease']);
+        }
+
+        return $data;
     }
 
     /**
@@ -78,8 +88,12 @@ class CancelLease extends Transaction
      */
     public static function fromData(array $data)
     {
-        static::assertNoMissingKeys($data);
-        static::assertTypeAndVersion($data, self::TYPE, self::VERSION);
+        static::assertNoMissingKeys($data, ['id', 'height', 'lease']);
+        static::assertTypeAndVersion($data, static::TYPE, static::VERSION);
+
+        if (isset($data['lease'])) {
+            $data['lease'] = Lease::fromData($data['lease']);
+        }
 
         return static::createFromData($data);
     }
