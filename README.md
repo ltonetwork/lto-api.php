@@ -106,14 +106,14 @@ You can use `$account->decryptFrom($account, $message);` to decrypt a message fr
 use LTO\Transaction\Transfer;
 use LTO\PublicNode;
 
+$node = new PublicNode('https://nodes.lto.network');
+
 $amount = 1000.0; // Amount of LTO to transfer
 $recipient = "3Jo1JCrBvnWCg37VDxMXAjYhsS9rRDLBSze";
 
 $transferTx = (new Transfer($amount, $recipient))
-    ->signWith($account);
-    
-$node = new PublicNode('https://nodes.lto.network');
-$node->broadcast($transferTx);
+    ->signWith($account)
+    ->broadcastTo($node);
 ```
 
 ## Private layer
