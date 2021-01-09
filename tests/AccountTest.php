@@ -5,6 +5,7 @@ namespace LTO\Tests;
 use LTO\Event;
 use LTO\EventChain;
 use LTO\Account;
+use LTO\Transaction;
 use PHPUnit\Framework\TestCase;
 use function LTO\sha256;
 use function sodium_crypto_generichash as blake2b;
@@ -39,25 +40,35 @@ class AccountTest extends TestCase
     
     public function testGetAddress()
     {
-        $this->assertSame("3JmCa4jLVv7Yn2XkCnBUGsa7WNFVEMxAfWe", $this->account->getAddress());
+        $this->assertEquals("3JmCa4jLVv7Yn2XkCnBUGsa7WNFVEMxAfWe", $this->account->getAddress());
     }
     
     public function testGetPublicSignKey()
     {
-        $this->assertSame("GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY", $this->account->getPublicSignKey());
+        $this->assertEquals("GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY", $this->account->getPublicSignKey());
     }
     
     public function testGetPublicEncryptKey()
     {
-        $this->assertSame("6fDod1xcVj4Zezwyy3tdPGHkuDyMq8bDHQouyp5BjXsX", $this->account->getPublicEncryptKey());
+        $this->assertEquals("6fDod1xcVj4Zezwyy3tdPGHkuDyMq8bDHQouyp5BjXsX", $this->account->getPublicEncryptKey());
     }
-    
-    
+
+    public function testGetNetwork()
+    {
+        $this->assertEquals("L", $this->account->getNetwork());
+    }
+
+    public function testGetNetworkWithoutAnAddress()
+    {
+        $this->account->address = null;
+        $this->assertNull($this->account->getNetwork());
+    }
+
     public function testSign()
     {
         $signature = $this->account->sign("hello");
         
-        $this->assertSame(
+        $this->assertEquals(
             '5i9gBaHwg9UFPuwU63LBdBR29yZdRDstWM9z7oo8GzevWhBdAAWwCSRUQbPLaCT3nFgjbQuuWxVQckzCd3CoFig4',
             $signature
         );
@@ -72,21 +83,12 @@ class AccountTest extends TestCase
         
         $account->sign("hello");
     }
-    
-    public function testSignEvent()
-    {
-        $event = $this->createMock(Event::class);
-        $event->expects($this->once())->method('signWith')->with($this->account)->willReturnSelf();
 
-        $ret = $this->account->signEvent($event);
-        $this->assertSame($event, $ret);
-    }
-    
     public function testSignAndVerify()
     {
         $signature = $this->account->sign("hello");
 
-        $this->assertSame(
+        $this->assertEquals(
             '5i9gBaHwg9UFPuwU63LBdBR29yZdRDstWM9z7oo8GzevWhBdAAWwCSRUQbPLaCT3nFgjbQuuWxVQckzCd3CoFig4',
             $signature
         );
@@ -106,7 +108,7 @@ class AccountTest extends TestCase
         
         $signature = $account->sign("hello");
         
-        $this->assertSame(
+        $this->assertEquals(
             '2bu6zVLVJCtjuhiAmHiKhBHcvE9rQPCwDgMMwbQdEKfAZUYTp3DemCNteFAAFjZZFwnM2yKjCNx2uudMkQ8Jamp',
             $signature
         );
@@ -120,7 +122,7 @@ class AccountTest extends TestCase
         $hash = hash('sha256', $message, true);
         $signature = $this->account->sign($hash);        
         
-        $this->assertSame(
+        $this->assertEquals(
             '5HHgRNtbEPRDok5JwBkP7YLDje6oJfJkpGtrxCB7WNKexxc1MqdXdhsDoETBmLD7XDNnhdeW73eLS7s2ApAR624H',
             $signature
         );
@@ -134,7 +136,7 @@ class AccountTest extends TestCase
         $hash = hash('sha256', $message, true);
         $signature = $this->account->sign($hash, 'base64');        
         
-        $this->assertSame(
+        $this->assertEquals(
             '1h0g/FGh5lVNI1cIAcAYaqQjACkTABHqXTTdjgBzsfkWn5KUN5x03fxukQr80Vvkvm2JATHDJBxq96YPVP8WCg==',
             $signature
         );
@@ -183,6 +185,18 @@ class AccountTest extends TestCase
         $this->assertFalse($this->account->verify($signature, 'not this'));
     }
 
+    public function testVerifyWithoutPublicKey()
+    {
+        $this->account->sign = null;
+
+        $signature = '5i9gBaHwg9UFPuwU63LBdBR29yZdRDstWM9z7oo8GzevWhBdAAWwCSRUQbPLaCT3nFgjbQuuWxVQckzCd3CoFig4';
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage("Unable to verify message; no public sign key");
+
+        $this->account->verify($signature, 'hello');
+    }
+
     public function testVerifyInvalid()
     {
         $this->expectException(\InvalidArgumentException::class);
@@ -191,8 +205,26 @@ class AccountTest extends TestCase
         
         $this->assertFalse(@$this->account->verify($signature, 'hello'));
     }
-    
-    
+
+
+    public function testSignEvent()
+    {
+        $event = $this->createMock(Event::class);
+        $event->expects($this->once())->method('signWith')->with($this->account)->willReturnSelf();
+
+        $ret = $this->account->signEvent($event);
+        $this->assertEquals($event, $ret);
+    }
+
+    public function testSignTransaction()
+    {
+        $transaction = $this->createMock(Transaction::class);
+        $transaction->expects($this->once())->method('signWith')->with($this->account)->willReturnSelf();
+
+        $ret = $this->account->signTransaction($transaction);
+        $this->assertEquals($transaction, $ret);
+    }
+
 
     public function createSecondaryAccount()
     {
@@ -220,9 +252,32 @@ class AccountTest extends TestCase
         
         $cyphertext = $this->account->encryptFor($recipient, 'hello');
         
-        $this->assertSame('2246pmtzDem9GB15GmtULMXB7Vrr1wciQcHsQvrUsmapeaBQzqHNUcS4KYYu7D', base58_encode($cyphertext));
+        $this->assertEquals('2246pmtzDem9GB15GmtULMXB7Vrr1wciQcHsQvrUsmapeaBQzqHNUcS4KYYu7D', base58_encode($cyphertext));
     }
-    
+
+    public function testEncryptForWithoutPrivateKey()
+    {
+        $recipient = $this->createSecondaryAccount();
+
+        $this->account->encrypt->secretkey = null;
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage("Unable to encrypt message; no secret encryption key");
+
+        $this->account->encryptFor($recipient, 'hello');
+    }
+
+    public function testEncryptForWithoutRecipientPublicKey()
+    {
+        $recipient = $this->createSecondaryAccount();
+        $recipient->encrypt = null;
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage("Unable to encrypt message; no public encryption key for recipient");
+
+        $this->account->encryptFor($recipient, 'hello');
+    }
+
     public function testDecryptFrom()
     {
         $recipient = $this->createSecondaryAccount();
@@ -230,9 +285,36 @@ class AccountTest extends TestCase
         
         $message = $recipient->decryptFrom($this->account, $cyphertext);
         
-        $this->assertSame('hello', $message);
+        $this->assertEquals('hello', $message);
     }
-    
+
+    public function testDecryptFromWithoutPrivateKey()
+    {
+        $recipient = $this->createSecondaryAccount();
+        $recipient->encrypt->secretkey = null;
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage("Unable to decrypt message; no secret encryption key");
+
+        $cyphertext = base58_decode('2246pmtzDem9GB15GmtULMXB7Vrr1wciQcHsQvrUsmapeaBQzqHNUcS4KYYu7D');
+
+        $recipient->decryptFrom($this->account, $cyphertext);
+    }
+
+    public function testDecryptFromWithoutSenderPublicKey()
+    {
+        $recipient = $this->createSecondaryAccount();
+
+        $this->account->encrypt = null;
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage("Unable to decrypt message; no public encryption key for sender");
+
+        $cyphertext = base58_decode('2246pmtzDem9GB15GmtULMXB7Vrr1wciQcHsQvrUsmapeaBQzqHNUcS4KYYu7D');
+
+        $recipient->decryptFrom($this->account, $cyphertext);
+    }
+
     /**
      * Try to encrypt a message with your own keys.
      */

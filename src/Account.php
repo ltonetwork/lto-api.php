@@ -207,7 +207,7 @@ class Account
         $encryptedMessage = substr($cyphertext, 0, -24);
         $nonce = substr($cyphertext, -24);
 
-        $encryptionKey = x25519_keypair($sender->encrypt->secretkey, $this->encrypt->publickey);
+        $encryptionKey = x25519_keypair($this->encrypt->secretkey, $sender->encrypt->publickey);
         
         $message = x25519_decrypt($encryptedMessage, $nonce, $encryptionKey);
         
