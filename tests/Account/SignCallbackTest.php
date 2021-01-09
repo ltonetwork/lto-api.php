@@ -2,7 +2,6 @@
 
 namespace LTO\Tests\Account;
 
-use InvalidArgumentException;
 use LTO\Account;
 use LTO\Account\SignCallback;
 use PHPUnit\Framework\TestCase;
@@ -55,6 +54,22 @@ class SignCallbackTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
 
         new SignCallback($account);
+    }
+
+    public function testKeyMismatch()
+    {
+        $account = $this->createMock(Account::class);
+        $account->sign = (object)[
+            'secretkey' => base58_decode('4zsR9xoFpxfnNwLcY4hdRUarwf5xWtLj6FpKGDFBgscPxecPj2qgRNx4kJsFCpe9YDxBRNoeBWTh2SDAdwTySomS'),
+            'publickey' => base58_decode('GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY')
+        ];
+
+        $sign = new SignCallback($account);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('keyId doesn\'t match account public key');
+
+        $sign('hello', '4q7HKMbwbLcG58iFV3pz4vkRnPTwbrY9Q5JrwnwLEZCC', 'ed25519');
     }
 
     public function invalidAlgorithmProvider()

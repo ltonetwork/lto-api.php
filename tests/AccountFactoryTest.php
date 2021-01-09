@@ -245,76 +245,145 @@ class AccountFactoryTest extends TestCase
         }
     }
     
-    /**
-     */
     public function testCreateEncryptKeyMismatch()
     {
         $this->expectException(\LTO\InvalidAccountException::class);
         $this->expectExceptionMessage('Public encrypt key doesn\'t match private encrypt key');
 
         $factory = new AccountFactory('L');
-        $account = $factory->create([
+
+        $factory->create([
             'encrypt' => [
                 'publickey' => 'BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6',
                 'secretkey' => 'ACsYcMff8UPUc5dvuCMAkqZxcRTjXHMnCc29TZkWLQsZ'
             ]
         ]);
-        
-        $this->assertInstanceOf(Account::class, $account);
     }
     
-    /**
-     */
     public function testCreateSignKeyMismatch()
     {
         $this->expectException(\LTO\InvalidAccountException::class);
         $this->expectExceptionMessage('Public sign key doesn\'t match private sign key');
 
         $factory = new AccountFactory('L');
-        $account = $factory->create([
+
+        $factory->create([
             'sign' => [
                 'publickey' => 'FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y',
                 'secretkey' =>
                     '5DteGKYVUUSSaruCK6H8tpd4oYWfcyNohyhJiYGYGBVzhuEmAmRRNcUJQzA2bk4DqqbtpaE51HTD1i3keTvtbCTL'
             ]
         ]);
-        
-        $this->assertInstanceOf(Account::class, $account);
     }
-    
-    /**
-     */
+
     public function testCreateKeyMismatch()
     {
         $this->expectException(\LTO\InvalidAccountException::class);
         $this->expectExceptionMessage('Sign key doesn\'t match encrypt key');
 
         $factory = new AccountFactory('L');
-        $account = $factory->create([
+
+        $factory->create([
             'encrypt' => ['publickey' => 'EZa2ndj6h95m3xm7DxPQhrtANvhymNC7nWQ3o1vmDJ4x'],
             'sign' => ['publickey' => 'FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y']
         ]);
-        
-        $this->assertInstanceOf(Account::class, $account);
     }
     
-    /**
-     */
     public function testCreateAddressMismatch()
     {
         $this->expectException(\LTO\InvalidAccountException::class);
         $this->expectExceptionMessage('Address is of network \'T\', not of \'L\'');
 
         $factory = new AccountFactory('L');
-        $account = $factory->create([
+
+        $factory->create([
             'encrypt' => ['publickey' => '6fDod1xcVj4Zezwyy3tdPGHkuDyMq8bDHQouyp5BjXsX'],
             'sign' => ['publickey' => 'GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY'],
             'address' => '3MyuPwbiobZFnZzrtyY8pkaHoQHYmyQxxY1'
         ]);
-        
-        $this->assertInstanceOf(Account::class, $account);
     }
-    
+
+
+    public function testAssertIsValidEncryptKeyMismatch()
+    {
+        $factory = new AccountFactory('L');
+
+        $account = new Account();
+        $account->encrypt = (object)[
+            'publickey' => base58_decode('BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6'),
+            'secretkey' => base58_decode('ACsYcMff8UPUc5dvuCMAkqZxcRTjXHMnCc29TZkWLQsZ'),
+        ];
+
+        $this->expectException(\LTO\InvalidAccountException::class);
+        $this->expectExceptionMessage('Public encrypt key doesn\'t match private encrypt key');
+
+        $factory->assertIsValid($account);
+    }
+
+    public function testAssertIsValidSignKeyMismatch()
+    {
+        $factory = new AccountFactory('L');
+
+        $account = new Account();
+        $account->sign = (object)[
+            'publickey' => base58_decode('FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y'),
+            'secretkey' => base58_decode('5DteGKYVUUSSaruCK6H8tpd4oYWfcyNohyhJiYGYGBVzhuEmAmRRNcUJQzA2bk4DqqbtpaE51HTD1i3keTvtbCTL'),
+        ];
+
+        $this->expectException(\LTO\InvalidAccountException::class);
+        $this->expectExceptionMessage('Public sign key doesn\'t match private sign key');
+
+        $factory->assertIsValid($account);
+    }
+
+    public function testAssertIsValidKeyMismatch()
+    {
+        $factory = new AccountFactory('L');
+
+        $account = new Account();
+        $account->encrypt = (object)[
+            'publickey' => base58_decode('EZa2ndj6h95m3xm7DxPQhrtANvhymNC7nWQ3o1vmDJ4x')
+        ];
+        $account->sign = (object)[
+            'publickey' => base58_decode('FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y')
+        ];
+
+        $this->expectException(\LTO\InvalidAccountException::class);
+        $this->expectExceptionMessage('Sign key doesn\'t match encrypt key');
+
+        $factory->assertIsValid($account);
+    }
+
+    public function testAssertIsValidAddressMismatch()
+    {
+        $factory = new AccountFactory('L');
+
+        $account = new Account();
+        $account->address = base58_decode('3MyuPwbiobZFnZzrtyY8pkaHoQHYmyQxxY1');
+
+        $this->expectException(\LTO\InvalidAccountException::class);
+        $this->expectExceptionMessage('Address is of network \'T\', not of \'L\'');
+
+        $factory->assertIsValid($account);
+    }
+
+    public function testAssertIsValidAddressSignKeyMismatch()
+    {
+        $factory = new AccountFactory('L');
+
+        $account = new Account();
+        $account->address = base58_decode('3JmCa4jLVv7Yn2XkCnBUGsa7WNFVEMxAfWe');
+        $account->sign = (object)[
+            'publickey' => base58_decode('FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y')
+        ];
+
+        $this->expectException(\LTO\InvalidAccountException::class);
+        $this->expectExceptionMessage("Address doesn't match sign key");
+
+        $factory->assertIsValid($account);
+    }
+
+
 
     public function createPublicProvider()
     {

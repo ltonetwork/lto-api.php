@@ -284,7 +284,7 @@ class AccountFactory
         }
 
         if (isset($account->sign) && $account->address !== $this->createAddress($account->sign->publickey)) {
-            throw new InvalidAccountException("Address '{$account->address}' doesn't match sign key");
+            throw new InvalidAccountException("Address doesn't match sign key");
         }
     }
 
@@ -296,16 +296,16 @@ class AccountFactory
      */
     protected function assertKeysMatch(Account $account): void
     {
-        if (isset($account->sign->privatekey) &&
-            $account->sign->publickey !== ed25519_publickey_from_secretkey($account->sign->privatekey)
+        if (isset($account->sign->secretkey) &&
+            $account->sign->publickey !== ed25519_publickey_from_secretkey($account->sign->secretkey)
         ) {
-            throw new InvalidAccountException("Sign public key doesn't match private key");
+            throw new InvalidAccountException("Public sign key doesn't match private sign key");
         }
 
-        if (isset($account->encrypt->privatekey) &&
-            $account->sign->publickey !== x25519_publickey_from_secretkey($account->sign->privatekey)
+        if (isset($account->encrypt->secretkey) &&
+            $account->encrypt->publickey !== x25519_publickey_from_secretkey($account->encrypt->secretkey)
         ) {
-            throw new InvalidAccountException("Encrypt public key doesn't match private key");
+            throw new InvalidAccountException("Public encrypt key doesn't match private encrypt key");
         }
 
         $convertedEncryptKeys = $this->convertSignToEncrypt($account->sign);
