@@ -17,9 +17,9 @@ class EventTest extends TestCase
         $data = ['foo' => 'bar', 'color' => 'red'];
         $event = new Event($data, '72gRWx4C1Egqz9xvUBCYVdgh7uLc5kmGbjXFhiknNCTW');
         
-        $this->assertAttributeEquals('HeFMDcuveZQYtBePVUugLyWtsiwsW4xp7xKdv', 'body', $event);
-        $this->assertAttributeInternalType('int', 'timestamp', $event);
-        $this->assertAttributeEquals('72gRWx4C1Egqz9xvUBCYVdgh7uLc5kmGbjXFhiknNCTW', 'previous', $event);
+        $this->assertSame('HeFMDcuveZQYtBePVUugLyWtsiwsW4xp7xKdv', $event->body);
+        $this->assertIsInt($event->timestamp);
+        $this->assertSame('72gRWx4C1Egqz9xvUBCYVdgh7uLc5kmGbjXFhiknNCTW', $event->previous);
         
         return $event;
     }
@@ -39,27 +39,25 @@ class EventTest extends TestCase
             'FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y'
         ]);
 
-        $this->assertEquals($expected, $event->getMessage());
+        $this->assertSame($expected, $event->getMessage());
         
         return $event;
     }
     
-    /**
-     * @expectedException \BadMethodCallException
-     * @expectedExceptionMessage Body unknown
-     */
     public function testGetMessageNoBody()
     {
+        $this->expectException(\BadMethodCallException::class);
+        $this->expectExceptionMessage('Body unknown');
+
         $event = new Event();
         $event->getMessage();
     }
     
-    /**
-     * @expectedException \BadMethodCallException
-     * @expectedExceptionMessage First set signkey before creating message
-     */
     public function testGetMessageNoSignkey()
     {
+        $this->expectException(\BadMethodCallException::class);
+        $this->expectExceptionMessage('First set signkey before creating message');
+
         $event = new Event(['foo' => 'bar', 'color' => 'red']);
         $event->getMessage();
     }
@@ -69,7 +67,7 @@ class EventTest extends TestCase
      */
     public function testGetHash(Event $event)
     {
-        $this->assertEquals('Bpq9rZt12Gv44dkXFw8RmLYzbaH2HBwPQJ6KihdLe5LG', $event->getHash());
+        $this->assertSame('Bpq9rZt12Gv44dkXFw8RmLYzbaH2HBwPQJ6KihdLe5LG', $event->getHash());
     }
 
     /**
@@ -93,40 +91,55 @@ class EventTest extends TestCase
         $this->assertFalse($event->verifySignature());
     }
 
-    /**
-     * @expectedException BadMethodCallException
-     */
     public function testVerifySignatureNoSignature()
     {
+        $this->expectException(\BadMethodCallException::class);
+
         $event = new Event();
         $event->signkey = 'FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y';
         
         $event->verifySignature();
     }
     
-    /**
-     * @expectedException BadMethodCallException
-     */
     public function testVerifySignatureNoSignkey()
     {
+        $this->expectException(\BadMethodCallException::class);
+
         $event = new Event();
         $event->signature = '258KnaZxcx4cA9DUWSPw8QwBokRGzFDQmB4BH9MRJhoPJghsXoAZ7KnQ2DWR7ihtjXzUjbsXtSeup4UDcQ2L6RDL';
         
         $event->verifySignature();
     }
-    
-    public function testSignWith()
+
+    /**
+     * @depends testConstruct
+     */
+    public function testSignWith(Event $event)
     {
-        $event = new Event([], '');
-        
+        $event->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
+
+        $expected = join("\n", [
+            'HeFMDcuveZQYtBePVUugLyWtsiwsW4xp7xKdv',
+            '1519862400',
+            '72gRWx4C1Egqz9xvUBCYVdgh7uLc5kmGbjXFhiknNCTW',
+            'FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y'
+        ]);
+
         $account = $this->createMock(Account::class);
-        $account->expects($this->once())->method('signEvent')->with($this->identicalTo($event))->willReturn($event);
-        
+        $account->expects($this->once())->method('getPublicSignKey')
+            ->willReturn('FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y');
+        $account->expects($this->once())->method('sign')
+            ->with($expected, 'base58')
+            ->willReturn('4pwrLbWSYqE7st7fCGc2fW2eA33DP1uE4sBm6onfwYNk4M8Av9u4Mqx1R77sVzRRofQgoHGTLRh8pRBRzp5JGBo9');
+
         $ret = $event->signWith($account);
-        
         $this->assertSame($event, $ret);
+
+        $this->assertEquals('FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y', $event->signkey);
+        $this->assertEquals('4pwrLbWSYqE7st7fCGc2fW2eA33DP1uE4sBm6onfwYNk4M8Av9u4Mqx1R77sVzRRofQgoHGTLRh8pRBRzp5JGBo9', $event->signature);
+        $this->assertEquals('Bpq9rZt12Gv44dkXFw8RmLYzbaH2HBwPQJ6KihdLe5LG', $event->hash);
     }
-    
+
     public function testAddTo()
     {
         $event = new Event([], '');
@@ -151,7 +164,7 @@ class EventTest extends TestCase
         $event = new Event();
 
         foreach ($data as $key => $value) {
-            $event->$key = $value;
+            $event->{$key} = $value;
         }
 
         return $event;

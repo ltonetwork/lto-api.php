@@ -2,7 +2,6 @@
 
 namespace LTO\Tests\Account;
 
-use InvalidArgumentException;
 use LTO\Account;
 use LTO\Account\SignCallback;
 use PHPUnit\Framework\TestCase;
@@ -45,16 +44,32 @@ class SignCallbackTest extends TestCase
         $sign = new SignCallback($account);
         $ret = $sign('hello', 'GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY', $algo);
 
-        $this->assertEquals('__mock_signature__', $ret);
+        $this->assertSame('__mock_signature__', $ret);
     }
 
-    /**
-     * @expectedException \InvalidArgumentException
-     */
     public function testInvalidAccount()
     {
         $account = new Account();
+
+        $this->expectException(\InvalidArgumentException::class);
+
         new SignCallback($account);
+    }
+
+    public function testKeyMismatch()
+    {
+        $account = $this->createMock(Account::class);
+        $account->sign = (object)[
+            'secretkey' => base58_decode('4zsR9xoFpxfnNwLcY4hdRUarwf5xWtLj6FpKGDFBgscPxecPj2qgRNx4kJsFCpe9YDxBRNoeBWTh2SDAdwTySomS'),
+            'publickey' => base58_decode('GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY')
+        ];
+
+        $sign = new SignCallback($account);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('keyId doesn\'t match account public key');
+
+        $sign('hello', '4q7HKMbwbLcG58iFV3pz4vkRnPTwbrY9Q5JrwnwLEZCC', 'ed25519');
     }
 
     public function invalidAlgorithmProvider()
@@ -68,7 +83,6 @@ class SignCallbackTest extends TestCase
 
     /**
      * @dataProvider invalidAlgorithmProvider
-     * @expectedException \InvalidArgumentException
      */
     public function testInvalidAlgorithm(string $algo)
     {
@@ -80,6 +94,7 @@ class SignCallbackTest extends TestCase
         $account->expects($this->any())->method('getPublicSignKey')
             ->willReturn('GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY');
 
+        $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Unsupported algorithm: ' . $algo);
 
         $sign = new SignCallback($account);

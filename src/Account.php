@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace LTO;
 
@@ -33,7 +35,7 @@ class Account
     
     
     /**
-     * Get a random nonce
+     * Get a random nonce.
      * @codeCoverageIgnore
      *
      * @return string
@@ -76,6 +78,20 @@ class Account
     {
         return $this->encrypt !== null ? encode($this->encrypt->publickey, $encoding) : null;
     }
+
+    /**
+     * Get network chain id.
+     */
+    public function getNetwork(): ?string
+    {
+        if ($this->address === null) {
+            return null;
+        }
+
+        ['network' => $network] = unpack('Cversion/anetwork', $this->address);
+
+        return $network;
+    }
     
     
     /**
@@ -98,19 +114,27 @@ class Account
     }
     
     /**
-     * Sign an event
+     * Sign an event.
      *
      * @param Event $event
      * @return Event
      * @throws \RuntimeException if secret sign key is not set
      */
-    public function signEvent(Event $event): Event
+    final public function signEvent(Event $event): Event
     {
-        $event->signkey = $this->getPublicSignKey();
-        $event->signature = $this->sign($event->getMessage());
-        $event->hash = $event->getHash();
-        
-        return $event;
+        return $event->signWith($this);
+    }
+
+    /**
+     * Sign a transaction.
+     *
+     * @template T
+     * @param Transaction&T $transaction
+     * @return Transaction&T
+     */
+    final public function signTransaction(Transaction $transaction): Transaction
+    {
+        return $transaction->signWith($this);
     }
     
     /**
@@ -183,7 +207,7 @@ class Account
         $encryptedMessage = substr($cyphertext, 0, -24);
         $nonce = substr($cyphertext, -24);
 
-        $encryptionKey = x25519_keypair($sender->encrypt->secretkey, $this->encrypt->publickey);
+        $encryptionKey = x25519_keypair($this->encrypt->secretkey, $sender->encrypt->publickey);
         
         $message = x25519_decrypt($encryptedMessage, $nonce, $encryptionKey);
         

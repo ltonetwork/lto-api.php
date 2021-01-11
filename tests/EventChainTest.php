@@ -2,6 +2,7 @@
 
 namespace LTO\Tests;
 
+use Jasny\PHPUnit\PrivateAccessTrait;
 use LTO\Event;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -13,7 +14,7 @@ use LTO\EventChain;
  */
 class EventChainTest extends TestCase
 {
-    use \Jasny\TestHelper;
+    use PrivateAccessTrait;
     
     public function testConstruct()
     {
@@ -26,16 +27,16 @@ class EventChainTest extends TestCase
     {
         $chain = new EventChain('L1hGimV7Pp2CFNUnTCitqWDbk9Zng3r3uc66dAG6hLwEx');
         
-        $this->assertAttributeEquals('L1hGimV7Pp2CFNUnTCitqWDbk9Zng3r3uc66dAG6hLwEx', 'id', $chain);
-        $this->assertEquals('9HM1ykH7AxLgdCqBBeUhvoTH4jkq3zsZe4JGTrjXVENg', $chain->getLatestHash());
+        $this->assertSame('L1hGimV7Pp2CFNUnTCitqWDbk9Zng3r3uc66dAG6hLwEx', $chain->id);
+        $this->assertSame('9HM1ykH7AxLgdCqBBeUhvoTH4jkq3zsZe4JGTrjXVENg', $chain->getLatestHash());
     }
     
     public function testConstructLatestHash()
     {
         $chain = new EventChain('L1hGimV7Pp2CFNUnTCitqWDbk9Zng3r3uc66dAG6hLwEx', '3yMApqCuCjXDWPrbjfR5mjCPTHqFG8Pux1TxQrEM35jj');
         
-        $this->assertAttributeEquals('L1hGimV7Pp2CFNUnTCitqWDbk9Zng3r3uc66dAG6hLwEx', 'id', $chain);
-        $this->assertEquals('3yMApqCuCjXDWPrbjfR5mjCPTHqFG8Pux1TxQrEM35jj', $chain->getLatestHash());
+        $this->assertSame('L1hGimV7Pp2CFNUnTCitqWDbk9Zng3r3uc66dAG6hLwEx', $chain->id);
+        $this->assertSame('3yMApqCuCjXDWPrbjfR5mjCPTHqFG8Pux1TxQrEM35jj', $chain->getLatestHash());
     }
     
     public function testAdd()
@@ -47,7 +48,7 @@ class EventChainTest extends TestCase
         $chain = new EventChain('L1hGimV7Pp2CFNUnTCitqWDbk9Zng3r3uc66dAG6hLwEx', '3yMApqCuCjXDWPrbjfR5mjCPTHqFG8Pux1TxQrEM35jj');
         
         $chain->add($event);
-        $this->assertEquals('J26EAStUDXdRUMhm1UcYXUKtJWTkcZsFpxHRzhkStzbS', $chain->getLatestHash());
+        $this->assertSame('J26EAStUDXdRUMhm1UcYXUKtJWTkcZsFpxHRzhkStzbS', $chain->getLatestHash());
     }
     
     
@@ -56,7 +57,7 @@ class EventChainTest extends TestCase
         $chain = new EventChain();
         
         $nonce = $this->callPrivateMethod($chain, 'getRandomNonce');
-        $this->assertEquals(20, strlen($nonce));
+        $this->assertSame(20, strlen($nonce));
     }
     
     public function testInitForSeedNonce()
@@ -70,8 +71,8 @@ class EventChainTest extends TestCase
         
         $chain->initFor($account, 'foo');
         
-        $this->assertAttributeEquals('2b6QYLttL2R3CLGL4fUB9vaXXX4c5PRhHhCS51CZQodgu7ay9BpMNdJ6mZ8hyF', 'id', $chain);
-        $this->assertEquals('5S5qWhWs228toGUXX9DULHLF8Xfr7Xd8R2Lc4zQd4krj', $chain->getLatestHash());
+        $this->assertSame('2b6QYLttL2R3CLGL4fUB9vaXXX4c5PRhHhCS51CZQodgu7ay9BpMNdJ6mZ8hyF', $chain->id);
+        $this->assertSame('5S5qWhWs228toGUXX9DULHLF8Xfr7Xd8R2Lc4zQd4krj', $chain->getLatestHash());
     }
     
     public function testInitFor()
@@ -85,32 +86,29 @@ class EventChainTest extends TestCase
         
         $chain->initFor($account);
         
-        $this->assertAttributeEquals('2ar3wSjTm1fA33qgckZ5Kxn1x89gKRPpbR2EE61c5rRMnNk4cedDhYQxBE1E7k', 'id', $chain);
-        $this->assertEquals('3mG9WaAizdw15Xouv4adFGY131Bims8m5BTQVyv1YU7n', $chain->getLatestHash());
+        $this->assertSame('2ar3wSjTm1fA33qgckZ5Kxn1x89gKRPpbR2EE61c5rRMnNk4cedDhYQxBE1E7k', $chain->id);
+        $this->assertSame('3mG9WaAizdw15Xouv4adFGY131Bims8m5BTQVyv1YU7n', $chain->getLatestHash());
     }
     
-    /**
-     * @expectedException \BadMethodCallException
-     */
     public function testInitForExisting()
     {
         $account = $this->createMock(Account::class);
         
-        $chain = $this->createPartialMock(EventChain::class, ['getNonce']);
+        $chain = new EventChain();
         $chain->id = '123';
-        
+
+        $this->expectException(\BadMethodCallException::class);
+
         $chain->initFor($account);
     }
     
-    /**
-     * @expectedException \InvalidArgumentException
-     */
     public function testInitForInvalidAccount()
     {
         $account = $this->createMock(Account::class);
-        
-        $chain = $this->createPartialMock(EventChain::class, ['getNonce']);
-        
+        $chain = new EventChain();
+
+        $this->expectException(\InvalidArgumentException::class);
+
         $chain->initFor($account);
     }
 
@@ -121,7 +119,10 @@ class EventChainTest extends TestCase
         $chain->expects($this->never())->method('getRandomNonce');
         $chain->id = '2b6QYLttL2R3CLGL4fUB9vaXXX4c5HJanjV5QecmAYLCrD52o6is1fRMGShUUF';
 
-        $this->assertEquals('2z4AmxL122aaTLyVy6rhEfXHGJMGuUnViUhw3D7XC4VcycnkEwkHXXdxg73vLb', $chain->createResourceId('foo'));
+        $this->assertSame(
+            '2z4AmxL122aaTLyVy6rhEfXHGJMGuUnViUhw3D7XC4VcycnkEwkHXXdxg73vLb',
+            $chain->createResourceId('foo')
+        );
     }
 
     public function testCreateResourceId()
@@ -130,16 +131,19 @@ class EventChainTest extends TestCase
         $chain->expects($this->once())->method('getRandomNonce')->willReturn(str_repeat("\0", 20));
         $chain->id = '2b6QYLttL2R3CLGL4fUB9vaXXX4c5HJanjV5QecmAYLCrD52o6is1fRMGShUUF';
 
-        $this->assertEquals('2yopB4AaT1phJ4YrXBwbQhimguSM9Wkd2CXjCHvZs7HHrswqiQZ9rSkp5cGwJG', $chain->createResourceId());
+        $this->assertSame(
+            '2yopB4AaT1phJ4YrXBwbQhimguSM9Wkd2CXjCHvZs7HHrswqiQZ9rSkp5cGwJG',
+            $chain->createResourceId()
+        );
     }
 
-    /**
-     * @expectedException \BadMethodCallException
-     * @expectedExceptionMessage Chain id not set
-     */
     public function testCreateResourceIdWithoutId()
     {
         $chain = new EventChain();
+
+        $this->expectException(\BadMethodCallException::class);
+        $this->expectExceptionMessage("Chain id not set");
+
         $chain->createResourceId();
     }
 
@@ -166,7 +170,7 @@ class EventChainTest extends TestCase
         $chain = new EventChain();
         $chain->id = '2b6QYLttL2R3CLGL4fUB9vaXXX4c5HJanjV5QecmAYLCrD52o6is1fRMGShUUF';
 
-        $this->assertEquals($expected, $chain->isValidResourceId($projectionId));
+        $this->assertSame($expected, $chain->isValidResourceId($projectionId));
     }
 
     protected function createTestChain()
@@ -254,15 +258,15 @@ class EventChainTest extends TestCase
         }, $partial->events);
 
         $this->assertSame($expected, $actual);
-        $this->assertEquals('3HZd1nBeva2fLUUEygGakdCQr84dcUz6J3wGTUsHdnhq', $partial->getLatestHash());
+        $this->assertSame('3HZd1nBeva2fLUUEygGakdCQr84dcUz6J3wGTUsHdnhq', $partial->getLatestHash());
     }
 
-    /**
-     * @expectedException OutOfBoundsException
-     */
     public function testGetPartialOutOfBounds()
     {
         $chain = $this->createTestChain();
+
+        $this->expectException(\OutOfBoundsException::class);
+
         $chain->getPartialAfter('Aw2Rum85dWFcUKnY6wZPmpoJXK54zENePuLPKjvjhviU');
     }
 

@@ -32,10 +32,9 @@
         "psr/http-server-middleware": "^1.0"
     },
     "require-dev": {
-        "jasny/php-code-quality": "^2.3"
-    },
-    "suggests": {
-        "ext-base58": "Base58 extension performs much better"
+        "ext-curl": "*",
+        "guzzlehttp/guzzle": "^7.2",
+        "jasny/php-code-quality": "^2.6"
     },
     "conflict": {
         "legalthings/lto-api": "*"

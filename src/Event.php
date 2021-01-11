@@ -57,7 +57,7 @@ class Event implements JsonSerializable
      * Class constructor
      *
      * @param object|array $body
-     * @param string       $previous
+     * @param string|null  $previous
      */
     public function __construct($body = null, string $previous = null)
     {
@@ -142,7 +142,9 @@ class Event implements JsonSerializable
      */
     public function signWith(Account $account)
     {
-        $account->signEvent($this);
+        $this->signkey = $account->getPublicSignKey();
+        $this->signature = $account->sign($this->getMessage());
+        $this->hash = $this->getHash();
 
         return $this;
     }
