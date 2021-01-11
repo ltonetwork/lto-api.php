@@ -12,7 +12,7 @@ branches:
     - /^v\d+\.\d+\.\d+$/
 
 before_install:
-  - echo "extension = sodium.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+  - echo "extension=sodium.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
   - pecl install base58
 
 install:
