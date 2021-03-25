@@ -14,7 +14,7 @@ do {
 
 $message = trim($data);
 
-$factory = new AccountFactory($argv[1] ?? 'L', 0);
+$factory = new AccountFactory($argv[1] ?? 'L');
 $account = $factory->seed($message);
 $seed = $factory->createAccountSeed($message, 0);
 

@@ -12,7 +12,7 @@ if ($argc < 2) {
     exit(1);
 }
 
-$factory = new AccountFactory('L', 0);
+$factory = new AccountFactory('L');
 $account = $factory->create($argv[1]);
 
 $data = '';

@@ -10,7 +10,7 @@ if ($argc < 2) {
     exit(1);
 }
 
-$factory = new AccountFactory($argv[2] ?? 'L', 0);
+$factory = new AccountFactory($argv[2] ?? 'L');
 $account = $factory->create($argv[1]);
 
 echo "address: ", base58_encode($account->address), "\n";

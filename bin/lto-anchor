@@ -1,0 +1,41 @@
+#!/usr/bin/env php
+<?php
+
+require 'vendor/autoload.php';
+
+use LTO\AccountFactory;
+use LTO\PublicNode;
+use LTO\Transaction\Anchor;
+use function LTO\sha256;
+
+if ($argc < 2) {
+    echo "USAGE: lto-anchor SECRETKEY [L|T]\n";
+    echo "write the message and close with ctrl-d\n";
+    exit(1);
+}
+
+$network = $argv[2] ?? 'L';
+
+$node = new PublicNode($network === 'T' ? "https://testnet.lto.network" : "https://nodes.lto.network");
+$factory = new AccountFactory($network);
+$account = $factory->create($argv[1]);
+
+$data = '';
+
+do {
+    $chunk = fread(STDIN, 8192);
+    $data .= $chunk;
+} while ($chunk && (substr($chunk, -1) === "\n" || strlen($chunk) === 8192));
+
+$message = trim($data);
+$hash = sha256($message);
+
+/** @var Anchor $tx */
+$tx = (new Anchor($hash, 'raw'))
+    ->signWith($account)
+    ->broadcastTo($node);
+
+echo "tx: {$tx->id}\n";
+echo "hash:\n";
+echo "  base58: ", base58_encode($hash), "\n";
+echo "  hex:    ", bin2hex($hash), "\n";
