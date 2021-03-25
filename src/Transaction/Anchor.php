@@ -33,13 +33,16 @@ class Anchor extends Transaction
     /**
      * Class constructor.
      *
-     * @param string $hash
-     * @param string $encoding 'raw', 'hex', 'base58', or 'base64'
+     * @param string|null $hash
+     * @param string      $encoding 'raw', 'hex', 'base58', or 'base64'
      */
-    public function __construct(string $hash, string $encoding = 'hex')
+    public function __construct(?string $hash = null, string $encoding = 'hex')
     {
-        $this->anchors[] = encode(decode($hash, $encoding), 'base58');
         $this->fee = self::MINIMUM_FEE;
+
+        if ($hash !== null) {
+            $this->addHash($hash, $encoding);
+        }
     }
 
     /**
@@ -99,6 +102,22 @@ class Anchor extends Transaction
     }
 
     /**
+     * Add a hash to the transaction.
+     *
+     * @param string $hash
+     * @param string $encoding 'raw', 'hex', 'base58', or 'base64'
+     * @return $this
+     */
+    public function addHash(string $hash, string $encoding = 'hex'): self
+    {
+        $this->anchors[] = $encoding === 'base58'
+            ? $hash
+            : encode(decode($hash, $encoding), 'base58');
+
+        return $this;
+    }
+
+    /**
      * Get the anchor hash.
      *
      * @param string $encoding 'raw', 'hex', 'base58', or 'base64'
@@ -106,8 +125,33 @@ class Anchor extends Transaction
      */
     public function getHash(string $encoding = 'hex'): string
     {
+        if (count($this->anchors) !== 1) {
+            throw new \BadMethodCallException("Method 'getHash' can't be used on a multi-anchor tx");
+        }
+
         return $encoding === 'base58'
             ? $this->anchors[0]
             : encode(decode($this->anchors[0], 'base58'), $encoding);
+    }
+
+    /**
+     * Get anchor hashes for a multi-anchor tx.
+     *
+     * @param string $encoding 'raw', 'hex', 'base58', or 'base64'
+     * @return string[]
+     */
+    public function getHashes(string $encoding = 'hex'): array
+    {
+        if ($encoding === 'base58') {
+            return $this->anchors;
+        }
+
+        $hashes = [];
+
+        foreach ($this->anchors as $anchor) {
+            $hashes[] = encode(decode($anchor, 'base58'), $encoding);
+        }
+
+        return $hashes;
     }
 }

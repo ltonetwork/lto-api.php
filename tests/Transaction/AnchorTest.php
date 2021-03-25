@@ -11,6 +11,7 @@ use LTO\Transaction\Anchor;
 use PHPUnit\Framework\TestCase;
 use function LTO\decode;
 use function LTO\encode;
+use function LTO\sha256;
 
 /**
  * @covers \LTO\Transaction
@@ -98,6 +99,33 @@ class AnchorTest extends TestCase
         $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
         $this->assertEquals(
             '3HxFrkj3EdJFTjq2RRYFbKMhok5NhUzEiAEhvXprgJnFMdstGHzgqyHXLyChfhNU14zozbU3Mw4fQc5dBKTCeDPe',
+            $transaction->proofs[0]
+        );
+
+        // Unchanged
+        $this->assertEquals((new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp(), $transaction->timestamp);
+
+        $this->assertTrue($this->account->verify($transaction->proofs[0], $transaction->toBinary()));
+    }
+
+    public function testSignWithMultiAnchorTx()
+    {
+        $transaction = (new Anchor())
+            ->addHash(hash('sha256', 'one'))
+            ->addHash(hash('sha256', 'two'));
+        $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
+
+        $this->assertFalse($transaction->isSigned());
+
+        $ret = $transaction->signWith($this->account);
+        $this->assertSame($transaction, $ret);
+
+        $this->assertTrue($transaction->isSigned());
+
+        $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
+        $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
+        $this->assertEquals(
+            '5kuUZbzvUUqtB1zrHfH3RZpAd31EV2mgwcB6z8jk7XwAQJ3JRw47tc8NbRhP28tQ491ycKaQRSTFuRdLkz8CiGb2',
             $transaction->proofs[0]
         );
 
@@ -233,5 +261,64 @@ class AnchorTest extends TestCase
         $transaction = new Anchor(hash('sha256', 'foo'));
 
         $this->assertEquals($hash, $transaction->getHash($encoding));
+    }
+
+    public function testGetHashWithMultiAnchorTx()
+    {
+        $transaction = (new Anchor())
+            ->addHash(hash('sha256', 'one'))
+            ->addHash(hash('sha256', 'two'));
+
+        $this->expectException(\BadMethodCallException::class);
+        $transaction->getHash();
+    }
+
+    public function testGetHashWithEmptyMultiAnchorTx()
+    {
+        $transaction = new Anchor();
+
+        $this->expectException(\BadMethodCallException::class);
+        $transaction->getHash();
+    }
+
+
+    public function encodedMultiHashProvider()
+    {
+        return [
+            'raw' => [
+                [hash('sha256', 'one', true), hash('sha256', 'two', true)],
+                'raw'
+            ],
+            'hex' => [
+                [hash('sha256', 'one'), hash('sha256', 'two')],
+                'hex'
+            ],
+            'base58' => [
+                [
+                    encode(hash('sha256', 'one', true), 'base58'),
+                    encode(hash('sha256', 'two', true), 'base58')
+                ],
+                'base58'
+            ],
+            'base64' => [
+                [
+                    encode(hash('sha256', 'one', true), 'base64'),
+                    encode(hash('sha256', 'two', true), 'base64'),
+                ],
+                'base64'
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider encodedMultiHashProvider
+     */
+    public function testGetHashes(array $hashes, string $encoding)
+    {
+        $transaction = (new Anchor())
+            ->addHash(hash('sha256', 'one'))
+            ->addHash(hash('sha256', 'two'));
+
+        $this->assertEquals($hashes, $transaction->getHashes($encoding));
     }
 }
