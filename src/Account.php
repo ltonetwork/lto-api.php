@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace LTO;
 
-use function sodium_crypto_sign_detached as ed25519_sign;
-use function sodium_crypto_sign_verify_detached as ed25519_verify;
-use function sodium_crypto_box_keypair_from_secretkey_and_publickey as x25519_keypair;
-use function sodium_crypto_box as x25519_encrypt;
-use function sodium_crypto_box_open as x25519_decrypt;
-
 /**
- * An account (aka wallet)
+ * An account (aka wallet).
+ * Used to sign transactions for the public chain and events for the private layer.
  */
 class Account
 {
+    /**
+     * @var Cryptography
+     */
+    protected $cryptography;
+
     /**
      * Account public address
      * @var string|null
@@ -32,20 +32,25 @@ class Account
      * @var \stdClass|null
      */
     public $encrypt;
-    
-    
+
     /**
-     * Get a random nonce.
-     * @codeCoverageIgnore
+     * Account constructor.
      *
-     * @return string
+     * @param Cryptography $cryptography
      */
-    protected function getNonce()
+    public function __construct(Cryptography $cryptography)
     {
-        return random_bytes(SODIUM_CRYPTO_BOX_NONCEBYTES);
+        $this->cryptography = $cryptography;
     }
-    
-    
+
+    /**
+     * Get cryptography used by this account.
+     */
+    public function getCryptography(): Cryptography
+    {
+        return $this->cryptography;
+    }
+
     /**
      * Get base58 encoded address
      *
@@ -111,8 +116,8 @@ class Account
             throw new \RuntimeException("Unable to sign message; no secret sign key");
         }
         
-        $signature = ed25519_sign($rawMessage, $this->sign->secretkey);
-        
+        $signature = $this->cryptography->sign($rawMessage, $this->sign->secretkey);
+
         return new Binary($signature);
     }
     
@@ -168,9 +173,7 @@ class Account
             throw new \RuntimeException("Unable to verify message; no public sign key");
         }
         
-        return $signature->length() === SODIUM_CRYPTO_SIGN_BYTES &&
-            strlen($this->sign->publickey) === SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES &&
-            ed25519_verify($signature->raw(), $rawMessage, $this->sign->publickey);
+        return $this->cryptography->verify($message, $this->sign->publickey, $signature->raw());
     }
     
     
@@ -195,10 +198,11 @@ class Account
             throw new \RuntimeException("Unable to encrypt message; no public encryption key for recipient");
         }
         
-        $nonce = $this->getNonce();
-        $encryptionKey = x25519_keypair($this->encrypt->secretkey, $recipient->encrypt->publickey);
-        
-        $cypherText = x25519_encrypt($rawMessage, $nonce, $encryptionKey) . $nonce;
+        $cypherText = $this->cryptography->encrypt(
+            $rawMessage,
+            $this->encrypt->secretkey,
+            $recipient->encrypt->publickey
+        );
 
         return new Binary($cypherText);
     }
@@ -214,8 +218,6 @@ class Account
      */
     public function decryptFrom(Account $sender, Binary $cypherText): Binary
     {
-        $rawCypherText = $cypherText->raw();
-
         if (!isset($this->encrypt->secretkey)) {
             throw new \RuntimeException("Unable to decrypt message; no secret encryption key");
         }
@@ -223,18 +225,13 @@ class Account
         if (!isset($sender->encrypt->publickey)) {
             throw new \RuntimeException("Unable to decrypt message; no public encryption key for sender");
         }
-        
-        $encryptedMessage = substr($rawCypherText, 0, -24);
-        $nonce = substr($rawCypherText, -24);
 
-        $encryptionKey = x25519_keypair($this->encrypt->secretkey, $sender->encrypt->publickey);
-        
-        $message = x25519_decrypt($encryptedMessage, $nonce, $encryptionKey);
-        
-        if ($message === false) {
-            throw new DecryptException("Failed to decrypt message from " . $sender->getAddress());
-        }
-        
+        $message = $this->cryptography->decrypt(
+            $cypherText->raw(),
+            $this->encrypt->secretkey,
+            $sender->encrypt->publickey
+        );
+
         return new Binary($message);
     }
     
