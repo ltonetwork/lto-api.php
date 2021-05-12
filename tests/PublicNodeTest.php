@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LTO\Tests;
 
 use LTO\PublicNode;
+use LTO\Transaction\SetScript;
 use LTO\Transaction\Transfer;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -190,5 +191,33 @@ class PublicNodeTest extends TestCase
         $this->expectExceptionMessage("Transaction is not signed");
 
         $this->node->broadcast($transaction);
+    }
+
+    public function testCompile()
+    {
+        $script = "sigVerify(tx.bodyBytes, tx.proofs[0], tx.senderPublicKey)";
+        $compiledScript = "base64:AQkAAfQAAAADCAUAAAACdHgAAAAJYm9keUJ5dGVzCQABkQAAAAIIBQAAAAJ0eAAAAAZwcm9vZnMAAAAAAAAAAAAIBQAAAAJ0eAAAAA9zZW5kZXJQdWJsaWNLZXmmsz2x";
+
+        $this->node->expects($this->once())->method('curlExec')
+            ->with([
+                CURLOPT_URL => 'http://example.com/utils/script/compile',
+                CURLOPT_HTTPHEADER => [
+                    'Content-Type: text/plain',
+                    'Accept: application/json',
+                    'X-Api-Key: secret',
+                ],
+                CURLOPT_POSTFIELDS => $script,
+                CURLOPT_CUSTOMREQUEST => 'POST',
+            ])
+            ->willReturn([
+                "script" => $compiledScript,
+                "complexity" => 115,
+                "extraFee" => 100000000,
+            ]);
+
+        $setScriptTx = $this->node->compile($script);
+
+        $this->assertInstanceOf(SetScript::class, $setScriptTx);
+        $this->assertEquals($compiledScript, $setScriptTx->script);
     }
 }

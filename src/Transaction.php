@@ -14,6 +14,7 @@ abstract class Transaction implements \JsonSerializable
         8 => Transaction\Lease::class,
         9 => Transaction\CancelLease::class,
         11 => Transaction\MassTransfer::class,
+        13 => Transaction\SetScript::class,
         15 => Transaction\Anchor::class,
         16 => Transaction\Association::class,
         17 => Transaction\RevokeAssociation::class,

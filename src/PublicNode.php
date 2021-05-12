@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace LTO;
 
+use LTO\Transaction\SetScript;
+
 /**
  * LTO public node.
  */
@@ -77,6 +79,27 @@ class PublicNode
     }
 
     /**
+     * Compile a script for a smart account.
+     *
+     * @param string $script
+     * @return SetScript
+     */
+    public function compile(string $script): SetScript
+    {
+        $info = $this->curlExec([
+            CURLOPT_URL => rtrim($this->url, '/') . '/utils/script/compile',
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_HTTPHEADER => $this->headers([
+                'Content-Type: text/plain',
+                'Accept: application/json',
+            ]),
+            CURLOPT_POSTFIELDS => $script,
+        ]);
+
+        return new SetScript($info['script']);
+    }
+
+    /**
      * Broadcast a transaction to the network via the public node.
      *
      * @throws BadResponseException
@@ -105,7 +128,7 @@ class PublicNode
         return $this->curlExec([
             CURLOPT_URL => rtrim($this->url, '/') . $path,
             CURLOPT_HTTPHEADER => $this->headers([
-                'Accept: application/json'
+                'Accept: application/json',
             ])
         ]);
     }
@@ -125,7 +148,7 @@ class PublicNode
             CURLOPT_CUSTOMREQUEST => 'POST',
             CURLOPT_HTTPHEADER => $this->headers([
                 'Content-Type: application/json',
-                'Accept: application/json'
+                'Accept: application/json',
             ]),
             CURLOPT_POSTFIELDS => json_encode($data),
         ]);
@@ -172,7 +195,7 @@ class PublicNode
      * @return mixed
      * @throws BadResponseException
      */
-    public function curlExec(array $opts)
+    protected function curlExec(array $opts)
     {
         $curl = curl_init();
 
@@ -193,14 +216,17 @@ class PublicNode
             throw new BadResponseException("Node responded with {$status}: $body");
         }
 
-        if (!preg_match('~content-type:\s*application/json~i', $headers)) {
+        if (preg_match('~content-type:\s*application/json~i', $headers)) {
+            $data = json_decode($body, true);
+            if (json_last_error() > 0) {
+                throw new BadResponseException("Invalid JSON response: " . json_last_error_msg());
+            }
+        } elseif (in_array('Accept: application/json', $opts[CURLOPT_HTTPHEADER], true)) {
             throw new BadResponseException("Node did not responded with JSON.");
+        } else {
+            $data = $body;
         }
 
-        $data = json_decode($body, true);
-        if (json_last_error() > 0) {
-            throw new BadResponseException("Invalid JSON response: " . json_last_error_msg());
-        }
 
         return $data;
     }

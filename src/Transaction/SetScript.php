@@ -6,6 +6,12 @@ namespace LTO\Transaction;
 
 use function LTO\decode;
 
+/**
+ * Transaction to create a smart account by setting a script.
+ *
+ * Note: the script needs to be compiled before it's used.
+ * This can be done by the public node via endpoint `/utils/script/compile`.
+ */
 class SetScript extends \LTO\Transaction
 {
     /** Minimum transaction fee */
@@ -26,16 +32,13 @@ class SetScript extends \LTO\Transaction
     /**
      * Class constructor.
      *
-     * @param string $script
-     * @param string $encoding  'base64' or 'raw'
+     * @param string|null $compiledScript  Base64 encoded compiled script or NULL to remove the script
      */
-    public function __construct(string $script, string $encoding = 'raw')
+    public function __construct(?string $compiledScript)
     {
-        if ($encoding !== 'raw' && $encoding !== 'base64') {
-            throw new \InvalidArgumentException("Script should be base64 encoded or raw, not $encoding");
-        }
-
-        $this->script = $encoding === 'raw' ? base64_encode($script) : $script;
+        $this->script = $compiledScript !== null
+            ? preg_replace('/^(base64:)?/', 'base64:', $compiledScript)
+            : null;
     }
 
     /**
@@ -51,13 +54,18 @@ class SetScript extends \LTO\Transaction
             throw new \BadMethodCallException("Timestamp not set");
         }
 
+        $binaryScript = $this->script !== null
+            ? decode(preg_replace('/^base64:/', '', $this->script), 'base64')
+            : '';
+
         return pack(
-            'CCaa32a26JJJ',
+            'CCaa26na*JJ',
             static::TYPE,
             static::VERSION,
             $this->getNetwork(),
             decode($this->senderPublicKey, 'base58'),
-            decode($this->script, 'base64'),
+            strlen($binaryScript),
+            $binaryScript,
             $this->fee,
             $this->timestamp
         );
@@ -78,7 +86,7 @@ class SetScript extends \LTO\Transaction
      */
     public static function fromData(array $data)
     {
-        static::assertNoMissingKeys($data);
+        static::assertNoMissingKeys($data, ['id', 'height', 'script']);
         static::assertTypeAndVersion($data, static::TYPE, static::VERSION);
 
         return static::createFromData($data);
