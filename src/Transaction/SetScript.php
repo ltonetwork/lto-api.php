@@ -36,6 +36,8 @@ class SetScript extends \LTO\Transaction
      */
     public function __construct(?string $compiledScript)
     {
+        $this->fee = self::MINIMUM_FEE;
+
         $this->script = $compiledScript !== null
             ? preg_replace('/^(base64:)?/', 'base64:', $compiledScript)
             : null;

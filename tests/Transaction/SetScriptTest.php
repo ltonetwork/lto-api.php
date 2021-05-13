@@ -83,7 +83,7 @@ class SetScriptTest extends TestCase
 
         $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
         $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
-        $this->assertEquals('67WB2kzfAfbVKxhbnj9Mt8ni2gvDVNvuKr4sqCwrSYf3r6EweYPj2dF3sFMYZGLSQs9nNTV4negvfiAytJBvWz1e', $transaction->proofs[0]);
+        $this->assertEquals('jxW9T2iUSQ68yv41Wj8JKb8HykwzKzbuHLBG6eySLaXk45rNbDo3zr2AS9bGMggrBZUUJQTFjKHeiD1q69pPUxY', $transaction->proofs[0]);
 
         // Unchanged
         $this->assertEquals((new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp(), $transaction->timestamp);
@@ -105,7 +105,7 @@ class SetScriptTest extends TestCase
 
         $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
         $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
-        $this->assertEquals('53k9eK5XaWct7UHv18rx6eB6wuWrqxMJpBBdr36i75gkYni2NsDTRh6W4VTscpr393MUwQFchsHJNBrM9DD82q6N', $transaction->proofs[0]);
+        $this->assertEquals('4reQnJyELshRrsWtRF7pXP2n2uKF6T7y4jwmqYRo3trJtRJXcvkLc2ZDf6w4VCWAknr5SS1uUgLW8pkGdDHmpMU3', $transaction->proofs[0]);
 
         // Unchanged
         $this->assertEquals((new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp(), $transaction->timestamp);
