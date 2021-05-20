@@ -9,13 +9,12 @@ use LTO\PublicNode;
 use LTO\Transaction;
 use LTO\Transaction\Anchor;
 use PHPUnit\Framework\TestCase;
-use function LTO\decode;
 use function LTO\encode;
-use function LTO\sha256;
 
 /**
  * @covers \LTO\Transaction
  * @covers \LTO\Transaction\Anchor
+ * @covers \LTO\Transaction\Pack\AnchorV1
  */
 class AnchorTest extends TestCase
 {
@@ -82,6 +81,16 @@ class AnchorTest extends TestCase
         $transaction->toBinary();
     }
 
+    public function testToBinaryWithUnsupportedVersion()
+    {
+        $transaction = new Anchor(hash('sha256', 'foo'));
+        $transaction->version = 99;
+
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionMessage("Unsupported anchor tx version 99");
+
+        $transaction->toBinary();
+    }
 
     public function testSign()
     {
@@ -189,9 +198,9 @@ class AnchorTest extends TestCase
     public function testFromDataWithMissingKeys()
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid data, missing keys: anchors, sender, senderPublicKey, timestamp, fee, proofs");
+        $this->expectExceptionMessage("Invalid data, missing keys: anchors, version, sender, senderPublicKey, timestamp, fee, proofs");
 
-        Transaction::fromData(['type' => 15]);
+        Transaction::fromData(['type' => Anchor::TYPE]);
     }
 
     public function testFromDataWithIncorrectType()
@@ -201,17 +210,6 @@ class AnchorTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Invalid type 99, should be 15");
-
-        Anchor::fromData($data);
-    }
-
-    public function testFromDataWithIncorrectVersion()
-    {
-        $data = $this->dataProvider()['confirmed'][0];
-        $data['version'] = 99;
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid version 99, should be 1");
 
         Anchor::fromData($data);
     }

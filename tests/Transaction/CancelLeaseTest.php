@@ -14,6 +14,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * @covers \LTO\Transaction
  * @covers \LTO\Transaction\CancelLease
+ * @covers \LTO\Transaction\Pack\CancelLeaseV2
  */
 class CancelLeaseTest extends TestCase
 {
@@ -54,6 +55,17 @@ class CancelLeaseTest extends TestCase
 
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage("Timestamp not set");
+
+        $transaction->toBinary();
+    }
+
+    public function testToBinaryWithUnsupportedVersion()
+    {
+        $transaction = new CancelLease('B22YzYdNv7DCqMqdK2ckpt53gQuYq2v997N7g8agZoHo');
+        $transaction->version = 99;
+
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionMessage("Unsupported cancel lease tx version 99");
 
         $transaction->toBinary();
     }
@@ -167,9 +179,9 @@ class CancelLeaseTest extends TestCase
     public function testFromDataWithMissingKeys()
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid data, missing keys: leaseId, sender, senderPublicKey, timestamp, fee, proofs");
+        $this->expectExceptionMessage("Invalid data, missing keys: leaseId, version, sender, senderPublicKey, timestamp, fee, proofs");
 
-        Transaction::fromData(['type' => 9]);
+        Transaction::fromData(['type' => CancelLease::TYPE]);
     }
 
     public function testFromDataWithIncorrectType()
@@ -179,17 +191,6 @@ class CancelLeaseTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Invalid type 99, should be 9");
-
-        CancelLease::fromData($data);
-    }
-
-    public function testFromDataWithIncorrectVersion()
-    {
-        $data = $this->dataProvider()['confirmed'][0];
-        $data['version'] = 99;
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid version 99, should be 2");
 
         CancelLease::fromData($data);
     }

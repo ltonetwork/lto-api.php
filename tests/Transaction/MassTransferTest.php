@@ -14,6 +14,7 @@ use function LTO\decode;
 /**
  * @covers \LTO\Transaction
  * @covers \LTO\Transaction\MassTransfer
+ * @covers \LTO\Transaction\Pack\MassTransferV1
  */
 class MassTransferTest extends TestCase
 {
@@ -137,6 +138,17 @@ class MassTransferTest extends TestCase
         $transaction->toBinary();
     }
 
+    public function testToBinaryWithUnsupportedVersion()
+    {
+        $transaction = new MassTransfer();
+        $transaction->version = 99;
+
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionMessage("Unsupported mass transfer tx version 99");
+
+        $transaction->toBinary();
+    }
+
 
     public function testSign()
     {
@@ -232,9 +244,9 @@ class MassTransferTest extends TestCase
     public function testFromDataWithMissingKeys()
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid data, missing keys: anchors, sender, senderPublicKey, timestamp, fee, proofs");
+        $this->expectExceptionMessage("Invalid data, missing keys: transfers, attachment, version, sender, senderPublicKey, timestamp, fee, proofs");
 
-        Transaction::fromData(['type' => 15]);
+        Transaction::fromData(['type' => MassTransfer::TYPE]);
     }
 
     public function testFromDataWithIncorrectType()
@@ -244,17 +256,6 @@ class MassTransferTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Invalid type 99, should be 11");
-
-        MassTransfer::fromData($data);
-    }
-
-    public function testFromDataWithIncorrectVersion()
-    {
-        $data = $this->dataProvider()['confirmed'][0];
-        $data['version'] = 99;
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid version 99, should be 1");
 
         MassTransfer::fromData($data);
     }

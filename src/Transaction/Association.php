@@ -21,7 +21,7 @@ class Association extends Transaction
     public const TYPE = 16;
 
     /** Transaction version */
-    public const VERSION  = 1;
+    public const DEFAULT_VERSION  = 1;
 
     /** @var string */
     public $party;
@@ -47,11 +47,12 @@ class Association extends Transaction
             throw new \InvalidArgumentException("Invalid party address; is it base58 encoded?");
         }
 
+        $this->version = self::DEFAULT_VERSION;
+        $this->fee = self::MINIMUM_FEE;
+
         $this->party = $party;
         $this->associationType = $type;
         $this->hash = encode(decode($hash, $encoding), 'base58');
-
-        $this->fee = self::MINIMUM_FEE;
     }
 
     /**
@@ -59,55 +60,15 @@ class Association extends Transaction
      */
     public function toBinary(): string
     {
-        if ($this->senderPublicKey === null) {
-            throw new \BadMethodCallException("Sender public key not set");
+        switch ($this->version) {
+            case 1:
+                $pack = new Pack\AssociationV1();
+                break;
+            default:
+                throw new \UnexpectedValueException("Unsupported association tx version {$this->version}");
         }
 
-        if ($this->timestamp === null) {
-            throw new \BadMethodCallException("Timestamp not set");
-        }
-
-        $packed = pack(
-            'CCaa32a26N',
-            static::TYPE,
-            static::VERSION,
-            $this->getNetwork(),
-            decode($this->senderPublicKey, 'base58'),
-            decode($this->party, 'base58'),
-            $this->associationType
-        );
-
-        if ($this->hash !== '') {
-            $rawHash = decode($this->hash, 'base58');
-            $packed .= pack(
-                'Cna*',
-                1,
-                strlen($rawHash),
-                $rawHash
-            );
-        } else {
-            $packed .= pack('C', 0);
-        }
-
-        $packed .= pack(
-            'JJ',
-            $this->timestamp,
-            $this->fee
-        );
-
-        $unpacked = array_values(unpack('C*', $packed));
-
-        return $packed;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function jsonSerialize(): array
-    {
-        return
-            ['type' => static::TYPE, 'version' => static::VERSION] +
-            parent::jsonSerialize();
+        return $pack($this);
     }
 
     /**
@@ -116,7 +77,7 @@ class Association extends Transaction
     public static function fromData(array $data)
     {
         static::assertNoMissingKeys($data, ['id', 'height', 'hash']);
-        static::assertTypeAndVersion($data, static::TYPE, static::VERSION);
+        static::assertType($data, static::TYPE);
 
         return static::createFromData($data);
     }

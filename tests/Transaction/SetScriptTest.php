@@ -9,11 +9,11 @@ use LTO\PublicNode;
 use LTO\Transaction;
 use LTO\Transaction\SetScript;
 use PHPUnit\Framework\TestCase;
-use function LTO\decode;
 
 /**
  * @covers \LTO\Transaction
  * @covers \LTO\Transaction\SetScript
+ * @covers \LTO\Transaction\Pack\SetScriptV1
  */
 class SetScriptTest extends TestCase
 {
@@ -64,6 +64,17 @@ class SetScriptTest extends TestCase
 
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage("Timestamp not set");
+
+        $transaction->toBinary();
+    }
+
+    public function testToBinaryWithUnsupportedVersion()
+    {
+        $transaction = new SetScript(self::COMPILE_SCRIPT);
+        $transaction->version = 99;
+
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionMessage("Unsupported set script tx version 99");
 
         $transaction->toBinary();
     }
@@ -164,9 +175,9 @@ class SetScriptTest extends TestCase
     public function testFromDataWithMissingKeys()
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid data, missing keys: sender, senderPublicKey, timestamp, fee, proofs");
+        $this->expectExceptionMessage("Invalid data, missing keys: version, sender, senderPublicKey, timestamp, fee, proofs");
 
-        Transaction::fromData(['type' => 13]);
+        Transaction::fromData(['type' => SetScript::TYPE]);
     }
 
     public function testFromDataWithIncorrectType()
@@ -176,17 +187,6 @@ class SetScriptTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Invalid type 99, should be 13");
-
-        SetScript::fromData($data);
-    }
-
-    public function testFromDataWithIncorrectVersion()
-    {
-        $data = $this->dataProvider()['confirmed'][0];
-        $data['version'] = 99;
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid version 99, should be 1");
 
         SetScript::fromData($data);
     }

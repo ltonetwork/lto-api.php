@@ -14,6 +14,7 @@ use function LTO\decode;
 /**
  * @covers \LTO\Transaction
  * @covers \LTO\Transaction\CancelSponsor
+ * @covers \LTO\Transaction\Pack\CancelSponsorV1
  */
 class CancelSponsorTest extends TestCase
 {
@@ -74,6 +75,17 @@ class CancelSponsorTest extends TestCase
 
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage("Timestamp not set");
+
+        $transaction->toBinary();
+    }
+
+    public function testToBinaryWithUnsupportedVersion()
+    {
+        $transaction = new CancelSponsor('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
+        $transaction->version = 99;
+
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionMessage("Unsupported cancel sponsor tx version 99");
 
         $transaction->toBinary();
     }
@@ -155,9 +167,9 @@ class CancelSponsorTest extends TestCase
     public function testFromDataWithMissingKeys()
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid data, missing keys: recipient, sender, senderPublicKey, timestamp, fee, proofs");
+        $this->expectExceptionMessage("Invalid data, missing keys: recipient, version, sender, senderPublicKey, timestamp, fee, proofs");
 
-        Transaction::fromData(['type' => 19]);
+        Transaction::fromData(['type' => CancelSponsor::TYPE]);
     }
 
     public function testFromDataWithIncorrectType()
@@ -167,17 +179,6 @@ class CancelSponsorTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Invalid type 99, should be 19");
-
-        CancelSponsor::fromData($data);
-    }
-
-    public function testFromDataWithIncorrectVersion()
-    {
-        $data = $this->dataProvider()['confirmed'][0];
-        $data['version'] = 99;
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid version 99, should be 1");
 
         CancelSponsor::fromData($data);
     }
