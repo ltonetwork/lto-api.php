@@ -9,6 +9,9 @@ namespace LTO;
  */
 abstract class Transaction implements \JsonSerializable
 {
+    /** Must be overwritten in child class */
+    public const TYPE = 0;
+
     protected const TYPES = [
         4 => Transaction\Transfer::class,
         8 => Transaction\Lease::class,
@@ -25,6 +28,9 @@ abstract class Transaction implements \JsonSerializable
 
     /** @var string */
     public $id;
+
+    /** @var int */
+    public $version;
 
     /** @var string|null */
     public $sender = null;
@@ -113,7 +119,7 @@ abstract class Transaction implements \JsonSerializable
      */
     public function jsonSerialize(): array
     {
-        $data = ['type' => 0, 'version' => 0] + get_public_properties($this);
+        $data = ['type' => static::TYPE] + get_public_properties($this);
 
         if ($data['id'] === null) {
             unset($data['id']);
@@ -141,18 +147,14 @@ abstract class Transaction implements \JsonSerializable
     }
 
     /**
-     * Assert that the tx type and version of the data matches the expected values.
+     * Assert that the tx type of the data matches the expected values.
      *
      * @throws \InvalidArgumentException
      */
-    protected static function assertTypeAndVersion(array $data, int $type, int $version): void
+    protected static function assertType(array $data, int $type): void
     {
         if (isset($data['type']) && (int)$data['type'] !== $type) {
             throw new \InvalidArgumentException("Invalid type {$data['type']}, should be {$type}");
-        }
-
-        if (isset($data['version']) && (int)$data['version'] !== $version) {
-            throw new \InvalidArgumentException("Invalid version {$data['version']}, should be {$version}");
         }
     }
 
@@ -178,6 +180,7 @@ abstract class Transaction implements \JsonSerializable
             throw new \InvalidArgumentException("Unsupported transaction type {$data['type']}");
         }
 
+        /** @noinspection PhpUndefinedMethodInspection */
         return $class::fromData($data);
     }
 

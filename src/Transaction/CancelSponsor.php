@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace LTO\Transaction;
 
 use LTO\Transaction;
-use function LTO\decode;
 use function LTO\is_valid_address;
 
 /**
@@ -20,7 +19,7 @@ class CancelSponsor extends Transaction
     public const TYPE = 19;
 
     /** Transaction version */
-    public const VERSION  = 1;
+    public const DEFAULT_VERSION  = 1;
 
     /** @var string */
     public $recipient;
@@ -37,8 +36,10 @@ class CancelSponsor extends Transaction
             throw new \InvalidArgumentException("Invalid recipient address; is it base58 encoded?");
         }
 
-        $this->recipient = $recipient;
+        $this->version = self::DEFAULT_VERSION;
         $this->fee = self::MINIMUM_FEE;
+
+        $this->recipient = $recipient;
     }
 
     /**
@@ -46,24 +47,15 @@ class CancelSponsor extends Transaction
      */
     public function toBinary(): string
     {
-        if ($this->senderPublicKey === null) {
-            throw new \BadMethodCallException("Sender public key not set");
+        switch ($this->version) {
+            case 1:
+                $pack = new Pack\CancelSponsorV1();
+                break;
+            default:
+                throw new \UnexpectedValueException("Unsupported cancel sponsor tx version {$this->version}");
         }
 
-        if ($this->timestamp === null) {
-            throw new \BadMethodCallException("Timestamp not set");
-        }
-
-        return pack(
-            'CCaa32a26JJ',
-            static::TYPE,
-            static::VERSION,
-            $this->getNetwork(),
-            decode($this->senderPublicKey, 'base58'),
-            decode($this->recipient, 'base58'),
-            $this->timestamp,
-            $this->fee
-        );
+        return $pack($this);
     }
 
     /**
@@ -71,9 +63,7 @@ class CancelSponsor extends Transaction
      */
     public function jsonSerialize(): array
     {
-        return
-            ['type' => static::TYPE, 'version' => static::VERSION] +
-            parent::jsonSerialize();
+        return ['type' => static::TYPE] + parent::jsonSerialize();
     }
 
     /**
@@ -82,7 +72,7 @@ class CancelSponsor extends Transaction
     public static function fromData(array $data)
     {
         static::assertNoMissingKeys($data);
-        static::assertTypeAndVersion($data, static::TYPE, static::VERSION);
+        static::assertType($data, static::TYPE);
 
         return static::createFromData($data);
     }

@@ -7,7 +7,6 @@ namespace LTO\Transaction;
 use LTO\Transaction;
 use function LTO\decode;
 use function LTO\encode;
-use function LTO\is_valid_address;
 
 /**
  * LTO Anchor transaction.
@@ -24,7 +23,7 @@ class Anchor extends Transaction
     public const TYPE = 15;
 
     /** Transaction version */
-    public const VERSION  = 1;
+    public const DEFAULT_VERSION  = 1;
 
     /** @var string[] */
     public $anchors = [];
@@ -38,6 +37,7 @@ class Anchor extends Transaction
      */
     public function __construct(?string $hash = null, string $encoding = 'hex')
     {
+        $this->version = static::DEFAULT_VERSION;
         $this->fee = self::MINIMUM_FEE;
 
         if ($hash !== null) {
@@ -50,44 +50,15 @@ class Anchor extends Transaction
      */
     public function toBinary(): string
     {
-        if ($this->senderPublicKey === null) {
-            throw new \BadMethodCallException("Sender public key not set");
+        switch ($this->version) {
+            case 1:
+                $pack = new Pack\AnchorV1();
+                break;
+            default:
+                throw new \UnexpectedValueException("Unsupported anchor tx version {$this->version}");
         }
 
-        if ($this->timestamp === null) {
-            throw new \BadMethodCallException("Timestamp not set");
-        }
-
-        $packed = pack(
-            'CCa32n',
-            static::TYPE,
-            static::VERSION,
-            decode($this->senderPublicKey, 'base58'),
-            count($this->anchors)
-        );
-
-        foreach ($this->anchors as $anchor) {
-            $rawHash = decode($anchor, 'base58');
-            $packed .= pack('na*', strlen($rawHash), $rawHash);
-        }
-
-        $packed .= pack(
-            'JJ',
-            $this->timestamp,
-            $this->fee
-        );
-
-        return $packed;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function jsonSerialize(): array
-    {
-        return
-            ['type' => static::TYPE, 'version' => static::VERSION] +
-            parent::jsonSerialize();
+        return $pack($this);
     }
 
     /**
@@ -96,7 +67,7 @@ class Anchor extends Transaction
     public static function fromData(array $data)
     {
         static::assertNoMissingKeys($data);
-        static::assertTypeAndVersion($data, static::TYPE, static::VERSION);
+        static::assertType($data, static::TYPE);
 
         return static::createFromData($data);
     }

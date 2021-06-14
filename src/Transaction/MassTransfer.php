@@ -24,7 +24,7 @@ class MassTransfer extends Transaction
     public const TYPE = 11;
 
     /** Transaction version */
-    public const VERSION  = 1;
+    public const DEFAULT_VERSION  = 1;
 
     /**
      * @var array<array{amount:int,recipient:string}>
@@ -40,6 +40,7 @@ class MassTransfer extends Transaction
      */
     public function __construct()
     {
+        $this->version = self::DEFAULT_VERSION;
         $this->fee = self::BASE_FEE;
     }
 
@@ -48,41 +49,16 @@ class MassTransfer extends Transaction
      */
     public function toBinary(): string
     {
-        if ($this->senderPublicKey === null) {
-            throw new \BadMethodCallException("Sender public key not set");
+        switch ($this->version) {
+            case 1:
+                $pack = new Pack\MassTransferV1();
+                break;
+            default:
+                throw new \UnexpectedValueException("Unsupported mass transfer tx version {$this->version}");
         }
 
-        if ($this->timestamp === null) {
-            throw new \BadMethodCallException("Timestamp not set");
-        }
+        return $pack($this);
 
-        $binaryAttachment = decode($this->attachment, 'base58');
-
-        $packed = pack(
-            'CCa32n',
-            static::TYPE,
-            static::VERSION,
-            decode($this->senderPublicKey, 'base58'),
-            count($this->transfers)
-        );
-
-        foreach ($this->transfers as $transfer) {
-            $packed .= pack(
-                'a26J',
-                decode($transfer['recipient'], 'base58'),
-                $transfer['amount']
-            );
-        }
-
-        $packed .= pack(
-            'JJna*',
-            $this->timestamp,
-            $this->fee,
-            strlen($binaryAttachment),
-            $binaryAttachment
-        );
-
-        return $packed;
     }
 
     /**
@@ -90,9 +66,7 @@ class MassTransfer extends Transaction
      */
     public function jsonSerialize(): array
     {
-        return
-            ['type' => static::TYPE, 'version' => static::VERSION] +
-            parent::jsonSerialize();
+        return ['type' => static::TYPE] + parent::jsonSerialize();
     }
 
     /**
@@ -101,7 +75,7 @@ class MassTransfer extends Transaction
     public static function fromData(array $data)
     {
         static::assertNoMissingKeys($data);
-        static::assertTypeAndVersion($data, static::TYPE, static::VERSION);
+        static::assertType($data, static::TYPE);
 
         return static::createFromData($data);
     }

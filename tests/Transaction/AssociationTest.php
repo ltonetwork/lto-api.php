@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace LTO\Tests\Transaction;
 
-use A;
 use LTO\AccountFactory;
 use LTO\PublicNode;
 use LTO\Transaction;
@@ -16,6 +15,7 @@ use function LTO\encode;
 /**
  * @covers \LTO\Transaction
  * @covers \LTO\Transaction\Association
+ * @covers \LTO\Transaction\Pack\AssociationV1
  */
 class AssociationTest extends TestCase
 {
@@ -103,6 +103,17 @@ class AssociationTest extends TestCase
 
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage("Timestamp not set");
+
+        $transaction->toBinary();
+    }
+
+    public function testToBinaryWithUnsupportedVersion()
+    {
+        $transaction = new Association('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 42);
+        $transaction->version = 99;
+
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionMessage("Unsupported association tx version 99");
 
         $transaction->toBinary();
     }
@@ -201,9 +212,9 @@ class AssociationTest extends TestCase
     public function testFromDataWithMissingKeys()
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid data, missing keys: party, associationType, sender, senderPublicKey, timestamp, fee, proofs");
+        $this->expectExceptionMessage("Invalid data, missing keys: party, associationType, version, sender, senderPublicKey, timestamp, fee, proofs");
 
-        Transaction::fromData(['type' => 16]);
+        Transaction::fromData(['type' => Association::TYPE]);
     }
 
     public function testFromDataWithIncorrectType()
@@ -213,17 +224,6 @@ class AssociationTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Invalid type 99, should be 16");
-
-        Association::fromData($data);
-    }
-
-    public function testFromDataWithIncorrectVersion()
-    {
-        $data = $this->dataProvider()['confirmed'][0];
-        $data['version'] = 99;
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid version 99, should be 1");
 
         Association::fromData($data);
     }

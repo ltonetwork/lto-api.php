@@ -14,6 +14,7 @@ use function LTO\decode;
 /**
  * @covers \LTO\Transaction
  * @covers \LTO\Transaction\Sponsor
+ * @covers \LTO\Transaction\Pack\SponsorV1
  */
 class SponsorTest extends TestCase
 {
@@ -74,6 +75,17 @@ class SponsorTest extends TestCase
 
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage("Timestamp not set");
+
+        $transaction->toBinary();
+    }
+
+    public function testToBinaryWithUnsupportedVersion()
+    {
+        $transaction = new Sponsor('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
+        $transaction->version = 99;
+
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionMessage("Unsupported sponsor tx version 99");
 
         $transaction->toBinary();
     }
@@ -155,9 +167,9 @@ class SponsorTest extends TestCase
     public function testFromDataWithMissingKeys()
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid data, missing keys: recipient, sender, senderPublicKey, timestamp, fee, proofs");
+        $this->expectExceptionMessage("Invalid data, missing keys: recipient, version, sender, senderPublicKey, timestamp, fee, proofs");
 
-        Transaction::fromData(['type' => 18]);
+        Transaction::fromData(['type' => Sponsor::TYPE]);
     }
 
     public function testFromDataWithIncorrectType()
@@ -167,17 +179,6 @@ class SponsorTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Invalid type 99, should be 18");
-
-        Sponsor::fromData($data);
-    }
-
-    public function testFromDataWithIncorrectVersion()
-    {
-        $data = $this->dataProvider()['confirmed'][0];
-        $data['version'] = 99;
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid version 99, should be 1");
 
         Sponsor::fromData($data);
     }

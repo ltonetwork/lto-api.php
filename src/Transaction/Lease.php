@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace LTO\Transaction;
 
 use LTO\Transaction;
-use function LTO\decode;
 use function LTO\is_valid_address;
 
 /**
@@ -20,7 +19,7 @@ class Lease extends Transaction
     public const TYPE = 8;
 
     /** Transaction version */
-    public const VERSION  = 2;
+    public const DEFAULT_VERSION  = 2;
 
     /** @var int */
     public $amount;
@@ -45,9 +44,11 @@ class Lease extends Transaction
             throw new \InvalidArgumentException("Invalid recipient address; is it base58 encoded?");
         }
 
+        $this->version = self::DEFAULT_VERSION;
+        $this->fee = self::MINIMUM_FEE;
+
         $this->amount = $amount;
         $this->recipient = $recipient;
-        $this->fee = self::MINIMUM_FEE;
     }
 
     /**
@@ -55,25 +56,15 @@ class Lease extends Transaction
      */
     public function toBinary(): string
     {
-        if ($this->senderPublicKey === null) {
-            throw new \BadMethodCallException("Sender public key not set");
+        switch ($this->version) {
+            case 2:
+                $pack = new Pack\LeaseV2();
+                break;
+            default:
+                throw new \UnexpectedValueException("Unsupported lease tx version {$this->version}");
         }
 
-        if ($this->timestamp === null) {
-            throw new \BadMethodCallException("Timestamp not set");
-        }
-
-        return pack(
-            'CCCa32a26JJJ',
-            static::TYPE,
-            static::VERSION,
-            0,
-            decode($this->senderPublicKey, 'base58'),
-            decode($this->recipient, 'base58'),
-            $this->amount,
-            $this->fee,
-            $this->timestamp
-        );
+        return $pack($this);
     }
 
     /**
@@ -81,9 +72,7 @@ class Lease extends Transaction
      */
     public function jsonSerialize(): array
     {
-        return
-            ['type' => static::TYPE, 'version' => static::VERSION] +
-            parent::jsonSerialize();
+        return ['type' => static::TYPE] + parent::jsonSerialize();
     }
 
     /**
@@ -92,7 +81,7 @@ class Lease extends Transaction
     public static function fromData(array $data)
     {
         static::assertNoMissingKeys($data);
-        static::assertTypeAndVersion($data, static::TYPE, static::VERSION);
+        static::assertType($data, static::TYPE);
 
         return static::createFromData($data);
     }

@@ -21,7 +21,7 @@ class Transfer extends Transaction
     public const TYPE = 4;
 
     /** Transaction version */
-    public const VERSION  = 2;
+    public const DEFAULT_VERSION = 2;
 
     /** @var int */
     public $amount;
@@ -49,9 +49,11 @@ class Transfer extends Transaction
             throw new \InvalidArgumentException("Invalid recipient address; is it base58 encoded?");
         }
 
+        $this->version = self::DEFAULT_VERSION;
+        $this->fee = self::MINIMUM_FEE;
+
         $this->amount = $amount;
         $this->recipient = $recipient;
-        $this->fee = self::MINIMUM_FEE;
     }
 
     /**
@@ -59,28 +61,15 @@ class Transfer extends Transaction
      */
     public function toBinary(): string
     {
-        if ($this->senderPublicKey === null) {
-            throw new \BadMethodCallException("Sender public key not set");
+        switch ($this->version) {
+            case 2:
+                $pack = new Pack\TransferV2();
+                break;
+            default:
+                throw new \UnexpectedValueException("Unsupported transfer tx version {$this->version}");
         }
 
-        if ($this->timestamp === null) {
-            throw new \BadMethodCallException("Timestamp not set");
-        }
-
-        $binaryAttachment = decode($this->attachment, 'base58');
-
-        return pack(
-            'CCa32JJJa26na*',
-            static::TYPE,
-            static::VERSION,
-            decode($this->senderPublicKey, 'base58'),
-            $this->timestamp,
-            $this->amount,
-            $this->fee,
-            decode($this->recipient, 'base58'),
-            strlen($binaryAttachment),
-            $binaryAttachment
-        );
+        return $pack($this);
     }
 
     /**
@@ -88,9 +77,7 @@ class Transfer extends Transaction
      */
     public function jsonSerialize(): array
     {
-        return
-            ['type' => static::TYPE, 'version' => static::VERSION] +
-            parent::jsonSerialize();
+        return ['type' => static::TYPE] + parent::jsonSerialize();
     }
 
     /**
@@ -99,7 +86,7 @@ class Transfer extends Transaction
     public static function fromData(array $data)
     {
         static::assertNoMissingKeys($data);
-        static::assertTypeAndVersion($data, static::TYPE, static::VERSION);
+        static::assertType($data, static::TYPE);
 
         return static::createFromData($data);
     }

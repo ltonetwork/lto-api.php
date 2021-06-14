@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace LTO\Transaction;
 
-use function LTO\decode;
-
 /**
  * Transaction to create a smart account by setting a script.
  *
@@ -21,7 +19,7 @@ class SetScript extends \LTO\Transaction
     public const TYPE = 13;
 
     /** Transaction version */
-    public const VERSION = 1;
+    public const DEFAULT_VERSION = 1;
 
     /**
      * Base64 encoded script
@@ -36,6 +34,7 @@ class SetScript extends \LTO\Transaction
      */
     public function __construct(?string $compiledScript)
     {
+        $this->version = self::DEFAULT_VERSION;
         $this->fee = self::MINIMUM_FEE;
 
         $this->script = $compiledScript !== null
@@ -48,29 +47,15 @@ class SetScript extends \LTO\Transaction
      */
     public function toBinary(): string
     {
-        if ($this->senderPublicKey === null) {
-            throw new \BadMethodCallException("Sender public key not set");
+        switch ($this->version) {
+            case 1:
+                $pack = new Pack\SetScriptV1();
+                break;
+            default:
+                throw new \UnexpectedValueException("Unsupported set script tx version {$this->version}");
         }
 
-        if ($this->timestamp === null) {
-            throw new \BadMethodCallException("Timestamp not set");
-        }
-
-        $binaryScript = $this->script !== null
-            ? decode(preg_replace('/^base64:/', '', $this->script), 'base64')
-            : '';
-
-        return pack(
-            'CCaa26na*JJ',
-            static::TYPE,
-            static::VERSION,
-            $this->getNetwork(),
-            decode($this->senderPublicKey, 'base58'),
-            strlen($binaryScript),
-            $binaryScript,
-            $this->fee,
-            $this->timestamp
-        );
+        return $pack($this);
     }
 
     /**
@@ -78,9 +63,7 @@ class SetScript extends \LTO\Transaction
      */
     public function jsonSerialize(): array
     {
-        return
-            ['type' => static::TYPE, 'version' => static::VERSION] +
-            parent::jsonSerialize();
+        return ['type' => static::TYPE] + parent::jsonSerialize();
     }
 
     /**
@@ -89,7 +72,7 @@ class SetScript extends \LTO\Transaction
     public static function fromData(array $data)
     {
         static::assertNoMissingKeys($data, ['id', 'height', 'script']);
-        static::assertTypeAndVersion($data, static::TYPE, static::VERSION);
+        static::assertType($data, static::TYPE);
 
         return static::createFromData($data);
     }
