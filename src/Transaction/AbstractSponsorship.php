@@ -8,15 +8,12 @@ use LTO\Transaction;
 use function LTO\is_valid_address;
 
 /**
- * LTO transaction to stop sponsoring an account.
+ * LTO transaction to sponsor an account.
  */
-class CancelSponsor extends Transaction
+abstract class AbstractSponsorship extends Transaction
 {
     /** Minimum transaction fee */
-    public const MINIMUM_FEE = 500000000;
-
-    /** Transaction type */
-    public const TYPE = 19;
+    public const MINIMUM_FEE = 0;
 
     /** Transaction version */
     public const DEFAULT_VERSION  = 1;
@@ -49,10 +46,10 @@ class CancelSponsor extends Transaction
     {
         switch ($this->version) {
             case 1:
-                $pack = new Pack\CancelSponsorV1();
+                $pack = new Pack\SponsorshipV1();
                 break;
             default:
-                throw new \UnexpectedValueException("Unsupported cancel sponsor tx version {$this->version}");
+                throw new \UnexpectedValueException("Unsupported sponsor tx version {$this->version}");
         }
 
         return $pack($this);

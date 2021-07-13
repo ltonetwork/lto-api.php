@@ -23,9 +23,6 @@ class CancelLease extends Transaction
     /** @var string */
     public $leaseId;
 
-    /** @var Lease|null */
-    public $lease;
-
     /**
      * Class constructor.
      *
@@ -53,22 +50,6 @@ class CancelLease extends Transaction
         }
 
         return $pack($this);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function jsonSerialize(): array
-    {
-        $data = ['chainId' => ord($this->getNetwork())] + parent::jsonSerialize();
-
-        if ($this->lease !== null) {
-            $data['lease'] = $this->lease->jsonSerialize();
-        } else {
-            unset($data['lease']);
-        }
-
-        return $data;
     }
 
     /**

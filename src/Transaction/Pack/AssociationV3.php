@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace LTO\Transaction\Pack;
 
-use LTO\Transaction;
+use LTO\Transaction\AbstractAssociation;
 use LTO\Transaction\Association;
 use LTO\Transaction\RevokeAssociation;
 use function LTO\decode;
 
 /**
- * Callable to get binary for an association or revoke association transaction v1.
+ * Callable to get binary for an association or revoke association transaction v3.
  */
-class AssociationV1
+class AssociationV3
 {
     /**
      * Get binary (to sign) for transaction.
@@ -20,12 +20,8 @@ class AssociationV1
      * @var Association|RevokeAssociation $tx
      * @return string
      */
-    public function __invoke(Transaction $tx): string
+    public function __invoke(AbstractAssociation $tx): string
     {
-        if (!$tx instanceof Association && !$tx instanceof RevokeAssociation) {
-            throw new \InvalidArgumentException("Expected an Association or RevokeAssociation transaction"); // @codeCoverageIgnore
-        }
-
         if ($tx->senderPublicKey === null) {
             throw new \BadMethodCallException("Sender public key not set");
         }
@@ -34,32 +30,28 @@ class AssociationV1
             throw new \BadMethodCallException("Timestamp not set");
         }
 
+        $rawHash = decode($tx->hash, 'base58');
+
         $packed = pack(
-            'CCaa32a26N',
+            'CCaJa32Ja26N',
             $tx::TYPE,
             $tx->version,
             $tx->getNetwork(),
+            $tx->timestamp,
             decode($tx->senderPublicKey, 'base58'),
+            $tx->fee,
             decode($tx->recipient, 'base58'),
             $tx->associationType
         );
 
-        if ($tx->hash !== '') {
-            $rawHash = decode($tx->hash, 'base58');
-            $packed .= pack(
-                'Cna*',
-                1,
-                strlen($rawHash),
-                $rawHash
-            );
-        } else {
-            $packed .= pack('C', 0);
+        if ($tx instanceof Association) {
+            $packed .= pack('J', $tx->expire ?? 0);
         }
 
         $packed .= pack(
-            'JJ',
-            $tx->timestamp,
-            $tx->fee
+            'na*',
+            strlen($rawHash),
+            $rawHash
         );
 
         return $packed;

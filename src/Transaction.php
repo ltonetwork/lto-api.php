@@ -23,8 +23,8 @@ abstract class Transaction implements \JsonSerializable
         15 => Transaction\Anchor::class,
         16 => Transaction\Association::class,
         17 => Transaction\RevokeAssociation::class,
-        18 => Transaction\Sponsor::class,
-        19 => Transaction\CancelSponsor::class,
+        18 => Transaction\Sponsorship::class,
+        19 => Transaction\CancelSponsorship::class,
     ];
 
 
@@ -65,7 +65,7 @@ abstract class Transaction implements \JsonSerializable
      */
     public function getId(): string
     {
-        return $this->id ?? blake2b($this->toBinary());
+        return $this->id ?? base58_encode(blake2b($this->toBinary()));
     }
 
     /**

@@ -4,94 +4,33 @@ declare(strict_types=1);
 
 namespace LTO\Transaction;
 
-use LTO\Transaction;
-use function LTO\decode;
-use function LTO\encode;
-use function LTO\is_valid_address;
-
 /**
  * LTO transaction to invoke an association.
  */
-class Association extends Transaction
+class Association extends AbstractAssociation
 {
-    /** Minimum transaction fee */
-    public const MINIMUM_FEE = 100000000;
-
     /** Transaction type */
     public const TYPE = 16;
 
-    /** Transaction version */
-    public const DEFAULT_VERSION  = 1;
-
-    /** @var string */
-    public $party;
-
-    /** @var int */
-    public $associationType;
-
-    /** @var string */
-    public $hash;
-
+    /** @var int|null epoch in milliseconds */
+    public $expire = null;
 
     /**
-     * Class constructor.
+     * Set expiry date.
      *
-     * @param string $party     Recipient address (base58 encoded)
-     * @param int    $type      Association type
-     * @param string $hash      Association hash
-     * @param string $encoding  'raw', 'hex', 'base58', or 'base64'
+     * @param int|\DateTimeInterface|null $time  epoch in milliseconds
+     * @return $this
      */
-    public function __construct(string $party, int $type, string $hash = '', string $encoding = 'hex')
+    public function expires($time): self
     {
-        if (!is_valid_address($party, 'base58')) {
-            throw new \InvalidArgumentException("Invalid party address; is it base58 encoded?");
+        if (!is_int($time) && $time !== null && !($time instanceof \DateTimeInterface)) {
+            throw new \InvalidArgumentException("Time should be an int, DateTime, or null");
         }
 
-        $this->version = self::DEFAULT_VERSION;
-        $this->fee = self::MINIMUM_FEE;
+        $this->expire = $time instanceof \DateTimeInterface
+            ? $time->getTimestamp() * 1000
+            : $time;
 
-        $this->party = $party;
-        $this->associationType = $type;
-        $this->hash = encode(decode($hash, $encoding), 'base58');
-    }
-
-    /**
-     * Prepare signing the transaction.
-     */
-    public function toBinary(): string
-    {
-        switch ($this->version) {
-            case 1:
-                $pack = new Pack\AssociationV1();
-                break;
-            default:
-                throw new \UnexpectedValueException("Unsupported association tx version {$this->version}");
-        }
-
-        return $pack($this);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public static function fromData(array $data)
-    {
-        static::assertNoMissingKeys($data, ['id', 'height', 'hash']);
-        static::assertType($data, static::TYPE);
-
-        return static::createFromData($data);
-    }
-
-    /**
-     * Get the anchor hash.
-     *
-     * @param string $encoding 'raw', 'hex', 'base58', or 'base64'
-     * @return string
-     */
-    public function getHash(string $encoding = 'hex'): string
-    {
-        return $encoding === 'base58'
-            ? $this->hash
-            : encode(decode($this->hash, 'base58'), $encoding);
+        return $this;
     }
 }

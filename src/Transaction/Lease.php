@@ -52,6 +52,16 @@ class Lease extends Transaction
     }
 
     /**
+     * Create a cancel lease tx for this lease.
+     *
+     * @return CancelLease
+     */
+    public function cancel(): CancelLease
+    {
+        return new CancelLease($this->getId());
+    }
+
+    /**
      * Prepare signing the transaction.
      */
     public function toBinary(): string
