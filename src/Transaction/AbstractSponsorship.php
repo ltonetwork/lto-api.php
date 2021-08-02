@@ -33,8 +33,8 @@ abstract class AbstractSponsorship extends Transaction
             throw new \InvalidArgumentException("Invalid recipient address; is it base58 encoded?");
         }
 
-        $this->version = self::DEFAULT_VERSION;
-        $this->fee = self::MINIMUM_FEE;
+        $this->version = static::DEFAULT_VERSION;
+        $this->fee = static::MINIMUM_FEE;
 
         $this->recipient = $recipient;
     }
