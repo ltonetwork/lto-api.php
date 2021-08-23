@@ -18,10 +18,13 @@ class CancelLease extends Transaction
     public const TYPE = 9;
 
     /** Transaction version */
-    public const DEFAULT_VERSION  = 2;
+    public const DEFAULT_VERSION = 2;
 
     /** @var string */
     public $leaseId;
+
+    /** @var Lease */
+    public $lease;
 
     /**
      * Class constructor.
@@ -50,6 +53,22 @@ class CancelLease extends Transaction
         }
 
         return $pack($this);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function jsonSerialize(): array
+    {
+        $data = ['chainId' => ord($this->getNetwork())] + parent::jsonSerialize();
+
+        if ($this->lease !== null) {
+            $data['lease'] = $this->lease->jsonSerialize();
+        } else {
+            unset($data['lease']);
+        }
+
+        return $data;
     }
 
     /**

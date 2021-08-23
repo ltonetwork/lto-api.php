@@ -34,7 +34,7 @@ class AssociationTest extends TestCase
         $transaction = new Association('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 42);
 
         $this->assertEquals(100000000, $transaction->fee);
-        $this->assertEquals('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', $transaction->party);
+        $this->assertEquals('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', $transaction->recipient);
         $this->assertEquals(42, $transaction->associationType);
     }
 
@@ -56,7 +56,7 @@ class AssociationTest extends TestCase
         $transaction = new Association('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 42, $hash, $encoding);
 
         $this->assertEquals(100000000, $transaction->fee);
-        $this->assertEquals('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', $transaction->party);
+        $this->assertEquals('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', $transaction->recipient);
         $this->assertEquals(42, $transaction->associationType);
         $this->assertEquals(
             base58_encode(hash('sha256', 'foo', true)),
@@ -76,12 +76,12 @@ class AssociationTest extends TestCase
     /**
      * @dataProvider invalidPartyProvider
      */
-    public function testConstructInvalidparty($party)
+    public function testConstructInvalidrecipient($recipient)
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid party address; is it base58 encoded?");
+        $this->expectExceptionMessage("Invalid recipient address; is it base58 encoded?");
 
-        new Association($party, 42);
+        new Association($recipient, 42);
     }
 
 
@@ -121,21 +121,15 @@ class AssociationTest extends TestCase
     public function hashProvider()
     {
         return [
-            'with hash' => [
-                hash('sha256', 'foo'),
-                '28ArodvaBL1aWrmV64cenKGR1qwMGviiEtUhWgHEvXVX6CLDsy2go94pouHMUGYdB1axLgDbZ5K7tFuAVXhHP85t',
-            ],
-            'without hash' => [
-                '',
-                'QuNJEeTscz8Lcs7V4hcJTwGSYEiSww1sViNKSLekGe4cZGvsoyHbXVW1J9pGheHTsgUvJThGLGRy5kntoQnj5D5',
-            ],
+            'with hash' => [hash('sha256', 'foo')],
+            'without hash' => [''],
         ];
     }
 
     /**
      * @dataProvider hashProvider
      */
-    public function testSign(string $hash, string $signature)
+    public function testSign(string $hash)
     {
         $transaction = new Association('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 42, $hash);
         $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
@@ -151,7 +145,6 @@ class AssociationTest extends TestCase
 
         $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
         $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
-        $this->assertEquals($signature, $transaction->proofs[0]);
 
         // Unchanged
         $this->assertEquals((new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp(), $transaction->timestamp);
@@ -164,8 +157,9 @@ class AssociationTest extends TestCase
         $data = [
             "type" => 16,
             "version" => 1,
-            "party" => "3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh",
+            "recipient" => "3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh",
             "associationType" => 42,
+            "expire" => null,
             "hash" => "3yMApqCuCjXDWPrbjfR5mjCPTHqFG8Pux1TxQrEM35jj",
             "sender" => "3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM",
             "senderPublicKey" => "7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7",
@@ -201,7 +195,7 @@ class AssociationTest extends TestCase
         $this->assertEquals('7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7', $transaction->senderPublicKey);
         $this->assertEquals(100000000, $transaction->fee);
         $this->assertEquals(1610154732000, $transaction->timestamp);
-        $this->assertEquals('3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh', $transaction->party);
+        $this->assertEquals('3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh', $transaction->recipient);
         $this->assertEquals(
             ['4NrsjbkkWyH4K57jf9MQ5Ya9ccvXtCg2BQV2LsHMMacZZojbcRgesB1MruVQtCaZdvFSswwju5zCxisG3ZaQ2LKF'],
             $transaction->proofs
@@ -212,7 +206,7 @@ class AssociationTest extends TestCase
     public function testFromDataWithMissingKeys()
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid data, missing keys: party, associationType, version, sender, senderPublicKey, timestamp, fee, proofs");
+        $this->expectExceptionMessage("Invalid data, missing keys: recipient, associationType, version, sender, senderPublicKey, timestamp, fee, proofs");
 
         Transaction::fromData(['type' => Association::TYPE]);
     }
@@ -242,7 +236,7 @@ class AssociationTest extends TestCase
         $transaction->senderPublicKey = '7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7';
         $transaction->fee = 100000000;
         $transaction->timestamp = 1610154732000;
-        $transaction->party = '3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh';
+        $transaction->recipient = '3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh';
         $transaction->associationType = 42;
         $transaction->hash = encode(hash('sha256', 'foo', true), 'base58');
         $transaction->proofs[] = '4NrsjbkkWyH4K57jf9MQ5Ya9ccvXtCg2BQV2LsHMMacZZojbcRgesB1MruVQtCaZdvFSswwju5zCxisG3ZaQ2LKF';

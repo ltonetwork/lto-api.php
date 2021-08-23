@@ -62,7 +62,8 @@ abstract class AbstractAssociation extends Transaction
                 $pack = new Pack\AssociationV1();
                 break;
             default:
-                throw new \UnexpectedValueException("Unsupported association tx version {$this->version}");
+                $txType = $this instanceof RevokeAssociation ? "revoke association" : "association";
+                throw new \UnexpectedValueException("Unsupported $txType tx version $this->version");
         }
 
         return $pack($this);
@@ -73,7 +74,7 @@ abstract class AbstractAssociation extends Transaction
      */
     public static function fromData(array $data)
     {
-        static::assertNoMissingKeys($data, ['id', 'height', 'hash']);
+        static::assertNoMissingKeys($data, ['id', 'height', 'expire', 'hash']);
         static::assertType($data, static::TYPE);
 
         return static::createFromData($data);

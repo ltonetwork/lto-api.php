@@ -58,7 +58,10 @@ class Lease extends Transaction
      */
     public function cancel(): CancelLease
     {
-        return new CancelLease($this->getId());
+        $tx = new CancelLease($this->getId());
+        $tx->lease = $this;
+
+        return $tx;
     }
 
     /**

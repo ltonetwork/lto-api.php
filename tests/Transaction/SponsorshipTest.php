@@ -7,16 +7,16 @@ namespace LTO\Tests\Transaction;
 use LTO\AccountFactory;
 use LTO\PublicNode;
 use LTO\Transaction;
-use LTO\Transaction\CancelSponsorship;
+use LTO\Transaction\Sponsorship;
 use PHPUnit\Framework\TestCase;
 use function LTO\decode;
 
 /**
  * @covers \LTO\Transaction
- * @covers \LTO\Transaction\CancelSponsorship
- * @covers \LTO\Transaction\Pack\CancelSponsorV1
+ * @covers \LTO\Transaction\Sponsorship
+ * @covers \LTO\Transaction\Pack\SponsorshipV1
  */
-class CancelSponsorTest extends TestCase
+class SponsorshipTest extends TestCase
 {
     protected const ACCOUNT_SEED = "df3dd6d884714288a39af0bd973a1771c9f00f168cf040d6abb6a50dd5e055d8";
 
@@ -30,7 +30,7 @@ class CancelSponsorTest extends TestCase
 
     public function testConstruct()
     {
-        $transaction = new CancelSponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
+        $transaction = new Sponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
 
         $this->assertEquals(500000000, $transaction->fee);
         $this->assertEquals('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', $transaction->recipient);
@@ -53,13 +53,13 @@ class CancelSponsorTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Invalid recipient address; is it base58 encoded?");
 
-        new CancelSponsorship($recipient);
+        new Sponsorship($recipient);
     }
 
 
     public function testToBinaryNoSender()
     {
-        $transaction = new CancelSponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
+        $transaction = new Sponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
         $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
 
         $this->expectException(\BadMethodCallException::class);
@@ -70,7 +70,7 @@ class CancelSponsorTest extends TestCase
 
     public function testToBinaryNoTimestamp()
     {
-        $transaction = new CancelSponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
+        $transaction = new Sponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
         $transaction->senderPublicKey = '4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz';
 
         $this->expectException(\BadMethodCallException::class);
@@ -81,11 +81,11 @@ class CancelSponsorTest extends TestCase
 
     public function testToBinaryWithUnsupportedVersion()
     {
-        $transaction = new CancelSponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
+        $transaction = new Sponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
         $transaction->version = 99;
 
         $this->expectException(\UnexpectedValueException::class);
-        $this->expectExceptionMessage("Unsupported cancel sponsor tx version 99");
+        $this->expectExceptionMessage("Unsupported sponsorship tx version 99");
 
         $transaction->toBinary();
     }
@@ -93,7 +93,7 @@ class CancelSponsorTest extends TestCase
 
     public function testSign()
     {
-        $transaction = new CancelSponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
+        $transaction = new Sponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
         $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
 
         $this->assertFalse($transaction->isSigned());
@@ -106,7 +106,7 @@ class CancelSponsorTest extends TestCase
         $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
         $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
         $this->assertEquals(
-            '2AKUBja93hF8AC2ee21m9AtedomXZNQG5J3FZMU85avjKF9B8CL45RWyXkXEeYb13r1AhpSzRvcudye39xggtDHv',
+            '5VDwGh6jLb6JccuK7tYNjb5TzVZQRdJN1SJv7RtjroCmSWPWtpfiEUjEmkzKDYmc4j6iEygQwNBdRXXAwacF1t4h',
             $transaction->proofs[0]
         );
 
@@ -119,22 +119,22 @@ class CancelSponsorTest extends TestCase
     public function dataProvider()
     {
         $data = [
-            "type" => 19,
+            "type" => 18,
             "version" => 1,
             "recipient" => "3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh",
             "sender" => "3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM",
             "senderPublicKey" => "7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7",
-            "timestamp" => 1610152569000,
+            "timestamp" => 1610149399000,
             "fee" => 500000000,
             "proofs" => [
-                "ZJ77G5rBQb6uVKnpBVV6WPUe48yXsES8tjEi8BpwPPxjBvnhwY9jFVXyoqg5js1PDVyrXakUGqeT9d4otSrcjYy"
+                "4xhvehfKqRtm5LjEMBuPGMZYJ4mwRxYA4fYBGy1S7aZCT5z8Cx2q62z1rbJPv4sFJycLbFMwnV2jRuXDkiZe1kkh"
             ],
         ];
 
         return [
             'new' => [$data, null, null],
-            'unconfirmed' => [$data, 'AdWugi2xJjPzVezP28oJXenn6uGw7V7sWgJ9TiNEsFjj', null],
-            'confirmed' => [$data, 'AdWugi2xJjPzVezP28oJXenn6uGw7V7sWgJ9TiNEsFjj', 1221437],
+            'unconfirmed' => [$data, '4jxUkX9nrzCqgBtanTYmdwrEYYXzBkCSENT4sd4Q896W', null],
+            'confirmed' => [$data, '4jxUkX9nrzCqgBtanTYmdwrEYYXzBkCSENT4sd4Q896W', 1221378],
         ];
     }
 
@@ -146,19 +146,19 @@ class CancelSponsorTest extends TestCase
         if ($id !== null) $data += ['id' => $id];
         if ($height !== null) $data += ['height' => $height];
 
-        /** @var CancelSponsorship $transaction */
+        /** @var Sponsorship $transaction */
         $transaction = Transaction::fromData($data);
 
-        $this->assertInstanceOf(CancelSponsorship::class, $transaction);
+        $this->assertInstanceOf(Sponsorship::class, $transaction);
 
         $this->assertEquals($id, $transaction->id);
         $this->assertEquals('3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM', $transaction->sender);
         $this->assertEquals('7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7', $transaction->senderPublicKey);
         $this->assertEquals(500000000, $transaction->fee);
-        $this->assertEquals(1610152569000, $transaction->timestamp);
+        $this->assertEquals(1610149399000, $transaction->timestamp);
         $this->assertEquals('3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh', $transaction->recipient);
         $this->assertEquals(
-            ['ZJ77G5rBQb6uVKnpBVV6WPUe48yXsES8tjEi8BpwPPxjBvnhwY9jFVXyoqg5js1PDVyrXakUGqeT9d4otSrcjYy'],
+            ['4xhvehfKqRtm5LjEMBuPGMZYJ4mwRxYA4fYBGy1S7aZCT5z8Cx2q62z1rbJPv4sFJycLbFMwnV2jRuXDkiZe1kkh'],
             $transaction->proofs
         );
         $this->assertEquals($height, $transaction->height);
@@ -169,7 +169,7 @@ class CancelSponsorTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Invalid data, missing keys: recipient, version, sender, senderPublicKey, timestamp, fee, proofs");
 
-        Transaction::fromData(['type' => CancelSponsorship::TYPE]);
+        Transaction::fromData(['type' => Sponsorship::TYPE]);
     }
 
     public function testFromDataWithIncorrectType()
@@ -178,9 +178,9 @@ class CancelSponsorTest extends TestCase
         $data['type'] = 99;
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid type 99, should be 19");
+        $this->expectExceptionMessage("Invalid type 99, should be 18");
 
-        CancelSponsorship::fromData($data);
+        Sponsorship::fromData($data);
     }
 
     /**
@@ -191,13 +191,13 @@ class CancelSponsorTest extends TestCase
         if ($id !== null) $data += ['id' => $id];
         if ($height !== null) $data += ['height' => $height];
 
-        $transaction = new CancelSponsorship('3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh');
+        $transaction = new Sponsorship('3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh');
         $transaction->id = $id;
         $transaction->sender = '3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM';
         $transaction->senderPublicKey = '7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7';
         $transaction->fee = 500000000;
-        $transaction->timestamp = 1610152569000;
-        $transaction->proofs[] = 'ZJ77G5rBQb6uVKnpBVV6WPUe48yXsES8tjEi8BpwPPxjBvnhwY9jFVXyoqg5js1PDVyrXakUGqeT9d4otSrcjYy';
+        $transaction->timestamp = 1610149399000;
+        $transaction->proofs[] = '4xhvehfKqRtm5LjEMBuPGMZYJ4mwRxYA4fYBGy1S7aZCT5z8Cx2q62z1rbJPv4sFJycLbFMwnV2jRuXDkiZe1kkh';
         $transaction->height = $height;
 
         $this->assertEquals($data, $transaction->jsonSerialize());
@@ -205,10 +205,10 @@ class CancelSponsorTest extends TestCase
 
     public function testBroadcast()
     {
-        $transaction = new CancelSponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
+        $transaction = new Sponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
 
         $broadcastedTransaction = clone $transaction;
-        $broadcastedTransaction->id = 'AdWugi2xJjPzVezP28oJXenn6uGw7V7sWgJ9TiNEsFjj';
+        $broadcastedTransaction->id = '4jxUkX9nrzCqgBtanTYmdwrEYYXzBkCSENT4sd4Q896W';
 
         $node = $this->createMock(PublicNode::class);
         $node->expects($this->once())->method('broadcast')

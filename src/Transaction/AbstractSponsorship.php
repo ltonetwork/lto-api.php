@@ -49,7 +49,8 @@ abstract class AbstractSponsorship extends Transaction
                 $pack = new Pack\SponsorshipV1();
                 break;
             default:
-                throw new \UnexpectedValueException("Unsupported sponsor tx version {$this->version}");
+                $txType = $this instanceof CancelSponsorship ? "cancel sponsorship" : "sponsorship";
+                throw new \UnexpectedValueException("Unsupported $txType tx version $this->version");
         }
 
         return $pack($this);

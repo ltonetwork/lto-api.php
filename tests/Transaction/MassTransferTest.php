@@ -167,10 +167,6 @@ class MassTransferTest extends TestCase
 
         $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
         $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
-        $this->assertEquals(
-            '1VxniM5JgKCDzjAkxFQ1vjxvgM1hdGiNNXrdqsign3UezwpQK9yycCDdbCt23WmCdt32WXdzGaZhAXv8YMQ7f7y',
-            $transaction->proofs[0]
-        );
 
         // Unchanged
         $this->assertEquals((new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp(), $transaction->timestamp);

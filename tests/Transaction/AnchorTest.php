@@ -106,10 +106,6 @@ class AnchorTest extends TestCase
 
         $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
         $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
-        $this->assertEquals(
-            '3HxFrkj3EdJFTjq2RRYFbKMhok5NhUzEiAEhvXprgJnFMdstGHzgqyHXLyChfhNU14zozbU3Mw4fQc5dBKTCeDPe',
-            $transaction->proofs[0]
-        );
 
         // Unchanged
         $this->assertEquals((new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp(), $transaction->timestamp);

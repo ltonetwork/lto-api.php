@@ -36,7 +36,6 @@ class CancelLeaseTest extends TestCase
         $this->assertEquals('B22YzYdNv7DCqMqdK2ckpt53gQuYq2v997N7g8agZoHo', $transaction->leaseId);
     }
 
-
     public function testToBinaryNoSender()
     {
         $transaction = new CancelLease('B22YzYdNv7DCqMqdK2ckpt53gQuYq2v997N7g8agZoHo');
@@ -85,10 +84,6 @@ class CancelLeaseTest extends TestCase
 
         $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
         $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
-        $this->assertEquals(
-            '4e58yViFqBADo35mNk6QBMyG67i9dpc5WaC8Mnx6tA1gxJwEQs4joeZEvH7SoXWwmyszTcTuJm9DAEJ8d2FkhUwN',
-            $transaction->proofs[0]
-        );
 
         // Unchanged
         $this->assertEquals((new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp(), $transaction->timestamp);

@@ -66,6 +66,21 @@ class LeaseTest extends TestCase
     }
 
 
+    public function testCancel()
+    {
+        $lease = new Lease('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
+        $lease->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
+        $lease->signWith($this->account);
+
+        $cancelLease = $lease->cancel();
+
+        $this->assertInstanceOf(Transaction\CancelLease::class, $cancelLease);
+        $this->assertEquals($lease->getId(), $cancelLease->leaseId);
+        $this->assertSame($lease, $cancelLease->lease);
+    }
+
+
+
     public function testToBinaryNoSender()
     {
         $transaction = new Lease('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
