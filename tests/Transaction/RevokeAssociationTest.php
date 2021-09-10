@@ -161,6 +161,7 @@ class RevokeAssociationTest extends TestCase
             "associationType" => 42,
             "hash" => "3yMApqCuCjXDWPrbjfR5mjCPTHqFG8Pux1TxQrEM35jj",
             "sender" => "3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM",
+            'senderKeyType' => 'ed25519',
             "senderPublicKey" => "7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7",
             "timestamp" => 1610154732000,
             "fee" => 100000000,

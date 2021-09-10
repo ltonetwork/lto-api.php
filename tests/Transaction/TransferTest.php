@@ -149,6 +149,7 @@ class TransferTest extends TestCase
             'type' => 4,
             'version' => 2,
             'sender' => '3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM',
+            'senderKeyType' => 'ed25519',
             'senderPublicKey' => '7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7',
             'fee' => 100000000,
             'timestamp' => 1609773456000,

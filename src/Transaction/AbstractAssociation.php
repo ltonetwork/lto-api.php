@@ -53,28 +53,11 @@ abstract class AbstractAssociation extends Transaction
     }
 
     /**
-     * Prepare signing the transaction.
-     */
-    public function toBinary(): string
-    {
-        switch ($this->version) {
-            case 1:
-                $pack = new Pack\AssociationV1();
-                break;
-            default:
-                $txType = $this instanceof RevokeAssociation ? "revoke association" : "association";
-                throw new \UnexpectedValueException("Unsupported $txType tx version $this->version");
-        }
-
-        return $pack($this);
-    }
-
-    /**
      * @inheritDoc
      */
     public static function fromData(array $data)
     {
-        static::assertNoMissingKeys($data, ['id', 'height', 'expire', 'hash']);
+        static::assertNoMissingKeys($data, ['expire', 'hash']);
         static::assertType($data, static::TYPE);
 
         return static::createFromData($data);

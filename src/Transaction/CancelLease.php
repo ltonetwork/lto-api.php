@@ -76,7 +76,7 @@ class CancelLease extends Transaction
      */
     public static function fromData(array $data)
     {
-        static::assertNoMissingKeys($data, ['id', 'height', 'lease']);
+        static::assertNoMissingKeys($data, ['lease']);
         static::assertType($data, static::TYPE);
 
         if (isset($data['lease'])) {

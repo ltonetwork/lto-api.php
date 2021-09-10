@@ -131,6 +131,7 @@ class SetScriptTest extends TestCase
             "version" => 1,
             "script" => "base64:" . self::COMPILE_SCRIPT,
             "sender" => "3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM",
+            'senderKeyType' => 'ed25519',
             "senderPublicKey" => "7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7",
             "timestamp" => 1610148915000,
             "fee" => 100000000,

@@ -8,7 +8,7 @@ use LTO\Transaction\SetScript;
 use function LTO\decode;
 
 /**
- * Callable to get binary for an set script transaction v1.
+ * Callable to get binary for a set script transaction v1.
  */
 class SetScriptV1
 {

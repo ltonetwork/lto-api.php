@@ -195,6 +195,7 @@ class MassTransferTest extends TestCase
             ],
             "attachment" => "9Ajdvzr",
             "sender" => "3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM",
+            'senderKeyType' => 'ed25519',
             "senderPublicKey" => "7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7",
             "timestamp" => 1610145916000,
             "fee" => 130000000,

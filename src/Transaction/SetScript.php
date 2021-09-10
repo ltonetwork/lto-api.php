@@ -71,7 +71,7 @@ class SetScript extends \LTO\Transaction
      */
     public static function fromData(array $data)
     {
-        static::assertNoMissingKeys($data, ['id', 'height', 'script']);
+        static::assertNoMissingKeys($data, ['script']);
         static::assertType($data, static::TYPE);
 
         return static::createFromData($data);

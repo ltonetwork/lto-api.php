@@ -146,6 +146,7 @@ class AnchorTest extends TestCase
             'type' => 15,
             'version' => 1,
             'sender' => '3Jq8mnhRquuXCiFUwTLZFVSzmQt3Fu6F7HQ',
+            'senderKeyType' => 'ed25519',
             'senderPublicKey' => 'AJVNfYjTvDD2GWKPejHbKPLxdvwXjAnhJzo6KCv17nne',
             'fee' => 35000000,
             'timestamp' => 1610142631066,

@@ -123,6 +123,7 @@ class SponsorshipTest extends TestCase
             "version" => 1,
             "recipient" => "3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh",
             "sender" => "3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM",
+            'senderKeyType' => 'ed25519',
             "senderPublicKey" => "7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7",
             "timestamp" => 1610149399000,
             "fee" => 500000000,

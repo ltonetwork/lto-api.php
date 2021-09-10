@@ -37,6 +37,9 @@ abstract class Transaction implements \JsonSerializable
     /** @var string|null */
     public $sender = null;
 
+    /** @var string */
+    public $senderKeyType = 'ed25519';
+
     /** @var string|null */
     public $senderPublicKey = null;
 
@@ -149,8 +152,10 @@ abstract class Transaction implements \JsonSerializable
      *
      * @throws \InvalidArgumentException
      */
-    protected static function assertNoMissingKeys(array $data, array $optionalKeys = ['id', 'height']): void
+    protected static function assertNoMissingKeys(array $data, array $optionalKeys = []): void
     {
+        $optionalKeys = array_merge($optionalKeys, ['id', 'senderKeyType', 'height']);
+
         $requiredKeys = array_diff(array_keys(get_class_vars(get_called_class())), $optionalKeys);
         $missingKeys = array_diff($requiredKeys, array_keys($data));
 

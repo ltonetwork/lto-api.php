@@ -12,7 +12,7 @@ use function LTO\decode;
 /**
  * Callable to get binary for an association or revoke association transaction v3.
  */
-class AssociationV3
+class RevokeAssociationV3
 {
     /**
      * Get binary (to sign) for transaction.
@@ -33,7 +33,7 @@ class AssociationV3
         $rawHash = decode($tx->hash, 'base58');
 
         return pack(
-            'CCaJCa32Ja26NJna*',
+            'CCaJCa32Ja26Nna*',
             $tx::TYPE,
             $tx->version,
             $tx->getNetwork(),
@@ -43,7 +43,6 @@ class AssociationV3
             $tx->fee,
             decode($tx->recipient, 'base58'),
             $tx->associationType,
-            $tx->expire ?? 0,
             strlen($rawHash),
             $rawHash
         );
