@@ -136,7 +136,19 @@ class Account
     {
         return $transaction->signWith($this);
     }
-    
+
+    /**
+     * Sponsor a transaction.
+     *
+     * @template T
+     * @param Transaction&T $transaction
+     * @return Transaction&T
+     */
+    final public function sponsorTransaction(Transaction $transaction): Transaction
+    {
+        return $transaction->sponsorWith($this);
+    }
+
     /**
      * Verify a signature of a message
      *

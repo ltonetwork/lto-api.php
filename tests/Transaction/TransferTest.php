@@ -163,6 +163,7 @@ class TransferTest extends TestCase
 
         return [
             'new' => [$data, null, null],
+            'no senderKeyType' => [array_diff_key($data, ['senderKeyType' => null]), null, null],
             'unconfirmed' => [$data, '7cCeL1qwd9i6u8NgMNsQjBPxVhrME2BbfZMT1DF9p4Yi', null],
             'confirmed' => [$data, '7cCeL1qwd9i6u8NgMNsQjBPxVhrME2BbfZMT1DF9p4Yi', 1215007],
         ];
@@ -183,6 +184,7 @@ class TransferTest extends TestCase
 
         $this->assertEquals($id, $transaction->id);
         $this->assertEquals('3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM', $transaction->sender);
+        $this->assertEquals('ed25519', $transaction->senderKeyType);
         $this->assertEquals('7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7', $transaction->senderPublicKey);
         $this->assertEquals(100000000, $transaction->fee);
         $this->assertEquals(1609773456000, $transaction->timestamp);
@@ -204,6 +206,17 @@ class TransferTest extends TestCase
         Transaction::fromData(['type' => Transfer::TYPE]);
     }
 
+    public function testFromDataWithMissingSponsorKeys()
+    {
+        $data = $this->dataProvider()['confirmed'][0];
+        $data['sponsor'] = '3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1';
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Invalid data, missing keys: sponsorPublicKey");
+
+        Transaction::fromData($data);
+    }
+
     public function testFromDataWithIncorrectType()
     {
         $data = $this->dataProvider()['confirmed'][0];
@@ -222,6 +235,7 @@ class TransferTest extends TestCase
     {
         if ($id !== null) $data += ['id' => $id];
         if ($height !== null) $data += ['height' => $height];
+        $data += ['senderKeyType' => 'ed25519'];
 
         $transaction = new Transfer('3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh', 120000000);
         $transaction->id = $id;

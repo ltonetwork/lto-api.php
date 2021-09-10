@@ -225,6 +225,15 @@ class AccountTest extends TestCase
         $this->assertEquals($transaction, $ret);
     }
 
+    public function testSponsorTransaction()
+    {
+        $transaction = $this->createMock(Transaction::class);
+        $transaction->expects($this->once())->method('sponsorWith')->with($this->account)->willReturnSelf();
+
+        $ret = $this->account->sponsorTransaction($transaction);
+        $this->assertEquals($transaction, $ret);
+    }
+
 
     public function createSecondaryAccount()
     {

@@ -49,6 +49,15 @@ abstract class Transaction implements \JsonSerializable
     /** @var int */
     public $fee;
 
+    /** @var string|null */
+    public $sponsor = null;
+
+    /** @var string */
+    public $sponsorKeyType = 'ed25519';
+
+    /** @var string|null */
+    public $sponsorPublicKey = null;
+
     /** @var string[] */
     public $proofs = [];
 
@@ -88,6 +97,28 @@ abstract class Transaction implements \JsonSerializable
         if ($this->timestamp === null) {
             $this->timestamp = time() * 1000;
         }
+
+        $this->proofs[] = $account->sign($this->toBinary());
+
+        return $this;
+    }
+
+    /**
+     * Sponsor this transaction by co-signing it.
+     *
+     * @param Account $account
+     * @return $this
+     * @throws \BadMethodCallException if transaction isn't signed
+     * @throws \RuntimeException if account secret sign key is not set
+     */
+    public function sponsorWith(Account $account): self
+    {
+        if (!$this->isSigned()) {
+            throw new \BadMethodCallException("Transaction isn't signed");
+        }
+
+        $this->sponsor = $account->getAddress();
+        $this->sponsorPublicKey = $account->getPublicSignKey();
 
         $this->proofs[] = $account->sign($this->toBinary());
 
@@ -144,6 +175,10 @@ abstract class Transaction implements \JsonSerializable
             unset($data['height']);
         }
 
+        if ($data['sponsor'] === null) {
+            unset($data['sponsor'], $data['sponsorKeyType'], $data['sponsorPublicKey']);
+        }
+
         return $data;
     }
 
@@ -154,7 +189,11 @@ abstract class Transaction implements \JsonSerializable
      */
     protected static function assertNoMissingKeys(array $data, array $optionalKeys = []): void
     {
-        $optionalKeys = array_merge($optionalKeys, ['id', 'senderKeyType', 'height']);
+        $optionalKeys = array_merge($optionalKeys, ['id', 'height', 'senderKeyType', 'sponsorKeyType']);
+
+        if (!isset($data['sponsor']) && !isset($data['sponsorPublicKey'])) {
+            $optionalKeys = array_merge($optionalKeys, ['sponsor', 'sponsorPublicKey']);
+        }
 
         $requiredKeys = array_diff(array_keys(get_class_vars(get_called_class())), $optionalKeys);
         $missingKeys = array_diff($requiredKeys, array_keys($data));
