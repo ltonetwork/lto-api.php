@@ -16,6 +16,7 @@ use function LTO\encode;
  * @covers \LTO\Transaction
  * @covers \LTO\Transaction\RevokeAssociation
  * @covers \LTO\Transaction\Pack\AssociationV1
+ * @covers \LTO\Transaction\Pack\RevokeAssociationV3
  */
 class RevokeAssociationTest extends TestCase
 {
@@ -84,10 +85,22 @@ class RevokeAssociationTest extends TestCase
         new RevokeAssociation($recipient, 42);
     }
 
-    public function testToBinaryNoSender()
+    public function versionProvider()
+    {
+        return [
+            'v1' => [1],
+            'v3' => [3],
+        ];
+    }
+
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testToBinaryNoSender(int $version)
     {
         $transaction = new RevokeAssociation('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 42);
-        $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
+        $transaction->version = $version;
+        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage("Sender public key not set");
@@ -95,9 +108,13 @@ class RevokeAssociationTest extends TestCase
         $transaction->toBinary();
     }
 
-    public function testToBinaryNoTimestamp()
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testToBinaryNoTimestamp(int $version)
     {
         $transaction = new RevokeAssociation('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 42);
+        $transaction->version = $version;
         $transaction->senderPublicKey = '4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz';
 
         $this->expectException(\BadMethodCallException::class);
@@ -118,21 +135,24 @@ class RevokeAssociationTest extends TestCase
     }
 
 
-    public function hashProvider()
+    public function signProvider()
     {
         return [
-            'with hash' => [hash('sha256', 'foo')],
-            'without hash' => [''],
+            'v1 with hash' => [1, hash('sha256', 'foo'), 116],
+            'v1 without hash' => [1, '', 82],
+            'v3 with hash' => [3, hash('sha256', 'foo'), 116],
+            'v3 without hash' => [3, '', 84],
         ];
     }
 
     /**
-     * @dataProvider hashProvider
+     * @dataProvider signProvider
      */
-    public function testSign(string $hash)
+    public function testSign(int $version, string $hash, int $length)
     {
         $transaction = new RevokeAssociation('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 42, $hash);
-        $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
+        $transaction->version = $version;
+        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
         $this->assertFalse($transaction->isSigned());
 
@@ -141,13 +161,13 @@ class RevokeAssociationTest extends TestCase
 
         $this->assertTrue($transaction->isSigned());
 
-        $this->assertEquals($hash === '' ? 82 : 116, strlen($transaction->toBinary()));
+        $this->assertEquals($length, strlen($transaction->toBinary()));
 
         $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
         $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
 
         // Unchanged
-        $this->assertEquals((new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp(), $transaction->timestamp);
+        $this->assertEquals(strtotime('2018-03-01T00:00:00+00:00') * 1000, $transaction->timestamp);
 
         $this->assertTrue($this->account->verify($transaction->proofs[0], $transaction->toBinary()));
     }

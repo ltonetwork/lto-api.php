@@ -53,6 +53,9 @@ class MassTransfer extends Transaction
             case 1:
                 $pack = new Pack\MassTransferV1();
                 break;
+            case 3:
+                $pack = new Pack\MassTransferV3();
+                break;
             default:
                 throw new \UnexpectedValueException("Unsupported mass transfer tx version {$this->version}");
         }

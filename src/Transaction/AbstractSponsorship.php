@@ -48,6 +48,9 @@ abstract class AbstractSponsorship extends Transaction
             case 1:
                 $pack = new Pack\SponsorshipV1();
                 break;
+            case 3:
+                $pack = new Pack\SponsorshipV3();
+                break;
             default:
                 $txType = $this instanceof CancelSponsorship ? "cancel sponsorship" : "sponsorship";
                 throw new \UnexpectedValueException("Unsupported $txType tx version $this->version");

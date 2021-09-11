@@ -51,6 +51,9 @@ class SetScript extends \LTO\Transaction
             case 1:
                 $pack = new Pack\SetScriptV1();
                 break;
+            case 3:
+                $pack = new Pack\SetScriptV3();
+                break;
             default:
                 throw new \UnexpectedValueException("Unsupported set script tx version {$this->version}");
         }

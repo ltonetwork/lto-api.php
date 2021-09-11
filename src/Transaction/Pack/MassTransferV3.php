@@ -28,7 +28,7 @@ class MassTransferV3
         $binaryAttachment = decode($tx->attachment, 'base58');
 
         $packed = pack(
-            'CCaJCa32Ja26n',
+            'CCaJCa32Jn',
             MassTransfer::TYPE,
             $tx->version,
             $tx->getNetwork(),

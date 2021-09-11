@@ -54,6 +54,9 @@ class Anchor extends Transaction
             case 1:
                 $pack = new Pack\AnchorV1();
                 break;
+            case 3:
+                $pack = new Pack\AnchorV3();
+                break;
             default:
                 throw new \UnexpectedValueException("Unsupported anchor tx version {$this->version}");
         }

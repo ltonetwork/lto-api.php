@@ -65,6 +65,9 @@ class Transfer extends Transaction
             case 2:
                 $pack = new Pack\TransferV2();
                 break;
+            case 3:
+                $pack = new Pack\TransferV3();
+                break;
             default:
                 throw new \UnexpectedValueException("Unsupported transfer tx version {$this->version}");
         }

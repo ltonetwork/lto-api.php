@@ -73,6 +73,9 @@ class Lease extends Transaction
             case 2:
                 $pack = new Pack\LeaseV2();
                 break;
+            case 3:
+                $pack = new Pack\LeaseV3();
+                break;
             default:
                 throw new \UnexpectedValueException("Unsupported lease tx version {$this->version}");
         }

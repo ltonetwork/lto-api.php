@@ -15,6 +15,7 @@ use PHPUnit\Framework\TestCase;
  * @covers \LTO\Transaction
  * @covers \LTO\Transaction\CancelLease
  * @covers \LTO\Transaction\Pack\CancelLeaseV2
+ * @covers \LTO\Transaction\Pack\CancelLeaseV3
  */
 class CancelLeaseTest extends TestCase
 {
@@ -36,10 +37,22 @@ class CancelLeaseTest extends TestCase
         $this->assertEquals('B22YzYdNv7DCqMqdK2ckpt53gQuYq2v997N7g8agZoHo', $transaction->leaseId);
     }
 
-    public function testToBinaryNoSender()
+    public function versionProvider()
+    {
+        return [
+            'v2' => [2],
+            'v3' => [3],
+        ];
+    }
+
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testToBinaryNoSender(int $version)
     {
         $transaction = new CancelLease('B22YzYdNv7DCqMqdK2ckpt53gQuYq2v997N7g8agZoHo');
-        $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
+        $transaction->version = $version;
+        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage("Sender public key not set");
@@ -47,9 +60,13 @@ class CancelLeaseTest extends TestCase
         $transaction->toBinary();
     }
 
-    public function testToBinaryNoTimestamp()
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testToBinaryNoTimestamp(int $version)
     {
         $transaction = new CancelLease('B22YzYdNv7DCqMqdK2ckpt53gQuYq2v997N7g8agZoHo');
+        $transaction->version = $version;
         $transaction->senderPublicKey = '4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz';
 
         $this->expectException(\BadMethodCallException::class);
@@ -69,11 +86,14 @@ class CancelLeaseTest extends TestCase
         $transaction->toBinary();
     }
 
-
-    public function testSign()
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testSign(int $version)
     {
         $transaction = new CancelLease('B22YzYdNv7DCqMqdK2ckpt53gQuYq2v997N7g8agZoHo');
-        $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
+        $transaction->version = $version;
+        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
         $this->assertFalse($transaction->isSigned());
 
@@ -86,7 +106,7 @@ class CancelLeaseTest extends TestCase
         $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
 
         // Unchanged
-        $this->assertEquals((new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp(), $transaction->timestamp);
+        $this->assertEquals(strtotime('2018-03-01T00:00:00+00:00') * 1000, $transaction->timestamp);
 
         $this->assertTrue($this->account->verify($transaction->proofs[0], $transaction->toBinary()));
     }

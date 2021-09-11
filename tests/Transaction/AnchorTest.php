@@ -15,6 +15,7 @@ use function LTO\encode;
  * @covers \LTO\Transaction
  * @covers \LTO\Transaction\Anchor
  * @covers \LTO\Transaction\Pack\AnchorV1
+ * @covers \LTO\Transaction\Pack\AnchorV3
  */
 class AnchorTest extends TestCase
 {
@@ -59,10 +60,22 @@ class AnchorTest extends TestCase
         $this->assertEquals(35000000, $transaction->fee);
     }
 
-    public function testToBinaryNoSender()
+    public function versionProvider()
+    {
+        return [
+            'v1' => [1],
+            'v3' => [3],
+        ];
+    }
+
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testToBinaryNoSender(int $version)
     {
         $transaction = new Anchor(hash('sha256', 'foo'));
-        $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
+        $transaction->version = $version;
+        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage("Sender public key not set");
@@ -70,9 +83,13 @@ class AnchorTest extends TestCase
         $transaction->toBinary();
     }
 
-    public function testToBinaryNoTimestamp()
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testToBinaryNoTimestamp(int $version)
     {
         $transaction = new Anchor(hash('sha256', 'foo'));
+        $transaction->version = $version;
         $transaction->senderPublicKey = '4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz';
 
         $this->expectException(\BadMethodCallException::class);
@@ -92,10 +109,14 @@ class AnchorTest extends TestCase
         $transaction->toBinary();
     }
 
-    public function testSign()
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testSign(int $version)
     {
         $transaction = new Anchor(hash('sha256', 'foo'));
-        $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
+        $transaction->version = $version;
+        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
         $this->assertFalse($transaction->isSigned());
 
@@ -108,7 +129,7 @@ class AnchorTest extends TestCase
         $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
 
         // Unchanged
-        $this->assertEquals((new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp(), $transaction->timestamp);
+        $this->assertEquals(strtotime('2018-03-01T00:00:00+00:00') * 1000, $transaction->timestamp);
 
         $this->assertTrue($this->account->verify($transaction->proofs[0], $transaction->toBinary()));
     }
@@ -118,7 +139,7 @@ class AnchorTest extends TestCase
         $transaction = (new Anchor())
             ->addHash(hash('sha256', 'one'))
             ->addHash(hash('sha256', 'two'));
-        $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
+        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
         $this->assertFalse($transaction->isSigned());
 
@@ -129,13 +150,9 @@ class AnchorTest extends TestCase
 
         $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
         $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
-        $this->assertEquals(
-            '5kuUZbzvUUqtB1zrHfH3RZpAd31EV2mgwcB6z8jk7XwAQJ3JRw47tc8NbRhP28tQ491ycKaQRSTFuRdLkz8CiGb2',
-            $transaction->proofs[0]
-        );
 
         // Unchanged
-        $this->assertEquals((new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp(), $transaction->timestamp);
+        $this->assertEquals(strtotime('2018-03-01T00:00:00+00:00') * 1000, $transaction->timestamp);
 
         $this->assertTrue($this->account->verify($transaction->proofs[0], $transaction->toBinary()));
     }

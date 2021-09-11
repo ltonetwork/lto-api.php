@@ -48,6 +48,9 @@ class CancelLease extends Transaction
             case 2:
                 $pack = new Pack\CancelLeaseV2();
                 break;
+            case 3:
+                $pack = new Pack\CancelLeaseV3();
+                break;
             default:
                 throw new \UnexpectedValueException("Unsupported cancel lease tx version {$this->version}");
         }

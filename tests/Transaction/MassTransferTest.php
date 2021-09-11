@@ -15,6 +15,7 @@ use function LTO\decode;
  * @covers \LTO\Transaction
  * @covers \LTO\Transaction\MassTransfer
  * @covers \LTO\Transaction\Pack\MassTransferV1
+ * @covers \LTO\Transaction\Pack\MassTransferV3
  */
 class MassTransferTest extends TestCase
 {
@@ -116,10 +117,22 @@ class MassTransferTest extends TestCase
     }
 
 
-    public function testToBinaryNoSender()
+    public function versionProvider()
+    {
+        return [
+            'v1' => [1],
+            'v3' => [3],
+        ];
+    }
+
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testToBinaryNoSender(int $version)
     {
         $transaction = new MassTransfer();
-        $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
+        $transaction->version = $version;
+        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage("Sender public key not set");
@@ -127,9 +140,13 @@ class MassTransferTest extends TestCase
         $transaction->toBinary();
     }
 
-    public function testToBinaryNoTimestamp()
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testToBinaryNoTimestamp(int $version)
     {
         $transaction = new MassTransfer();
+        $transaction->version = $version;
         $transaction->senderPublicKey = '4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz';
 
         $this->expectException(\BadMethodCallException::class);
@@ -150,13 +167,17 @@ class MassTransferTest extends TestCase
     }
 
 
-    public function testSign()
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testSign(int $version)
     {
         $transaction = new MassTransfer();
+        $transaction->version = $version;
         $transaction->addTransfer("3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh", 230000000);
         $transaction->addTransfer("3NASW7kxCA8nRaA5axcPiQGXD82MPwLDYbT", 370000000);
         $transaction->addTransfer("3N2bAE4of276ekPRqsihsmFmLXq9kao6jqm", 1100000000);
-        $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
+        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
         $this->assertFalse($transaction->isSigned());
 
@@ -169,7 +190,7 @@ class MassTransferTest extends TestCase
         $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
 
         // Unchanged
-        $this->assertEquals((new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp(), $transaction->timestamp);
+        $this->assertEquals(strtotime('2018-03-01T00:00:00+00:00') * 1000, $transaction->timestamp);
 
         $this->assertTrue($this->account->verify($transaction->proofs[0], $transaction->toBinary()));
     }

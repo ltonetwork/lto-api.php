@@ -49,7 +49,7 @@ class Association extends AbstractAssociation
             throw new \InvalidArgumentException("Time should be an int, DateTime, or null");
         }
 
-        if ($this->version < 3) {
+        if ($this->version < 3 && $time !== null) {
             throw new UnsupportedFeatureException(
                 "Association expiry isn't supported for association tx v{$this->version}. At least v3 is required"
             );
