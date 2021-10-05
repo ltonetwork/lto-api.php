@@ -14,6 +14,7 @@ use function LTO\encode;
 
 /**
  * @covers \LTO\Transaction
+ * @covers \LTO\Transaction\AbstractAssociation
  * @covers \LTO\Transaction\RevokeAssociation
  * @covers \LTO\Transaction\Pack\AssociationV1
  * @covers \LTO\Transaction\Pack\RevokeAssociationV3
@@ -77,7 +78,7 @@ class RevokeAssociationTest extends TestCase
     /**
      * @dataProvider invalidPartyProvider
      */
-    public function testConstructInvalidrecipient($recipient)
+    public function testConstructInvalidRecipient($recipient)
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Invalid recipient address; is it base58 encoded?");

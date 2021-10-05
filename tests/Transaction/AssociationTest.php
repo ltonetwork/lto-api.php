@@ -15,6 +15,7 @@ use function LTO\encode;
 
 /**
  * @covers \LTO\Transaction
+ * @covers \LTO\Transaction\AbstractAssociation
  * @covers \LTO\Transaction\Association
  * @covers \LTO\Transaction\Pack\AssociationV1
  * @covers \LTO\Transaction\Pack\AssociationV3

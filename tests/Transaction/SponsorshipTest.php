@@ -13,6 +13,7 @@ use function LTO\decode;
 
 /**
  * @covers \LTO\Transaction
+ * @covers \LTO\Transaction\AbstractSponsorship
  * @covers \LTO\Transaction\Sponsorship
  * @covers \LTO\Transaction\Pack\SponsorshipV1
  * @covers \LTO\Transaction\Pack\SponsorshipV3
