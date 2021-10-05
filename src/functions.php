@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace LTO;
 
@@ -24,7 +26,7 @@ function encode(string $string, string $encoding): string
     }
 
     if ($string === false) {
-        throw new \InvalidArgumentException("Failed to encode to '$encoding'");
+        throw new \InvalidArgumentException("Failed to encode to '$encoding'"); // @codeCoverageIgnore
     }
 
     return $string;
@@ -48,7 +50,7 @@ function decode(string $string, string $encoding): string
     }
 
     if ($encoding === 'hex') {
-        $string = hex2bin($string);
+        $string = @hex2bin($string);
     }
 
     if ($string === false) {
@@ -83,7 +85,10 @@ function is_valid_address(string $address, string $encoding): bool
         return false;
     }
 
-    if ($encoding === 'base64' && !preg_match('/^[A-Za-z0-9+/]+={0,2}$/', $address)) {
+    if (
+        $encoding === 'base64' &&
+        !preg_match('/^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/', $address)
+    ) {
         return false;
     }
 
