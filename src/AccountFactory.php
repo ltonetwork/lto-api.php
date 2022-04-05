@@ -28,7 +28,7 @@ class AccountFactory
     /**
      * Class constructor
      *
-     * @param int|string $network  'W' or 'T' (1 byte)
+     * @param int|string $network  'L' or 'T' (1 byte)
      * @param string     $curve    'ed25519', 'secp256k1', or 'secp256r1'
      */
     public function __construct($network, $curve = 'ed25519')
@@ -148,9 +148,7 @@ class AccountFactory
             ? $this->calcKeys($data['encrypt'], 'encrypt')
             : (isset($account->sign) ? $this->cryptography->convertSignToEncrypt($account->sign) : null);
 
-        $account->address = isset($data['address'])
-            ? $data['address']
-            : ($account->sign !== null ? $this->createAddress($account->sign->publickey) : null);
+        $account->address = $data['address'] ?? ($account->sign !== null ? $this->createAddress($account->sign->publickey) : null);
 
         $this->assertIsValid($account);
 

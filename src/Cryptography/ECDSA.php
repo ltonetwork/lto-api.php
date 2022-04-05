@@ -21,10 +21,10 @@ use Mdanter\Ecc\Serializer\PublicKey\DerPublicKeySerializer;
 use Mdanter\Ecc\Serializer\Signature\DerSignatureSerializer;
 
 /**
- * EcDSA signing using ECC library.
+ * ECDSA signing using ECC library.
  * Encryption using ECDH is not (yet) supported.
  */
-class EcDSA implements Cryptography
+class ECDSA implements Cryptography
 {
     /** @var GmpMathInterface */
     protected $adapter;
@@ -40,9 +40,7 @@ class EcDSA implements Cryptography
 
 
     /**
-     * EcDSA constructor.
-     *
-     * @param string $curve
+     * ECDSA constructor.
      */
     public function __construct(
         GmpMathInterface $adapter,
@@ -98,7 +96,7 @@ class EcDSA implements Cryptography
      */
     public function encrypt(string $secretkey, string $publicKey, string $message): string
     {
-        throw new \BadMethodCallException("Encryption isn't supported for EcDSA");
+        throw new \BadMethodCallException("Encryption isn't supported for ECDSA");
     }
 
     /**
@@ -106,7 +104,7 @@ class EcDSA implements Cryptography
      */
     public function decrypt(string $secretkey, string $publicKey, string $cypherText): string
     {
-        throw new \BadMethodCallException("Encryption isn't supported for EcDSA");
+        throw new \BadMethodCallException("Encryption isn't supported for ECDSA");
     }
 
 
@@ -153,7 +151,7 @@ class EcDSA implements Cryptography
      */
     public function getPublicEncryptKey(string $secretkey): string
     {
-        throw new \BadMethodCallException("Encryption isn't supported for EcDSA");
+        throw new \BadMethodCallException("Encryption isn't supported for ECDSA");
     }
 
     /**
