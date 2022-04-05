@@ -12,14 +12,13 @@ use function LTO\is_valid_address;
  */
 abstract class AbstractSponsorship extends Transaction
 {
-    /** Minimum transaction fee */
-    public const MINIMUM_FEE = 0;
+    /** Default transaction fee */
+    public const DEFAULT_FEE = 0;
 
     /** Transaction version */
-    public const DEFAULT_VERSION  = 1;
+    public const DEFAULT_VERSION = 3;
 
-    /** @var string */
-    public $recipient;
+    public string $recipient;
 
 
     /**
@@ -34,7 +33,7 @@ abstract class AbstractSponsorship extends Transaction
         }
 
         $this->version = static::DEFAULT_VERSION;
-        $this->fee = static::MINIMUM_FEE;
+        $this->fee = static::DEFAULT_FEE;
 
         $this->recipient = $recipient;
     }

@@ -5,6 +5,7 @@ namespace LTO\Tests\Account;
 use LTO\Account;
 use LTO\Account\VerifyCallback;
 use LTO\AccountFactory;
+use LTO\Binary;
 use LTO\InvalidAccountException;
 use PHPUnit\Framework\TestCase;
 use function LTO\encode;
@@ -35,7 +36,7 @@ class VerifyCallbackTest extends TestCase
         $account = $this->createMock(Account::class);
         $account->sign = (object)['publickey' => 'GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY'];
         $account->expects($this->once())->method('verify')
-            ->with('__mock_signature__', $message, 'raw')
+            ->with($message, new Binary('__mock_signature__'))
             ->willReturn(true);
 
         $accountFactory = $this->createMock(AccountFactory::class);
@@ -71,7 +72,7 @@ class VerifyCallbackTest extends TestCase
         $account = $this->createMock(Account::class);
         $account->sign = (object)['publickey' => $rawKey];
         $account->expects($this->once())->method('verify')
-            ->with('__mock_signature__', 'hello', 'raw')
+            ->with('hello', new Binary('__mock_signature__'))
             ->willReturn(true);
 
         $accountFactory = $this->createMock(AccountFactory::class);
@@ -127,7 +128,7 @@ class VerifyCallbackTest extends TestCase
         $account = $this->createMock(Account::class);
         $account->sign = (object)['publickey' => $rawKey];
         $account->expects($this->once())->method('verify')
-            ->with('__mock_signature__', 'hello', 'raw')
+            ->with('hello', new Binary('__mock_signature__'))
             ->willReturn(false);
 
         $accountFactory = $this->createMock(AccountFactory::class);

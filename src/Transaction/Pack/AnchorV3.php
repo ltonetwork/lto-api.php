@@ -38,8 +38,7 @@ class AnchorV3
         );
 
         foreach ($tx->anchors as $anchor) {
-            $rawHash = decode($anchor, 'base58');
-            $packed .= pack('na*', strlen($rawHash), $rawHash);
+            $packed .= pack('na*', $anchor->length(), $anchor->raw());
         }
 
         return $packed;

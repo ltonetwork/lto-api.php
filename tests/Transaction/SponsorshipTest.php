@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace LTO\Tests\Transaction;
 
+use LTO\Account;
 use LTO\AccountFactory;
+use LTO\Binary;
 use LTO\PublicNode;
+use LTO\Tests\CustomAsserts;
 use LTO\Transaction;
 use LTO\Transaction\Sponsorship;
 use PHPUnit\Framework\TestCase;
@@ -20,22 +23,22 @@ use function LTO\decode;
  */
 class SponsorshipTest extends TestCase
 {
-    protected const ACCOUNT_SEED = "df3dd6d884714288a39af0bd973a1771c9f00f168cf040d6abb6a50dd5e055d8";
+    use CustomAsserts;
 
-    /** @var \LTO\Account */
-    protected $account;
+    protected Account $account;
+    protected string $recipient = "3NACnKFVN2DeFYjspHKfa2kvDqnPkhjGCD2";
 
     public function setUp(): void
     {
-        $this->account = (new AccountFactory('T'))->seed(self::ACCOUNT_SEED);
+        $this->account = (new AccountFactory('T'))->seed('test');
     }
 
     public function testConstruct()
     {
-        $transaction = new Sponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
+        $transaction = new Sponsorship($this->recipient);
 
         $this->assertEquals(500000000, $transaction->fee);
-        $this->assertEquals('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', $transaction->recipient);
+        $this->assertEquals($this->recipient, $transaction->recipient);
     }
 
     public function invalidRecipientProvider()
@@ -62,8 +65,8 @@ class SponsorshipTest extends TestCase
     public function versionProvider()
     {
         return [
-            'v1' => [1],
-            'v3' => [3],
+            'v1' => [1, '8gCPwExgz2sxHQ5nMn2tsgwvPfMtaXvms3bZVA6yiK9iLHdPRWSqp9SfGyx7x5AnWB1DdZyTEERsu1z8ofPFwowd532zRxD4LQjfL3Lcf'],
+            'v3' => [3, 'atrk25dhE856q2qSEPm6umwL1kPTiZ7CtCojL7SRSnYYWqM24jtQFffmWP3n9vt3VPQ5cahaMoWuYjYAVvA7hA6apBwSrNyf2DhFYuXwME'],
         ];
     }
 
@@ -72,7 +75,7 @@ class SponsorshipTest extends TestCase
      */
     public function testToBinaryNoSender(int $version)
     {
-        $transaction = new Sponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
+        $transaction = new Sponsorship($this->recipient);
         $transaction->version = $version;
         $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
@@ -87,7 +90,7 @@ class SponsorshipTest extends TestCase
      */
     public function testToBinaryNoTimestamp(int $version)
     {
-        $transaction = new Sponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
+        $transaction = new Sponsorship($this->recipient);
         $transaction->version = $version;
         $transaction->senderPublicKey = '4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz';
 
@@ -99,7 +102,7 @@ class SponsorshipTest extends TestCase
 
     public function testToBinaryWithUnsupportedVersion()
     {
-        $transaction = new Sponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
+        $transaction = new Sponsorship($this->recipient);
         $transaction->version = 99;
 
         $this->expectException(\UnexpectedValueException::class);
@@ -113,9 +116,8 @@ class SponsorshipTest extends TestCase
      */
     public function testSign(int $version)
     {
-        $transaction = new Sponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
+        $transaction = new Sponsorship($this->recipient);
         $transaction->version = $version;
-        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
         $this->assertFalse($transaction->isSigned());
 
@@ -124,13 +126,14 @@ class SponsorshipTest extends TestCase
 
         $this->assertTrue($transaction->isSigned());
 
-        $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
-        $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
+        $this->assertEquals($this->account->getAddress(), $transaction->sender);
+        $this->assertEquals($this->account->getPublicSignKey(), $transaction->senderPublicKey);
 
-        // Unchanged
-        $this->assertEquals(strtotime('2018-03-01T00:00:00+00:00') * 1000, $transaction->timestamp);
+        $this->assertTimestampIsNow($transaction->timestamp);
 
-        $this->assertTrue($this->account->verify($transaction->proofs[0], $transaction->toBinary()));
+        $this->assertTrue(
+            $this->account->verify($transaction->toBinary(), Binary::fromBase58($transaction->proofs[0]))
+        );
     }
 
     public function dataProvider()
@@ -211,6 +214,7 @@ class SponsorshipTest extends TestCase
 
         $transaction = new Sponsorship('3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh');
         $transaction->id = $id;
+        $transaction->version = 1;
         $transaction->sender = '3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM';
         $transaction->senderPublicKey = '7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7';
         $transaction->fee = 500000000;
@@ -223,7 +227,7 @@ class SponsorshipTest extends TestCase
 
     public function testBroadcast()
     {
-        $transaction = new Sponsorship('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1');
+        $transaction = new Sponsorship($this->recipient);
 
         $broadcastedTransaction = clone $transaction;
         $broadcastedTransaction->id = '4jxUkX9nrzCqgBtanTYmdwrEYYXzBkCSENT4sd4Q896W';

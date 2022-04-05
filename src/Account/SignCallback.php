@@ -10,16 +10,10 @@ use LTO\Account;
  */
 class SignCallback
 {
-    /**
-     * @var Account
-     */
-    protected $account;
+    protected Account $account;
 
     /**
      * Class constructor.
-     *
-     * @param Account $account
-     * @throws \RuntimeException
      */
     public function __construct(Account $account)
     {
@@ -54,6 +48,6 @@ class SignCallback
             $message = hash($hashAlgo, $message, true);
         }
 
-        return $this->account->sign($message, 'raw'); // HttpSignature service will base64 encode.
+        return $this->account->sign($message)->raw(); // HttpSignature service will base64 encode.
     }
 }

@@ -14,8 +14,8 @@ class Association extends AbstractAssociation
     /** Transaction type */
     public const TYPE = 16;
 
-    /** @var int|null epoch in milliseconds */
-    public $expire = null;
+    /** Epoch in milliseconds */
+    public ?int $expire = null;
 
 
     /**

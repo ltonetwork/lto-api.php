@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace LTO\Tests\Transaction;
 
+use LTO\Account;
 use LTO\AccountFactory;
+use LTO\Binary;
 use LTO\PublicNode;
+use LTO\Tests\CustomAsserts;
 use LTO\Transaction;
 use LTO\Transaction\SetScript;
 use PHPUnit\Framework\TestCase;
@@ -18,15 +21,15 @@ use PHPUnit\Framework\TestCase;
  */
 class SetScriptTest extends TestCase
 {
-    protected const ACCOUNT_SEED = "df3dd6d884714288a39af0bd973a1771c9f00f168cf040d6abb6a50dd5e055d8";
+    use CustomAsserts;
+
     protected const COMPILE_SCRIPT = "AQkAAfQAAAADCAUAAAACdHgAAAAJYm9keUJ5dGVzCQABkQAAAAIIBQAAAAJ0eAAAAAZwcm9vZnMAAAAAAAAAAAAIBQAAAAJ0eAAAAA9zZW5kZXJQdWJsaWNLZXmmsz2x";
 
-    /** @var \LTO\Account */
-    protected $account;
+    protected Account $account;
 
     public function setUp(): void
     {
-        $this->account = (new AccountFactory('T'))->seed(self::ACCOUNT_SEED);
+        $this->account = (new AccountFactory('T'))->seed('test');
     }
 
     public function prefixProvider()
@@ -44,15 +47,53 @@ class SetScriptTest extends TestCase
     {
         $transaction = new SetScript($prefix . self::COMPILE_SCRIPT);
 
+        $this->assertEquals(3, $transaction->version);
+        $this->assertEquals(500000000, $transaction->fee);
         $this->assertEquals('base64:' . self::COMPILE_SCRIPT, $transaction->script);
     }
 
     public function versionProvider()
     {
         return [
-            'v1' => [1],
-            'v3' => [3],
+            'v1' => [1, 'AXpww6CJY6yBsG6xT92SvVtXwS2hhxgBhw3bCpNdsJBjn4NkL1MNbnkJZtwTMH5vMxBQ8g9i3LaR7oacQ99ruCywFvmYRoK2hBeeLN5krmvheZLvmXzhyb7HdgFLa3pj76KPMW4KvB9BaQYhSgzQBT1XH2mUfLYKzvedwn3kBnDNkAS7VUxb2cvYhGa2DiJUM8s'],
+            'v3' => [3, '2bXLHWotshX1ZvrzMgQoZ75J6XWVv3TdHnaGgQKcxdW4PriTbzgDwWvuWJupe9iu2tKwvbDSs5kGNiXwf15iHFiz9P4MREur12foF2EBHHcxEscQeeYAd1KU14dVKFwCei66QstfcwArNaeg779pAQj4aCdFDx8L2F3ZLSNJ9r83mowFh14ajKffnUdNvk4SncpebCNnP8nv4'],
         ];
+    }
+
+    public function versionNoScriptProvider()
+    {
+        return [
+            'v1' => [1, '7Gbb1pUGXRS7R5w5cKFxpXjetznguZgSc9U9txVVQuhjjAxzkpUEzzsf94p4p31H'],
+            'v3' => [3, '23rTaytvD2Ed4ZACzp9AXY6yV42jgZkFowuWwvhUPQNim58EYLyckU3GkLAyYKTy5C2iBjSBJw'],
+        ];
+    }
+
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testToBinary(int $version, string $binary)
+    {
+        $transaction = new SetScript(self::COMPILE_SCRIPT);
+        $transaction->version = $version;
+        $transaction->sender = $this->account->getAddress();
+        $transaction->senderPublicKey = $this->account->getPublicSignKey();
+        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
+
+        $this->assertEqualsBase58($binary, $transaction->toBinary());
+    }
+
+    /**
+     * @dataProvider versionNoScriptProvider
+     */
+    public function testToBinaryNoScript(int $version, string $binary)
+    {
+        $transaction = new SetScript(null);
+        $transaction->version = $version;
+        $transaction->sender = $this->account->getAddress();
+        $transaction->senderPublicKey = $this->account->getPublicSignKey();
+        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
+
+        $this->assertEqualsBase58($binary, $transaction->toBinary());
     }
 
     /**
@@ -103,7 +144,6 @@ class SetScriptTest extends TestCase
     {
         $transaction = new SetScript(self::COMPILE_SCRIPT);
         $transaction->version = $version;
-        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
         $this->assertFalse($transaction->isSigned());
 
@@ -112,19 +152,19 @@ class SetScriptTest extends TestCase
 
         $this->assertTrue($transaction->isSigned());
 
-        $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
-        $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
+        $this->assertEquals($this->account->getAddress(), $transaction->sender);
+        $this->assertEquals($this->account->getPublicSignKey(), $transaction->senderPublicKey);
 
-        // Unchanged
-        $this->assertEquals(strtotime('2018-03-01T00:00:00+00:00') * 1000, $transaction->timestamp);
+        $this->assertTimestampIsNow($transaction->timestamp);
 
-        $this->assertTrue($this->account->verify($transaction->proofs[0], $transaction->toBinary()));
+        $this->assertTrue(
+            $this->account->verify($transaction->toBinary(), Binary::fromBase58($transaction->proofs[0]))
+        );
     }
 
-    public function testSignNullScript()
+    public function testSignNoScript()
     {
         $transaction = new SetScript(null);
-        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
         $this->assertFalse($transaction->isSigned());
 
@@ -133,13 +173,14 @@ class SetScriptTest extends TestCase
 
         $this->assertTrue($transaction->isSigned());
 
-        $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
-        $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
+        $this->assertEquals($this->account->getAddress(), $transaction->sender);
+        $this->assertEquals($this->account->getPublicSignKey(), $transaction->senderPublicKey);
 
-        // Unchanged
-        $this->assertEquals(strtotime('2018-03-01T00:00:00+00:00') * 1000, $transaction->timestamp);
+        $this->assertTimestampIsNow($transaction->timestamp);
 
-        $this->assertTrue($this->account->verify($transaction->proofs[0], $transaction->toBinary()));
+        $this->assertTrue(
+            $this->account->verify($transaction->toBinary(), Binary::fromBase58($transaction->proofs[0]))
+        );
     }
 
     public function dataProvider()
@@ -220,6 +261,7 @@ class SetScriptTest extends TestCase
 
         $transaction = new SetScript(self::COMPILE_SCRIPT);
         $transaction->id = $id;
+        $transaction->version = 1;
         $transaction->sender = '3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM';
         $transaction->senderPublicKey = '7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7';
         $transaction->fee = 100000000;

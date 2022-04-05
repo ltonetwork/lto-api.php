@@ -98,7 +98,7 @@ abstract class Transaction implements \JsonSerializable
             $this->timestamp = time() * 1000;
         }
 
-        $this->proofs[] = $account->sign($this->toBinary());
+        $this->proofs[] = $account->sign($this->toBinary())->base58();
 
         return $this;
     }
@@ -120,7 +120,7 @@ abstract class Transaction implements \JsonSerializable
         $this->sponsor = $account->getAddress();
         $this->sponsorPublicKey = $account->getPublicSignKey();
 
-        $this->proofs[] = $account->sign($this->toBinary());
+        $this->proofs[] = $account->sign($this->toBinary())->base58();
 
         return $this;
     }
@@ -166,17 +166,10 @@ abstract class Transaction implements \JsonSerializable
      */
     public function jsonSerialize(): array
     {
-        $data = ['type' => static::TYPE] + get_public_properties($this);
+        $data = ['type' => static::TYPE] + array_filter(get_public_properties($this), fn($val) => $val !== null);
 
-        if ($data['id'] === null) {
-            unset($data['id']);
-        }
-        if ($data['height'] === null) {
-            unset($data['height']);
-        }
-
-        if ($data['sponsor'] === null) {
-            unset($data['sponsor'], $data['sponsorKeyType'], $data['sponsorPublicKey']);
+        if (!isset($data['sponsor'])) {
+            unset($data['sponsorKeyType'], $data['sponsorPublicKey']);
         }
 
         return $data;

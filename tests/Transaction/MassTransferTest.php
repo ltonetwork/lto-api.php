@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace LTO\Tests\Transaction;
 
+use LTO\Account;
 use LTO\AccountFactory;
+use LTO\Binary;
 use LTO\PublicNode;
+use LTO\Tests\CustomAsserts;
 use LTO\Transaction;
 use LTO\Transaction\MassTransfer;
 use PHPUnit\Framework\TestCase;
@@ -19,17 +22,47 @@ use function LTO\decode;
  */
 class MassTransferTest extends TestCase
 {
-    protected const ACCOUNT_SEED = "df3dd6d884714288a39af0bd973a1771c9f00f168cf040d6abb6a50dd5e055d8";
+    use CustomAsserts;
 
-    /** @var \LTO\Account */
-    protected $account;
+    protected Account $account;
+    protected array $transfers = [
+		["recipient" => "3NACnKFVN2DeFYjspHKfa2kvDqnPkhjGCD2", "amount" => 230000000],
+        ["recipient" => "3NASW7kxCA8nRaA5axcPiQGXD82MPwLDYbT", "amount" => 370000000],
+        ["recipient" => "3N2bAE4of276ekPRqsihsmFmLXq9kao6jqm", "amount" => 370000000],
+    ];
+    protected $attachment = "hello";
 
     public function setUp(): void
     {
-        $this->account = (new AccountFactory('T'))->seed(self::ACCOUNT_SEED);
+        $this->account = (new AccountFactory('T'))->seed('test');
     }
 
-    public function testConstruct()
+
+    public function attachmentProvider()
+    {
+        return [
+            'none' => [''],
+            'string' => ['hello'],
+            'Binary' => [new Binary('hello')],
+        ];
+    }
+
+    /**
+     * @dataProvider attachmentProvider
+     */
+    public function testConstruct($attachment)
+    {
+        $transaction = new MassTransfer($this->transfers, $attachment);
+
+        $this->assertEquals(3, $transaction->version);
+        $this->assertEquals(130000000, $transaction->fee);
+        $this->assertEquals($this->transfers, $transaction->transfers);
+
+        $this->assertInstanceOf(Binary::class, $transaction->attachment);
+        $this->assertEquals((string)$attachment, (string)$transaction->attachment);
+    }
+
+    public function testConstructEmpty()
     {
         $transaction = new MassTransfer();
 
@@ -95,34 +128,28 @@ class MassTransferTest extends TestCase
         $transaction->addTransfer($recipient, 10000);
     }
 
-    public function attachmentProvider()
-    {
-        return [
-            'raw' => ["Hello", 'raw'],
-            'hex' => [bin2hex("Hello"), 'hex'],
-            'base58' => [base58_encode("Hello"), 'base58'],
-            'base64' => [base64_encode("Hello"), 'base64'],
-        ];
-    }
-
-    /**
-     * @dataProvider attachmentProvider
-     */
-    public function testSetAttachment(string $message, string $encoding)
-    {
-        $transaction = new MassTransfer();
-        $transaction->setAttachment($message, $encoding);
-
-        $this->assertEquals('9Ajdvzr', $transaction->attachment);
-    }
-
 
     public function versionProvider()
     {
         return [
-            'v1' => [1],
-            'v3' => [3],
+            'v1' => [1, '2UdpeV2x4heuL8KBNZAGJYHXUkLqf78UKFnL8oxfwG6ihyj1uHyaeN4fNiva72VG9Ms7eJLvShgvVr89CgPyXccNcbw1PqDL27TgmUhuNcASJ4AxoCz2eqLCPSVm1x3vzS5fidzddAA5UFemFrEW6N8C8pdPGDp8wCUxdTVpRsh5nY2kjS8utdYJxFmuFRjPpYzfwb5QVbJP18ggZNEiSAvRKr2a'],
+            'v3' => [3, 'Vndp3PEkc9wbYdi9JPgYTtB8XCHx5ufqR7Bmrv82Xo1p69ZfpwkNCXxLPchB6SSqNc7zufGxETomihFcbSn73WU4Aff5LFmaZJqTSgjYBkqPZBVa9exTYbLayRwr4QMNqYgPqm1bLKfY4ogrgyd62zGUyHVhra2UbbA1ZwgknxsYM85XtkmigB2WY9vzzVWYfSz47BNRZJX5t4bCM24k3DgVqsDd9G'],
         ];
+    }
+
+
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testToBinary(int $version, string $binary)
+    {
+        $transaction = new MassTransfer($this->transfers, $this->attachment);
+        $transaction->version = $version;
+        $transaction->sender = $this->account->getAddress();
+        $transaction->senderPublicKey = $this->account->getPublicSignKey();
+        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
+
+        $this->assertEqualsBase58($binary, $transaction->toBinary());
     }
 
     /**
@@ -130,7 +157,7 @@ class MassTransferTest extends TestCase
      */
     public function testToBinaryNoSender(int $version)
     {
-        $transaction = new MassTransfer();
+        $transaction = new MassTransfer($this->transfers, $this->attachment);
         $transaction->version = $version;
         $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
@@ -145,9 +172,10 @@ class MassTransferTest extends TestCase
      */
     public function testToBinaryNoTimestamp(int $version)
     {
-        $transaction = new MassTransfer();
+        $transaction = new MassTransfer($this->transfers, $this->attachment);
         $transaction->version = $version;
-        $transaction->senderPublicKey = '4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz';
+        $transaction->sender = $this->account->getAddress();
+        $transaction->senderPublicKey = $this->account->getPublicSignKey();
 
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage("Timestamp not set");
@@ -157,7 +185,7 @@ class MassTransferTest extends TestCase
 
     public function testToBinaryWithUnsupportedVersion()
     {
-        $transaction = new MassTransfer();
+        $transaction = new MassTransfer($this->transfers, $this->attachment);
         $transaction->version = 99;
 
         $this->expectException(\UnexpectedValueException::class);
@@ -172,12 +200,8 @@ class MassTransferTest extends TestCase
      */
     public function testSign(int $version)
     {
-        $transaction = new MassTransfer();
+        $transaction = new MassTransfer($this->transfers, $this->attachment);
         $transaction->version = $version;
-        $transaction->addTransfer("3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh", 230000000);
-        $transaction->addTransfer("3NASW7kxCA8nRaA5axcPiQGXD82MPwLDYbT", 370000000);
-        $transaction->addTransfer("3N2bAE4of276ekPRqsihsmFmLXq9kao6jqm", 1100000000);
-        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
         $this->assertFalse($transaction->isSigned());
 
@@ -186,13 +210,14 @@ class MassTransferTest extends TestCase
 
         $this->assertTrue($transaction->isSigned());
 
-        $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
-        $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
+        $this->assertEquals($this->account->getAddress(), $transaction->sender);
+        $this->assertEquals($this->account->getPublicSignKey(), $transaction->senderPublicKey);
 
-        // Unchanged
-        $this->assertEquals(strtotime('2018-03-01T00:00:00+00:00') * 1000, $transaction->timestamp);
+        $this->assertTimestampIsNow($transaction->timestamp);
 
-        $this->assertTrue($this->account->verify($transaction->proofs[0], $transaction->toBinary()));
+        $this->assertTrue(
+            $this->account->verify($transaction->toBinary(), Binary::fromBase58($transaction->proofs[0]))
+        );
     }
 
     public function dataProvider()
@@ -214,7 +239,7 @@ class MassTransferTest extends TestCase
                     "amount" => 1100000000
                 ]
             ],
-            "attachment" => "9Ajdvzr",
+            "attachment" => "Cn8eVZg",
             "sender" => "3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM",
             'senderKeyType' => 'ed25519',
             "senderPublicKey" => "7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7",
@@ -251,7 +276,7 @@ class MassTransferTest extends TestCase
         $this->assertEquals(130000000, $transaction->fee);
         $this->assertEquals(1610145916000, $transaction->timestamp);
 
-        $this->assertEquals('9Ajdvzr', $transaction->attachment);
+        $this->assertEquals(new Binary('hello'), $transaction->attachment);
         $this->assertEquals(
             ['38WwVgPY2egb2s7q394pRVD8HSRY84JXedfg4Y4Hs8EZAumh4ekD963nRLWqsdexnhJC8Eux1qywxubsEzL1Zwpb'],
             $transaction->proofs
@@ -288,11 +313,12 @@ class MassTransferTest extends TestCase
 
         $transaction = new MassTransfer();
         $transaction->id = $id;
+        $transaction->version = 1;
         $transaction->sender = '3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM';
         $transaction->senderPublicKey = '7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7';
         $transaction->fee = 100000000;
         $transaction->timestamp = 1610145916000;
-        $transaction->attachment = '9Ajdvzr';
+        $transaction->attachment = new Binary('hello');
         $transaction->proofs[] = '38WwVgPY2egb2s7q394pRVD8HSRY84JXedfg4Y4Hs8EZAumh4ekD963nRLWqsdexnhJC8Eux1qywxubsEzL1Zwpb';
         $transaction->height = $height;
 
@@ -300,7 +326,7 @@ class MassTransferTest extends TestCase
         $transaction->addTransfer("3NASW7kxCA8nRaA5axcPiQGXD82MPwLDYbT", 370000000);
         $transaction->addTransfer("3N2bAE4of276ekPRqsihsmFmLXq9kao6jqm", 1100000000);
 
-        $this->assertEquals($data, $transaction->jsonSerialize());
+        $this->assertEqualsAsJson($data, $transaction);
     }
 
     public function testBroadcast()

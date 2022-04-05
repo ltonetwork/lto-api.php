@@ -2,6 +2,7 @@
 
 namespace LTO\Tests;
 
+use LTO\Binary;
 use PHPUnit\Framework\TestCase;
 use LTO\Account;
 use LTO\Event;
@@ -129,8 +130,8 @@ class EventTest extends TestCase
         $account->expects($this->once())->method('getPublicSignKey')
             ->willReturn('FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y');
         $account->expects($this->once())->method('sign')
-            ->with($expected, 'base58')
-            ->willReturn('4pwrLbWSYqE7st7fCGc2fW2eA33DP1uE4sBm6onfwYNk4M8Av9u4Mqx1R77sVzRRofQgoHGTLRh8pRBRzp5JGBo9');
+            ->with($expected)
+            ->willReturn(Binary::fromBase58('4pwrLbWSYqE7st7fCGc2fW2eA33DP1uE4sBm6onfwYNk4M8Av9u4Mqx1R77sVzRRofQgoHGTLRh8pRBRzp5JGBo9'));
 
         $ret = $event->signWith($account);
         $this->assertSame($event, $ret);

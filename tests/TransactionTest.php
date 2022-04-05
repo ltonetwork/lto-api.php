@@ -6,6 +6,7 @@ namespace LTO\Tests;
 
 use LTO\Account;
 use LTO\AccountFactory;
+use LTO\Binary;
 use LTO\Transaction;
 use LTO\Transaction\Transfer;
 use PHPUnit\Framework\TestCase;
@@ -65,9 +66,9 @@ class TransactionTest extends TestCase
         $this->assertEquals($account0->getPublicSignKey(), $transaction->senderPublicKey);
 
         $this->assertCount(3, $transaction->proofs);
-        $this->assertTrue($account0->verify($transaction->proofs[0], $transaction->toBinary()));
-        $this->assertTrue($account1->verify($transaction->proofs[1], $transaction->toBinary()));
-        $this->assertTrue($account2->verify($transaction->proofs[2], $transaction->toBinary()));
+        $this->assertTrue($account0->verify($transaction->toBinary(), Binary::fromBase58($transaction->proofs[0])));
+        $this->assertTrue($account1->verify($transaction->toBinary(), Binary::fromBase58($transaction->proofs[1])));
+        $this->assertTrue($account2->verify($transaction->toBinary(), Binary::fromBase58($transaction->proofs[2])));
     }
 
     public function testSponsor()
@@ -85,8 +86,8 @@ class TransactionTest extends TestCase
         $this->assertEquals($sponsor->getPublicSignKey(), $transaction->sponsorPublicKey);
 
         $this->assertCount(2, $transaction->proofs);
-        $this->assertTrue($sender->verify($transaction->proofs[0], $transaction->toBinary()));
-        $this->assertTrue($sponsor->verify($transaction->proofs[1], $transaction->toBinary()));
+        $this->assertTrue($sender->verify($transaction->toBinary(), Binary::fromBase58($transaction->proofs[0])));
+        $this->assertTrue($sponsor->verify($transaction->toBinary(), Binary::fromBase58($transaction->proofs[1])));
     }
 
     public function testSponsorUnsignedTransaction()

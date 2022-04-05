@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace LTO\Transaction;
 
+use LTO\Account;
+use LTO\Binary;
 use LTO\Transaction;
-use function LTO\decode;
-use function LTO\encode;
 use function LTO\is_valid_address;
 
 /**
@@ -24,24 +24,51 @@ class MassTransfer extends Transaction
     public const TYPE = 11;
 
     /** Transaction version */
-    public const DEFAULT_VERSION  = 1;
+    public const DEFAULT_VERSION = 3;
 
     /**
-     * @var array<array{amount:int,recipient:string}>
+     * @var array<array{recipient:string,amount:int}>
      */
-    public $transfers = [];
+    public array $transfers = [];
 
-    /** @var string */
-    public $attachment = '';
+    public Binary $attachment;
 
 
     /**
      * Class constructor.
+     *
+     * @param array<array{recipient:string|Account,amount:int}> $transfers
+     * @param string|Binary                             $attachment
      */
-    public function __construct()
+    public function __construct(array $transfers = [], $attachment = '')
     {
         $this->version = self::DEFAULT_VERSION;
-        $this->fee = self::BASE_FEE;
+        $this->transfers = $this->sanitizeTransfers($transfers);
+        $this->fee = self::BASE_FEE + count($this->transfers) * self::ITEM_FEE;
+
+        $this->attachment = $attachment instanceof Binary ? $attachment : new Binary($attachment);
+    }
+
+    /**
+     * @param array<array{recipient:string|Account,amount:int}> $transfers
+     * @return array<array{recipient:string,amount:int}>
+     */
+    protected function sanitizeTransfers(array $transfers): array
+    {
+        $result = [];
+
+        foreach ($transfers as $tr) {
+            if (!isset($tr['recipient']) || !isset($tr['amount'])) {
+                throw new \InvalidArgumentException("Transfer should specify recipient and amount");
+            }
+
+            $result[] = [
+                'recipient' => $tr['recipient'] instanceof Account ? $tr['recipient']->getAddress() : $tr['recipient'],
+                'amount' => $tr['amount']
+            ];
+        }
+
+        return $result;
     }
 
     /**
@@ -80,23 +107,27 @@ class MassTransfer extends Transaction
         static::assertNoMissingKeys($data);
         static::assertType($data, static::TYPE);
 
+        $data['attachment'] = Binary::fromBase58($data['attachment'] ?? '');
+
         return static::createFromData($data);
     }
 
     /**
      * Add a transfer
      *
-     * @param string $recipient   Recipient address (base58 encoded)
-     * @param int    $amount      Amount of LTO (*10^8)
+     * @param string|Account $recipient   Recipient address (base58 encoded)
+     * @param int            $amount      Amount of LTO (*10^8)
      * @return $this
      */
-    public function addTransfer(string $recipient, int $amount): self
+    public function addTransfer($recipient, int $amount): self
     {
         if ($amount <= 0) {
             throw new \InvalidArgumentException("Invalid amount; should be greater than 0");
         }
 
-        if (!is_valid_address($recipient, 'base58')) {
+        if ($recipient instanceof Account) {
+            $recipient = $recipient->getAddress();
+        } elseif (!is_valid_address($recipient)) {
             throw new \InvalidArgumentException("Invalid recipient address; is it base58 encoded?");
         }
 
@@ -106,20 +137,6 @@ class MassTransfer extends Transaction
         ];
 
         $this->fee += self::ITEM_FEE;
-
-        return $this;
-    }
-
-    /**
-     * Set the transaction attachment message.
-     *
-     * @param string $message
-     * @param string $encoding  Encoding the message is in; 'raw', 'hex', 'base58', or 'base64'.
-     * @return $this
-     */
-    public function setAttachment(string $message, string $encoding = 'raw'): self
-    {
-        $this->attachment = encode(decode($message, $encoding), 'base58');
 
         return $this;
     }

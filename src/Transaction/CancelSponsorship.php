@@ -12,8 +12,8 @@ use function LTO\is_valid_address;
  */
 class CancelSponsorship extends AbstractSponsorship
 {
-    /** Minimum transaction fee */
-    public const MINIMUM_FEE = 500000000;
+    /** Default transaction fee */
+    public const DEFAULT_FEE = 500000000;
 
     /** Transaction type */
     public const TYPE = 19;

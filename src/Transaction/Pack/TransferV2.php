@@ -25,8 +25,6 @@ class TransferV2
             throw new \BadMethodCallException("Timestamp not set");
         }
 
-        $binaryAttachment = decode($tx->attachment, 'base58');
-
         return pack(
             'CCa32JJJa26na*',
             Transfer::TYPE,
@@ -36,8 +34,8 @@ class TransferV2
             $tx->amount,
             $tx->fee,
             decode($tx->recipient, 'base58'),
-            strlen($binaryAttachment),
-            $binaryAttachment
+            $tx->attachment->length(),
+            $tx->attachment->raw()
         );
     }
 }

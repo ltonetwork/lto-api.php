@@ -11,20 +11,23 @@ use LTO\Transaction;
  */
 class CancelLease extends Transaction
 {
-    /** Minimum transaction fee */
-    public const MINIMUM_FEE = 100000000;
+    /** Default transaction fee */
+    public const DEFAULT_FEE = 100000000;
 
     /** Transaction type */
     public const TYPE = 9;
 
     /** Transaction version */
-    public const DEFAULT_VERSION = 2;
+    public const DEFAULT_VERSION = 3;
 
-    /** @var string */
-    public $leaseId;
+    public string $leaseId;
 
-    /** @var Lease */
-    public $lease;
+    /**
+     * Lease transaction that was cancelled.
+     * Will not be set if only lease id is known.
+     */
+    public Lease $lease;
+
 
     /**
      * Class constructor.
@@ -34,7 +37,7 @@ class CancelLease extends Transaction
     public function __construct(string $leaseId)
     {
         $this->version = self::DEFAULT_VERSION;
-        $this->fee = self::MINIMUM_FEE;
+        $this->fee = self::DEFAULT_FEE;
 
         $this->leaseId = $leaseId;
     }
@@ -65,10 +68,8 @@ class CancelLease extends Transaction
     {
         $data = ['chainId' => ord($this->getNetwork())] + parent::jsonSerialize();
 
-        if ($this->lease !== null) {
+        if (isset($this->lease)) {
             $data['lease'] = $this->lease->jsonSerialize();
-        } else {
-            unset($data['lease']);
         }
 
         return $data;

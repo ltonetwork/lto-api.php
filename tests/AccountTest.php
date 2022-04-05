@@ -2,6 +2,7 @@
 
 namespace LTO\Tests;
 
+use LTO\Binary;
 use LTO\Event;
 use LTO\EventChain;
 use LTO\Account;
@@ -60,16 +61,19 @@ class AccountTest extends TestCase
 
     public function testGetNetworkWithoutAnAddress()
     {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage("Address not set");
+
         $this->account->address = null;
-        $this->assertNull($this->account->getNetwork());
+        $this->account->getNetwork();
     }
 
     public function testSign()
     {
         $signature = $this->account->sign("hello");
-        
+
         $this->assertEquals(
-            '5i9gBaHwg9UFPuwU63LBdBR29yZdRDstWM9z7oo8GzevWhBdAAWwCSRUQbPLaCT3nFgjbQuuWxVQckzCd3CoFig4',
+            Binary::fromBase58('5i9gBaHwg9UFPuwU63LBdBR29yZdRDstWM9z7oo8GzevWhBdAAWwCSRUQbPLaCT3nFgjbQuuWxVQckzCd3CoFig4'),
             $signature
         );
     }
@@ -89,11 +93,11 @@ class AccountTest extends TestCase
         $signature = $this->account->sign("hello");
 
         $this->assertEquals(
-            '5i9gBaHwg9UFPuwU63LBdBR29yZdRDstWM9z7oo8GzevWhBdAAWwCSRUQbPLaCT3nFgjbQuuWxVQckzCd3CoFig4',
+            Binary::fromBase58('5i9gBaHwg9UFPuwU63LBdBR29yZdRDstWM9z7oo8GzevWhBdAAWwCSRUQbPLaCT3nFgjbQuuWxVQckzCd3CoFig4'),
             $signature
         );
 
-        $this->account->verify($signature, "hello");
+        $this->account->verify("hello", $signature);
     }
 
     public function testSignAndVerifyOtherAccount()
@@ -109,11 +113,11 @@ class AccountTest extends TestCase
         $signature = $account->sign("hello");
         
         $this->assertEquals(
-            '2bu6zVLVJCtjuhiAmHiKhBHcvE9rQPCwDgMMwbQdEKfAZUYTp3DemCNteFAAFjZZFwnM2yKjCNx2uudMkQ8Jamp',
+            Binary::fromBase58('2bu6zVLVJCtjuhiAmHiKhBHcvE9rQPCwDgMMwbQdEKfAZUYTp3DemCNteFAAFjZZFwnM2yKjCNx2uudMkQ8Jamp'),
             $signature
         );
-        
-        $account->verify($signature, "hello");
+
+        $this->assertFalse($account->verify("hello", $signature));
     }
     
     public function testSignAndVerifyHash()
@@ -123,27 +127,13 @@ class AccountTest extends TestCase
         $signature = $this->account->sign($hash);        
         
         $this->assertEquals(
-            '5HHgRNtbEPRDok5JwBkP7YLDje6oJfJkpGtrxCB7WNKexxc1MqdXdhsDoETBmLD7XDNnhdeW73eLS7s2ApAR624H',
+            Binary::fromBase58('5HHgRNtbEPRDok5JwBkP7YLDje6oJfJkpGtrxCB7WNKexxc1MqdXdhsDoETBmLD7XDNnhdeW73eLS7s2ApAR624H'),
             $signature
         );
         
-        $this->account->verify($signature, $hash);
+        $this->account->verify($hash, $signature);
     }
-    
-    public function testSignAndVerifyHashBase64()
-    {
-        $message = 'hello';
-        $hash = hash('sha256', $message, true);
-        $signature = $this->account->sign($hash, 'base64');        
-        
-        $this->assertEquals(
-            '1h0g/FGh5lVNI1cIAcAYaqQjACkTABHqXTTdjgBzsfkWn5KUN5x03fxukQr80Vvkvm2JATHDJBxq96YPVP8WCg==',
-            $signature
-        );
-        
-        $this->account->verify($signature, $hash, 'base64');
-    }
-    
+
     public function testVerifyLTORequest()
     {
         $account = $this->createPartialMock(Account::class, ['getNonce']);
@@ -161,49 +151,58 @@ class AccountTest extends TestCase
             "content-length: 8192"
         ]);
         
-        $signatureMsg = $account->sign($msg, 'base64');
-        $this->assertEquals( 'qegUJyHIOASGArXct2F2me9p4ebCTkxHJSDCc+niAb9A+1Pl/hiz5cHTkzQ4ddWUTeBLknYN3FueNqOAIGFRBg==', $signatureMsg);
+        $signatureMsg = $account->sign($msg);
+        $this->assertEquals( Binary::fromBase64('qegUJyHIOASGArXct2F2me9p4ebCTkxHJSDCc+niAb9A+1Pl/hiz5cHTkzQ4ddWUTeBLknYN3FueNqOAIGFRBg=='), $signatureMsg);
         
-        $this->assertTrue($account->verify($signatureMsg, $msg, 'base64'));
+        $this->assertTrue($account->verify($msg, $signatureMsg));
         
-        $hash = hash('sha256', $msg, true);
-        $signatureHash = $account->sign($hash, 'base64');
-        $this->assertTrue($account->verify($signatureHash, $hash, 'base64'));
+        $hash = Binary::hash('sha256', $msg);
+        $signatureHash = $account->sign($hash);
+        $this->assertTrue($account->verify($hash, $signatureHash));
     }
 
-    public function testVerify()
+    public function verifyProvider()
     {
-        $signature = '5i9gBaHwg9UFPuwU63LBdBR29yZdRDstWM9z7oo8GzevWhBdAAWwCSRUQbPLaCT3nFgjbQuuWxVQckzCd3CoFig4';
+        return [
+            'string' => ['hello'],
+            'Binary' => [new Binary('hello')],
+        ];
+    }
 
-        $this->assertTrue($this->account->verify($signature, 'hello'));
+    /**
+     * @dataProvider verifyProvider
+     */
+    public function testVerify($message)
+    {
+        $signature = Binary::fromBase58('5i9gBaHwg9UFPuwU63LBdBR29yZdRDstWM9z7oo8GzevWhBdAAWwCSRUQbPLaCT3nFgjbQuuWxVQckzCd3CoFig4');
+
+        $this->assertTrue($this->account->verify($message, $signature));
     }
 
     public function testVerifyFail()
     {
-        $signature = '5i9gBaHwg9UFPuwU63LBdBR29yZdRDstWM9z7oo8GzevWhBdAAWwCSRUQbPLaCT3nFgjbQuuWxVQckzCd3CoFig4';
+        $signature = Binary::fromBase58('5i9gBaHwg9UFPuwU63LBdBR29yZdRDstWM9z7oo8GzevWhBdAAWwCSRUQbPLaCT3nFgjbQuuWxVQckzCd3CoFig4');
         
-        $this->assertFalse($this->account->verify($signature, 'not this'));
+        $this->assertFalse($this->account->verify('not this', $signature));
     }
 
     public function testVerifyWithoutPublicKey()
     {
         $this->account->sign = null;
 
-        $signature = '5i9gBaHwg9UFPuwU63LBdBR29yZdRDstWM9z7oo8GzevWhBdAAWwCSRUQbPLaCT3nFgjbQuuWxVQckzCd3CoFig4';
+        $signature = Binary::fromBase58('5i9gBaHwg9UFPuwU63LBdBR29yZdRDstWM9z7oo8GzevWhBdAAWwCSRUQbPLaCT3nFgjbQuuWxVQckzCd3CoFig4');
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage("Unable to verify message; no public sign key");
 
-        $this->account->verify($signature, 'hello');
+        $this->account->verify('hello', $signature);
     }
 
     public function testVerifyInvalid()
     {
-        $this->expectException(\InvalidArgumentException::class);
-
-        $signature = 'not a real signature';
+        $signature = new Binary('not a real signature');
         
-        $this->assertFalse(@$this->account->verify($signature, 'hello'));
+        $this->assertFalse($this->account->verify('hello', $signature));
     }
 
 
@@ -290,7 +289,7 @@ class AccountTest extends TestCase
     public function testDecryptFrom()
     {
         $recipient = $this->createSecondaryAccount();
-        $cyphertext = base58_decode('2246pmtzDem9GB15GmtULMXB7Vrr1wciQcHsQvrUsmapeaBQzqHNUcS4KYYu7D');
+        $cyphertext = Binary::fromBase58('2246pmtzDem9GB15GmtULMXB7Vrr1wciQcHsQvrUsmapeaBQzqHNUcS4KYYu7D');
         
         $message = $recipient->decryptFrom($this->account, $cyphertext);
         
@@ -305,7 +304,7 @@ class AccountTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage("Unable to decrypt message; no secret encryption key");
 
-        $cyphertext = base58_decode('2246pmtzDem9GB15GmtULMXB7Vrr1wciQcHsQvrUsmapeaBQzqHNUcS4KYYu7D');
+        $cyphertext = Binary::fromBase58('2246pmtzDem9GB15GmtULMXB7Vrr1wciQcHsQvrUsmapeaBQzqHNUcS4KYYu7D');
 
         $recipient->decryptFrom($this->account, $cyphertext);
     }
@@ -319,19 +318,19 @@ class AccountTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage("Unable to decrypt message; no public encryption key for sender");
 
-        $cyphertext = base58_decode('2246pmtzDem9GB15GmtULMXB7Vrr1wciQcHsQvrUsmapeaBQzqHNUcS4KYYu7D');
+        $cyphertext = Binary::fromBase58('2246pmtzDem9GB15GmtULMXB7Vrr1wciQcHsQvrUsmapeaBQzqHNUcS4KYYu7D');
 
         $recipient->decryptFrom($this->account, $cyphertext);
     }
 
     /**
-     * Try to encrypt a message with your own keys.
+     * Try to decrypt a message with your own keys.
      */
     public function testDecryptFromFail()
     {
         $this->expectException(\LTO\DecryptException::class);
 
-        $cyphertext = base58_decode('2246pmtzDem9GB15GmtULMXB7Vrr1wciQcHsQvrUsmapeaBQzqHNUcS4KYYu7D');
+        $cyphertext = Binary::fromBase58('2246pmtzDem9GB15GmtULMXB7Vrr1wciQcHsQvrUsmapeaBQzqHNUcS4KYYu7D');
         
         $this->account->decryptFrom($this->account, $cyphertext);
     }

@@ -30,8 +30,6 @@ class AssociationV3
             throw new \BadMethodCallException("Timestamp not set");
         }
 
-        $rawHash = decode($tx->hash, 'base58');
-
         return pack(
             'CCaJCa32Ja26NJna*',
             $tx::TYPE,
@@ -44,8 +42,8 @@ class AssociationV3
             decode($tx->recipient, 'base58'),
             $tx->associationType,
             $tx->expire ?? 0,
-            strlen($rawHash),
-            $rawHash
+            $tx->hash ? $tx->hash->length() : 0,
+            $tx->hash ? $tx->hash->raw() : ''
         );
     }
 }

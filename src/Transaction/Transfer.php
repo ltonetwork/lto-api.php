@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace LTO\Transaction;
 
+use LTO\Binary;
 use LTO\Transaction;
-use function LTO\decode;
-use function LTO\encode;
 use function LTO\is_valid_address;
 
 /**
@@ -14,32 +13,28 @@ use function LTO\is_valid_address;
  */
 class Transfer extends Transaction
 {
-    /** Minimum transaction fee */
-    public const MINIMUM_FEE = 100000000;
+    /** Default transaction fee */
+    public const DEFAULT_FEE = 100000000;
 
     /** Transaction type */
     public const TYPE = 4;
 
     /** Transaction version */
-    public const DEFAULT_VERSION = 2;
+    public const DEFAULT_VERSION = 3;
 
-    /** @var int */
-    public $amount;
-
-    /** @var string */
-    public $recipient;
-
-    /** @var string */
-    public $attachment = '';
+    public string $recipient;
+    public int $amount;
+    public Binary $attachment;
 
 
     /**
      * Class constructor.
      *
-     * @param int    $amount      Amount of LTO (*10^8)
-     * @param string $recipient   Recipient address (base58 encoded)
+     * @param int           $amount      Amount of LTO (*10^8)
+     * @param string        $recipient   Recipient address (base58 encoded)
+     * @param string|Binary $attachment
      */
-    public function __construct(string $recipient, int $amount)
+    public function __construct(string $recipient, int $amount, $attachment = '')
     {
         if ($amount <= 0) {
             throw new \InvalidArgumentException("Invalid amount; should be greater than 0");
@@ -50,10 +45,11 @@ class Transfer extends Transaction
         }
 
         $this->version = self::DEFAULT_VERSION;
-        $this->fee = self::MINIMUM_FEE;
+        $this->fee = self::DEFAULT_FEE;
 
         $this->amount = $amount;
         $this->recipient = $recipient;
+        $this->attachment = $attachment instanceof Binary ? $attachment : new Binary($attachment);
     }
 
     /**
@@ -91,20 +87,8 @@ class Transfer extends Transaction
         static::assertNoMissingKeys($data);
         static::assertType($data, static::TYPE);
 
+        $data['attachment'] = Binary::fromBase58($data['attachment'] ?? '');
+
         return static::createFromData($data);
-    }
-
-    /**
-     * Set the transaction attachment message.
-     *
-     * @param string $message
-     * @param string $encoding  Encoding the message is in; 'raw', 'hex', 'base58', or 'base64'.
-     * @return $this
-     */
-    public function setAttachment(string $message, string $encoding = 'raw'): self
-    {
-        $this->attachment = encode(decode($message, $encoding), 'base58');
-
-        return $this;
     }
 }

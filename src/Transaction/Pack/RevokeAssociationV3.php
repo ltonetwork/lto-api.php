@@ -30,8 +30,6 @@ class RevokeAssociationV3
             throw new \BadMethodCallException("Timestamp not set");
         }
 
-        $rawHash = decode($tx->hash, 'base58');
-
         return pack(
             'CCaJCa32Ja26Nna*',
             $tx::TYPE,
@@ -43,8 +41,8 @@ class RevokeAssociationV3
             $tx->fee,
             decode($tx->recipient, 'base58'),
             $tx->associationType,
-            strlen($rawHash),
-            $rawHash
+            $tx->hash ? $tx->hash->length() : 0,
+            $tx->hash ? $tx->hash->raw() : '',
         );
     }
 }

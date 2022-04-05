@@ -44,14 +44,8 @@ class AssociationV1
             $tx->associationType
         );
 
-        if ($tx->hash !== '') {
-            $rawHash = decode($tx->hash, 'base58');
-            $packed .= pack(
-                'Cna*',
-                1,
-                strlen($rawHash),
-                $rawHash
-            );
+        if ($tx->hash !== null) {
+            $packed .= pack('Cna*', 1, $tx->hash->length(), $tx->hash->raw());
         } else {
             $packed .= pack('C', 0);
         }

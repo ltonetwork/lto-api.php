@@ -25,8 +25,6 @@ class MassTransferV1
             throw new \BadMethodCallException("Timestamp not set");
         }
 
-        $binaryAttachment = decode($tx->attachment, 'base58');
-
         $packed = pack(
             'CCa32n',
             MassTransfer::TYPE,
@@ -47,8 +45,8 @@ class MassTransferV1
             'JJna*',
             $tx->timestamp,
             $tx->fee,
-            strlen($binaryAttachment),
-            $binaryAttachment
+            $tx->attachment->length(),
+            $tx->attachment->raw()
         );
 
         return $packed;
