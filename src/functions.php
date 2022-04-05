@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace LTO;
 
@@ -11,20 +13,24 @@ namespace LTO;
  */
 function encode(string $string, string $encoding): string
 {
-    if ($encoding === 'base58') {
-        $string = base58_encode($string);
-    }
-
-    if ($encoding === 'base64') {
-        $string = base64_encode($string);
-    }
-
-    if ($encoding === 'hex') {
-        $string = bin2hex($string);
+    switch ($encoding) {
+        case 'raw':
+            return $string;
+        case 'base58':
+            $string = base58_encode($string);
+            break;
+        case 'base64':
+            $string = base64_encode($string);
+            break;
+        case 'hex':
+            $string = bin2hex($string);
+            break;
+        default:
+            throw new \InvalidArgumentException("Unknown encoding '$encoding'");
     }
 
     if ($string === false) {
-        throw new \InvalidArgumentException("Failed to encode to '$encoding'");
+        throw new \InvalidArgumentException("Failed to encode to '$encoding'"); // @codeCoverageIgnore
     }
 
     return $string;
@@ -39,16 +45,20 @@ function encode(string $string, string $encoding): string
  */
 function decode(string $string, string $encoding): string
 {
-    if ($encoding === 'base58') {
-        $string = @base58_decode($string);
-    }
-
-    if ($encoding === 'base64') {
-        $string = @base64_decode($string, true);
-    }
-
-    if ($encoding === 'hex') {
-        $string = hex2bin($string);
+    switch ($encoding) {
+        case 'raw':
+            return $string;
+        case 'base58':
+            $string = @base58_decode($string);
+            break;
+        case 'base64':
+            $string = @base64_decode($string, true);
+            break;
+        case 'hex':
+            $string = @hex2bin($string);
+            break;
+        default:
+            throw new \InvalidArgumentException("Unknown encoding '$encoding'");
     }
 
     if ($string === false) {
@@ -57,6 +67,19 @@ function decode(string $string, string $encoding): string
     }
 
     return $string;
+}
+
+/**
+ * Decode and then encode a string
+ *
+ * @param string $string
+ * @param string $fromEncoding  'raw', 'hex', 'base58' or 'base64'
+ * @param string $toEncoding    'raw', 'hex', 'base58' or 'base64'
+ * @return string
+ */
+function recode(string $string, string $fromEncoding, string $toEncoding): string
+{
+    return $fromEncoding === $toEncoding ? $string : encode(decode($string, $fromEncoding), $toEncoding);
 }
 
 /**
@@ -77,13 +100,16 @@ function sha256(string $input): string
  * @param string $encoding  'raw', 'base58' or 'base64'
  * @return bool
  */
-function is_valid_address(string $address, string $encoding): bool
+function is_valid_address(string $address, string $encoding = 'base58'): bool
 {
     if ($encoding === 'base58' && !preg_match('/^[1-9A-HJ-NP-Za-km-z]+$/', $address)) {
         return false;
     }
 
-    if ($encoding === 'base64' && !preg_match('/^[A-Za-z0-9+/]+={0,2}$/', $address)) {
+    if (
+        $encoding === 'base64' &&
+        !preg_match('/^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/', $address)
+    ) {
         return false;
     }
 

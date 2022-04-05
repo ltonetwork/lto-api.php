@@ -8,9 +8,9 @@ use LTO\Transaction\SetScript;
 use function LTO\decode;
 
 /**
- * Callable to get binary for a set script transaction v1.
+ * Callable to get binary for a set script transaction v3.
  */
-class SetScriptV1
+class SetScriptV3
 {
     /**
      * Get binary (to sign) for transaction.
@@ -30,15 +30,16 @@ class SetScriptV1
             : '';
 
         return pack(
-            'CCaa26na*JJ',
+            'CCaJCa32Jna*',
             SetScript::TYPE,
             $tx->version,
             $tx->getNetwork(),
+            $tx->timestamp,
+            1, // key type 'ed25519'
             decode($tx->senderPublicKey, 'base58'),
-            strlen($binaryScript),
-            $binaryScript,
             $tx->fee,
-            $tx->timestamp
+            strlen($binaryScript),
+            $binaryScript
         );
     }
 }

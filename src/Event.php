@@ -143,7 +143,7 @@ class Event implements JsonSerializable
     public function signWith(Account $account)
     {
         $this->signkey = $account->getPublicSignKey();
-        $this->signature = $account->sign($this->getMessage());
+        $this->signature = $account->sign($this->getMessage())->base58();
         $this->hash = $this->getHash();
 
         return $this;

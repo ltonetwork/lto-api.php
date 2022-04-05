@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace LTO\Tests\Transaction;
 
+use LTO\Account;
 use LTO\AccountFactory;
+use LTO\Binary;
 use LTO\PublicNode;
+use LTO\Tests\CustomAsserts;
 use LTO\Transaction;
 use LTO\Transaction\Transfer;
 use PHPUnit\Framework\TestCase;
@@ -15,26 +18,46 @@ use function LTO\decode;
  * @covers \LTO\Transaction
  * @covers \LTO\Transaction\Transfer
  * @covers \LTO\Transaction\Pack\TransferV2
+ * @covers \LTO\Transaction\Pack\TransferV3
  */
 class TransferTest extends TestCase
 {
-    protected const ACCOUNT_SEED = "df3dd6d884714288a39af0bd973a1771c9f00f168cf040d6abb6a50dd5e055d8";
+    use CustomAsserts;
 
-    /** @var \LTO\Account */
-    protected $account;
+    protected Account $account;
+    protected string $recpient = "3NACnKFVN2DeFYjspHKfa2kvDqnPkhjGCD2";
+    protected int $amount = 100000000;
+    protected string $attachment = "hello";
 
     public function setUp(): void
     {
-        $this->account = (new AccountFactory('T'))->seed(self::ACCOUNT_SEED);
+        $this->account = (new AccountFactory('T'))->seed('test');
     }
 
-    public function testConstruct()
-    {
-        $transaction = new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
 
+    public function attachmentProvider()
+    {
+        return [
+            'none' => [''],
+            'string' => ['hello'],
+            'Binary' => [new Binary('hello')],
+        ];
+    }
+
+    /**
+     * @dataProvider attachmentProvider
+     */
+    public function testConstruct($attachment)
+    {
+        $transaction = new Transfer($this->recpient, 10000, $attachment);
+
+        $this->assertEquals(3, $transaction->version);
         $this->assertEquals(10000, $transaction->amount);
         $this->assertEquals(100000000, $transaction->fee);
-        $this->assertEquals('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', $transaction->recipient);
+        $this->assertEquals($this->recpient, $transaction->recipient);
+
+        $this->assertInstanceOf(Binary::class, $transaction->attachment);
+        $this->assertEquals((string)$attachment, (string)$transaction->attachment);
     }
 
     public function testConstructInvalidAmount()
@@ -65,32 +88,36 @@ class TransferTest extends TestCase
         new Transfer($recipient, 10000);
     }
 
-    public function attachmentProvider()
+    public function versionProvider()
     {
         return [
-            'raw' => ["Hello", 'raw'],
-            'hex' => [bin2hex("Hello"), 'hex'],
-            'base58' => [base58_encode("Hello"), 'base58'],
-            'base64' => [base64_encode("Hello"), 'base64'],
+            'v2' => [2, '3mpAPSojckMbTLycyr8EVtnHprFrM9wT5rzdQGt6tZy498ZFMZ3G4HEKbuNrFHzGG2ta8Nb9gqKyeoYUExFUue9H3NxT3Xj73GS3wXT2h2cAueFj4P4vfJf4U5x2'],
+            'v3' => [3, 'w5iNQ3SBaqD2bQyGfEd997ZhxsLG9WukRtCvnXxJEFJtWnDUXJwk4xy8WGwXehKqScok56yArNFgSFVeWdyAXncmEX8PxLGpJQyN1B6A7gS9Wh81G8nNa6tQKJ7Qte'],
         ];
     }
 
     /**
-     * @dataProvider attachmentProvider
+     * @dataProvider versionProvider
      */
-    public function testSetAttachment(string $message, string $encoding)
+    public function testToBinary(int $version, string $binary)
     {
-        $transaction = new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
-        $transaction->setAttachment($message, $encoding);
+        $transaction = new Transfer($this->recpient, $this->amount, $this->attachment);
+        $transaction->version = $version;
+        $transaction->sender = $this->account->getAddress();
+        $transaction->senderPublicKey = $this->account->getPublicSignKey();
+        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
-        $this->assertEquals('9Ajdvzr', $transaction->attachment);
+        $this->assertEqualsBase58($binary, $transaction->toBinary());
     }
 
-
-    public function testToBinaryNoSender()
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testToBinaryNoSender(int $version)
     {
-        $transaction = new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
-        $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
+        $transaction = new Transfer($this->recpient, $this->amount, $this->attachment);
+        $transaction->version = $version;
+        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage("Sender public key not set");
@@ -98,10 +125,15 @@ class TransferTest extends TestCase
         $transaction->toBinary();
     }
 
-    public function testToBinaryNoTimestamp()
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testToBinaryNoTimestamp(int $version)
     {
-        $transaction = new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
-        $transaction->senderPublicKey = '4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz';
+        $transaction = new Transfer($this->recpient, $this->amount, $this->attachment);
+        $transaction->version = $version;
+        $transaction->sender = $this->account->getAddress();
+        $transaction->senderPublicKey = $this->account->getPublicSignKey();
 
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage("Timestamp not set");
@@ -111,7 +143,7 @@ class TransferTest extends TestCase
 
     public function testToBinaryWithUnsupportedVersion()
     {
-        $transaction = new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
+        $transaction = new Transfer($this->recpient, $this->amount, $this->attachment);
         $transaction->version = 99;
 
         $this->expectException(\UnexpectedValueException::class);
@@ -121,10 +153,13 @@ class TransferTest extends TestCase
     }
 
 
-    public function testSign()
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testSign(int $version)
     {
-        $transaction = new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
-        $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
+        $transaction = new Transfer($this->recpient, $this->amount, $this->attachment);
+        $transaction->version = $version;
 
         $this->assertFalse($transaction->isSigned());
 
@@ -133,14 +168,14 @@ class TransferTest extends TestCase
 
         $this->assertTrue($transaction->isSigned());
 
-        $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
-        $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
-        $this->assertEquals('fn8c7LUg6pTEkrK9C69E8fhhkdv4jeFrB8qWKfMf51rv79p21DoytK2vH8cJKFVSWE5V2tTrXcFtxbAyg2PXbHo', $transaction->proofs[0]);
+        $this->assertEquals($this->account->getAddress(), $transaction->sender);
+        $this->assertEquals($this->account->getPublicSignKey(), $transaction->senderPublicKey);
 
-        // Unchanged
-        $this->assertEquals((new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp(), $transaction->timestamp);
+        $this->assertTimestampIsNow($transaction->timestamp);
 
-        $this->assertTrue($this->account->verify($transaction->proofs[0], $transaction->toBinary()));
+        $this->assertTrue(
+            $this->account->verify($transaction->toBinary(), Binary::fromBase58($transaction->proofs[0]))
+        );
     }
 
     public function dataProvider()
@@ -149,12 +184,13 @@ class TransferTest extends TestCase
             'type' => 4,
             'version' => 2,
             'sender' => '3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM',
+            'senderKeyType' => 'ed25519',
             'senderPublicKey' => '7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7',
             'fee' => 100000000,
             'timestamp' => 1609773456000,
             'amount' => 120000000,
             'recipient' => '3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh',
-            'attachment' => '9Ajdvzr',
+            'attachment' => 'Cn8eVZg',
             'proofs' => [
                 '57Ysp2ugieiidpiEtutzyfJkEugxG43UXXaKEqzU3c2oLmN8qd3hzEFQoNL93R1SvyXemnnTBNtfhfCM2PenmQqa',
             ],
@@ -162,6 +198,7 @@ class TransferTest extends TestCase
 
         return [
             'new' => [$data, null, null],
+            'no senderKeyType' => [array_diff_key($data, ['senderKeyType' => null]), null, null],
             'unconfirmed' => [$data, '7cCeL1qwd9i6u8NgMNsQjBPxVhrME2BbfZMT1DF9p4Yi', null],
             'confirmed' => [$data, '7cCeL1qwd9i6u8NgMNsQjBPxVhrME2BbfZMT1DF9p4Yi', 1215007],
         ];
@@ -182,12 +219,13 @@ class TransferTest extends TestCase
 
         $this->assertEquals($id, $transaction->id);
         $this->assertEquals('3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM', $transaction->sender);
+        $this->assertEquals('ed25519', $transaction->senderKeyType);
         $this->assertEquals('7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7', $transaction->senderPublicKey);
         $this->assertEquals(100000000, $transaction->fee);
         $this->assertEquals(1609773456000, $transaction->timestamp);
         $this->assertEquals(120000000, $transaction->amount);
         $this->assertEquals('3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh', $transaction->recipient);
-        $this->assertEquals('9Ajdvzr', $transaction->attachment);
+        $this->assertEquals(new Binary('hello'), $transaction->attachment);
         $this->assertEquals(
             ['57Ysp2ugieiidpiEtutzyfJkEugxG43UXXaKEqzU3c2oLmN8qd3hzEFQoNL93R1SvyXemnnTBNtfhfCM2PenmQqa'],
             $transaction->proofs
@@ -198,9 +236,20 @@ class TransferTest extends TestCase
     public function testFromDataWithMissingKeys()
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid data, missing keys: amount, recipient, attachment, version, sender, senderPublicKey, timestamp, fee, proofs");
+        $this->expectExceptionMessage("Invalid data, missing keys: recipient, amount, attachment, version, sender, senderPublicKey, timestamp, fee, proofs");
 
         Transaction::fromData(['type' => Transfer::TYPE]);
+    }
+
+    public function testFromDataWithMissingSponsorKeys()
+    {
+        $data = $this->dataProvider()['confirmed'][0];
+        $data['sponsor'] = '3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1';
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Invalid data, missing keys: sponsorPublicKey");
+
+        Transaction::fromData($data);
     }
 
     public function testFromDataWithIncorrectType()
@@ -221,18 +270,20 @@ class TransferTest extends TestCase
     {
         if ($id !== null) $data += ['id' => $id];
         if ($height !== null) $data += ['height' => $height];
+        $data += ['senderKeyType' => 'ed25519'];
 
         $transaction = new Transfer('3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh', 120000000);
         $transaction->id = $id;
+        $transaction->version = 2;
         $transaction->sender = '3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM';
         $transaction->senderPublicKey = '7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7';
         $transaction->fee = 100000000;
         $transaction->timestamp = 1609773456000;
-        $transaction->attachment = '9Ajdvzr';
+        $transaction->attachment = new Binary('hello');
         $transaction->proofs[] = '57Ysp2ugieiidpiEtutzyfJkEugxG43UXXaKEqzU3c2oLmN8qd3hzEFQoNL93R1SvyXemnnTBNtfhfCM2PenmQqa';
         $transaction->height = $height;
 
-        $this->assertEquals($data, $transaction->jsonSerialize());
+        $this->assertEqualsAsJson($data, $transaction);
     }
 
     public function testBroadcast()

@@ -3,6 +3,7 @@
 namespace LTO\Account;
 
 use LTO\AccountFactory;
+use LTO\Binary;
 use LTO\InvalidAccountException;
 
 /**
@@ -11,17 +12,13 @@ use LTO\InvalidAccountException;
  */
 class VerifyCallback
 {
-    /**
-     * @var AccountFactory
-     */
-    protected $accountFactory;
+    protected AccountFactory $accountFactory;
 
     /**
      * Public key encoding.
-     * @var string
      * @options raw,base58,base64
      */
-    protected $encoding;
+    protected string $encoding;
 
     /**
      * Class constructor.
@@ -67,6 +64,6 @@ class VerifyCallback
             $message = hash($hashAlgo, $message, true);
         }
 
-        return $account->verify($signature, $message, 'raw');
+        return $account->verify($message, Binary::fromRaw($signature));
     }
 }

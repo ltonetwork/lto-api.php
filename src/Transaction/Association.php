@@ -4,56 +4,19 @@ declare(strict_types=1);
 
 namespace LTO\Transaction;
 
-use LTO\Transaction;
-use function LTO\decode;
-use function LTO\encode;
-use function LTO\is_valid_address;
+use LTO\UnsupportedFeatureException;
 
 /**
  * LTO transaction to invoke an association.
  */
-class Association extends Transaction
+class Association extends AbstractAssociation
 {
-    /** Minimum transaction fee */
-    public const MINIMUM_FEE = 100000000;
-
     /** Transaction type */
     public const TYPE = 16;
 
-    /** Transaction version */
-    public const DEFAULT_VERSION  = 1;
+    /** Epoch in milliseconds */
+    public ?int $expire = null;
 
-    /** @var string */
-    public $party;
-
-    /** @var int */
-    public $associationType;
-
-    /** @var string */
-    public $hash;
-
-
-    /**
-     * Class constructor.
-     *
-     * @param string $party     Recipient address (base58 encoded)
-     * @param int    $type      Association type
-     * @param string $hash      Association hash
-     * @param string $encoding  'raw', 'hex', 'base58', or 'base64'
-     */
-    public function __construct(string $party, int $type, string $hash = '', string $encoding = 'hex')
-    {
-        if (!is_valid_address($party, 'base58')) {
-            throw new \InvalidArgumentException("Invalid party address; is it base58 encoded?");
-        }
-
-        $this->version = self::DEFAULT_VERSION;
-        $this->fee = self::MINIMUM_FEE;
-
-        $this->party = $party;
-        $this->associationType = $type;
-        $this->hash = encode(decode($hash, $encoding), 'base58');
-    }
 
     /**
      * Prepare signing the transaction.
@@ -64,34 +27,38 @@ class Association extends Transaction
             case 1:
                 $pack = new Pack\AssociationV1();
                 break;
+            case 3:
+                $pack = new Pack\AssociationV3();
+                break;
             default:
-                throw new \UnexpectedValueException("Unsupported association tx version {$this->version}");
+                throw new \UnexpectedValueException("Unsupported association tx version $this->version");
         }
 
         return $pack($this);
     }
 
     /**
-     * @inheritDoc
-     */
-    public static function fromData(array $data)
-    {
-        static::assertNoMissingKeys($data, ['id', 'height', 'hash']);
-        static::assertType($data, static::TYPE);
-
-        return static::createFromData($data);
-    }
-
-    /**
-     * Get the anchor hash.
+     * Set expiry date.
      *
-     * @param string $encoding 'raw', 'hex', 'base58', or 'base64'
-     * @return string
+     * @param int|\DateTimeInterface|null $time  epoch in milliseconds
+     * @return $this
      */
-    public function getHash(string $encoding = 'hex'): string
+    public function expires($time): self
     {
-        return $encoding === 'base58'
-            ? $this->hash
-            : encode(decode($this->hash, 'base58'), $encoding);
+        if (!is_int($time) && $time !== null && !($time instanceof \DateTimeInterface)) {
+            throw new \InvalidArgumentException("Time should be an int, DateTime, or null");
+        }
+
+        if ($this->version < 3 && $time !== null) {
+            throw new UnsupportedFeatureException(
+                "Association expiry isn't supported for association tx v{$this->version}. At least v3 is required"
+            );
+        }
+
+        $this->expire = $time instanceof \DateTimeInterface
+            ? $time->getTimestamp() * 1000
+            : $time;
+
+        return $this;
     }
 }

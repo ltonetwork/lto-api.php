@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace LTO\Tests\Transaction;
 
+use LTO\Account;
 use LTO\AccountFactory;
+use LTO\Binary;
 use LTO\PublicNode;
+use LTO\Tests\CustomAsserts;
 use LTO\Transaction;
 use LTO\Transaction\RevokeAssociation;
 use PHPUnit\Framework\TestCase;
@@ -14,54 +17,46 @@ use function LTO\encode;
 
 /**
  * @covers \LTO\Transaction
+ * @covers \LTO\Transaction\AbstractAssociation
  * @covers \LTO\Transaction\RevokeAssociation
  * @covers \LTO\Transaction\Pack\AssociationV1
+ * @covers \LTO\Transaction\Pack\RevokeAssociationV3
  */
 class RevokeAssociationTest extends TestCase
 {
-    protected const ACCOUNT_SEED = "df3dd6d884714288a39af0bd973a1771c9f00f168cf040d6abb6a50dd5e055d8";
+    use CustomAsserts;
 
-    /** @var \LTO\Account */
-    protected $account;
+    protected Account $account;
+    protected Binary $hash;
+    protected string $recipient = "3NACnKFVN2DeFYjspHKfa2kvDqnPkhjGCD2";
+    protected int $associationType = 10;
 
     public function setUp(): void
     {
-        $this->account = (new AccountFactory('T'))->seed(self::ACCOUNT_SEED);
+        $this->account = (new AccountFactory('T'))->seed('test');
+        $this->hash = Binary::hash('sha256', ''); // e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
     }
 
-    public function testConstruct()
-    {
-        $transaction = new RevokeAssociation('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 42);
-
-        $this->assertEquals(100000000, $transaction->fee);
-        $this->assertEquals('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', $transaction->party);
-        $this->assertEquals(42, $transaction->associationType);
-    }
-
-    public function encodedHashProvider()
+    public function hashProvider()
     {
         return [
-            'raw' => [hash('sha256', 'foo', true), 'raw'],
-            'hex' => [hash('sha256', 'foo'), 'hex'],
-            'base58' => [encode(hash('sha256', 'foo', true), 'base58'), 'base58'],
-            'base64' => [encode(hash('sha256', 'foo', true), 'base64'), 'base64'],
+            'no hash' => [null],
+            'with hash' => [Binary::hash('sha256', '')],
         ];
     }
 
     /**
-     * @dataProvider encodedHashProvider
+     * @dataProvider hashProvider
      */
-    public function testConstructWithHash(string $hash, string $encoding)
+    public function testConstruct(?Binary $hash)
     {
-        $transaction = new RevokeAssociation('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 42, $hash, $encoding);
+        $transaction = new RevokeAssociation($this->recipient, $this->associationType, $hash);
 
+        $this->assertEquals(3, $transaction->version);
         $this->assertEquals(100000000, $transaction->fee);
-        $this->assertEquals('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', $transaction->party);
-        $this->assertEquals(42, $transaction->associationType);
-        $this->assertEquals(
-            base58_encode(hash('sha256', 'foo', true)),
-            $transaction->hash
-        );
+        $this->assertEquals($this->recipient, $transaction->recipient);
+        $this->assertEquals($this->associationType, $transaction->associationType);
+        $this->assertEquals($hash, $transaction->hash);
     }
 
     public function invalidPartyProvider()
@@ -76,18 +71,56 @@ class RevokeAssociationTest extends TestCase
     /**
      * @dataProvider invalidPartyProvider
      */
-    public function testConstructInvalidparty($party)
+    public function testConstructInvalidRecipient($recipient)
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid party address; is it base58 encoded?");
+        $this->expectExceptionMessage("Invalid recipient address; is it base58 encoded?");
 
-        new RevokeAssociation($party, 42);
+        new RevokeAssociation($recipient, 42);
     }
 
-    public function testToBinaryNoSender()
+    public function binaryProvider()
+    {
+        return [
+            'v1 no hash' =>    [1, null, '4cPA5ptXZVH1cyKv9QsbuwEnyYDC4fkhsWGXBiAqg3J2GwvSJGfWbFJZyrQFv4YFiLmRk1bujJ5SRnxPvmpL7ZFp2YBwcWsXGZ131keSm9FGjar3'],
+            'v1 empty hash' => [1, Binary::fromRaw(''), '2DL6ESPfaqqeyymuf7DXDhv3ymMAMhhmpG9jN1aMrcEzUfbvJBizCrBJJLMYhykHfVRFByFm5uNnJ6Gd5s4S27QyLBu9sb9iVHjuTtEG9BoCkB8TBaX'],
+            'v1 with hash' =>  [1, Binary::hash('sha256', ''), 'Mtk66u6Lgfp2fXdDBc6iJdy3kkqXGd2nKwJ9za7Bn89L35oac1cYDo5qEBKEYtppLX7Ejz7wvSCVwGgPZ4pf5dyfwCuURnQPDXseyMeifnbx43WZKqGK79LXrM4yRhWVtuBDCwDS2rTuxKhCTEfspkdDZMyKLj'],
+            'v3 no hash' =>    [3, null, '2DMxufSJvg2zrpkUtNDWGqFVvoRmaMbBX4FHpRANPMcoK942dTgut3aoNpZ3fnX9V7UGgLdamn5b6qWC7C3gpVccXQwij7952sdSs5GgAK2oybEFJZV'],
+            'v3 empty hash' => [3, Binary::fromRaw(''), '2DMxufSJvg2zrpkUtNDWGqFVvoRmaMbBX4FHpRANPMcoK942dTgut3aoNpZ3fnX9V7UGgLdamn5b6qWC7C3gpVccXQwij7952sdSs5GgAK2oybEFJZV'],
+            'v3 with hash' =>  [3, Binary::hash('sha256', ''), 'MuJNYwF55DHZPH5tYRqWDwmUN4jJf7NPAvZv1Usrg1QG2LeiUZPeJgzvAUbfv8eD9hsXPK7RZ8VBSR75yZkAPuN34jCTRo76gZzFNWWD75q1sePthZSGdwFFoyixZjEsHzqbPnX7p9juESrhDi8bYzJvuWJSYL'],
+        ];
+    }
+
+    /**
+     * @dataProvider binaryProvider
+     */
+    public function testToBinary(int $version, ?Binary $hash, string $binary)
+    {
+        $transaction = new RevokeAssociation($this->recipient, $this->associationType, $hash);
+        $transaction->sender = $this->account->getAddress();
+        $transaction->senderPublicKey = $this->account->getPublicSignKey();
+        $transaction->version = $version;
+        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
+
+        $this->assertEqualsBase58($binary, $transaction->toBinary());
+    }
+
+    public function versionProvider()
+    {
+        return [
+            'v1' => [1],
+            'v3' => [3],
+        ];
+    }
+
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testToBinaryNoSender(int $version)
     {
         $transaction = new RevokeAssociation('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 42);
-        $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
+        $transaction->version = $version;
+        $transaction->timestamp = strtotime('2018-03-01T00:00:00+00:00') * 1000;
 
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage("Sender public key not set");
@@ -95,9 +128,13 @@ class RevokeAssociationTest extends TestCase
         $transaction->toBinary();
     }
 
-    public function testToBinaryNoTimestamp()
+    /**
+     * @dataProvider versionProvider
+     */
+    public function testToBinaryNoTimestamp(int $version)
     {
         $transaction = new RevokeAssociation('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 42);
+        $transaction->version = $version;
         $transaction->senderPublicKey = '4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz';
 
         $this->expectException(\BadMethodCallException::class);
@@ -118,27 +155,23 @@ class RevokeAssociationTest extends TestCase
     }
 
 
-    public function hashProvider()
+    public function signProvider()
     {
         return [
-            'with hash' => [
-                hash('sha256', 'foo'),
-                '66XHTtBAa3XDmhThKb43zRUBBAEk73B9Bcs1Dx4UwhQUjnaSUUhVVKsYzN1hfZaURALDq1tV83WUW6GbTAyM7zjQ',
-            ],
-            'without hash' => [
-                '',
-                '3MHD8faY9rNpYh58KdLZxdp9Btby3SkzmtCv7R4sM1EvccKvRD4rKXua5h4ENsCkrkfNkApNF7UqxR5M2C3GXXWZ',
-            ],
+            'v1 with hash' => [1, Binary::hash('sha256', 'foo')],
+            'v1 no hash' => [1, null],
+            'v3 with hash' => [3, Binary::hash('sha256', 'foo')],
+            'v3 no hash' => [3, null],
         ];
     }
 
     /**
-     * @dataProvider hashProvider
+     * @dataProvider signProvider
      */
-    public function testSign(string $hash, string $signature)
+    public function testSign(int $version, ?Binary $hash)
     {
-        $transaction = new RevokeAssociation('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 42, $hash);
-        $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
+        $transaction = new RevokeAssociation($this->recipient, $this->associationType, $hash);
+        $transaction->version = $version;
 
         $this->assertFalse($transaction->isSigned());
 
@@ -147,16 +180,14 @@ class RevokeAssociationTest extends TestCase
 
         $this->assertTrue($transaction->isSigned());
 
-        $this->assertEquals($hash === '' ? 82 : 116, strlen($transaction->toBinary()));
+        $this->assertEquals($this->account->getAddress(), $transaction->sender);
+        $this->assertEquals($this->account->getPublicSignKey(), $transaction->senderPublicKey);
 
-        $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
-        $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
-        $this->assertEquals($signature, $transaction->proofs[0]);
+        $this->assertTimestampIsNow($transaction->timestamp);
 
-        // Unchanged
-        $this->assertEquals((new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp(), $transaction->timestamp);
-
-        $this->assertTrue($this->account->verify($transaction->proofs[0], $transaction->toBinary()));
+        $this->assertTrue(
+            $this->account->verify($transaction->toBinary(), Binary::fromBase58($transaction->proofs[0]))
+        );
     }
 
     public function dataProvider()
@@ -164,10 +195,11 @@ class RevokeAssociationTest extends TestCase
         $data = [
             "type" => 17,
             "version" => 1,
-            "party" => "3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh",
+            "recipient" => "3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh",
             "associationType" => 42,
             "hash" => "3yMApqCuCjXDWPrbjfR5mjCPTHqFG8Pux1TxQrEM35jj",
             "sender" => "3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM",
+            'senderKeyType' => 'ed25519',
             "senderPublicKey" => "7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7",
             "timestamp" => 1610154732000,
             "fee" => 100000000,
@@ -201,7 +233,7 @@ class RevokeAssociationTest extends TestCase
         $this->assertEquals('7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7', $transaction->senderPublicKey);
         $this->assertEquals(100000000, $transaction->fee);
         $this->assertEquals(1610154732000, $transaction->timestamp);
-        $this->assertEquals('3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh', $transaction->party);
+        $this->assertEquals('3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh', $transaction->recipient);
         $this->assertEquals(
             ['4NrsjbkkWyH4K57jf9MQ5Ya9ccvXtCg2BQV2LsHMMacZZojbcRgesB1MruVQtCaZdvFSswwju5zCxisG3ZaQ2LKF'],
             $transaction->proofs
@@ -212,7 +244,7 @@ class RevokeAssociationTest extends TestCase
     public function testFromDataWithMissingKeys()
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("Invalid data, missing keys: party, associationType, version, sender, senderPublicKey, timestamp, fee, proofs");
+        $this->expectExceptionMessage("Invalid data, missing keys: recipient, associationType, version, sender, senderPublicKey, timestamp, fee, proofs");
 
         Transaction::fromData(['type' => RevokeAssociation::TYPE]);
     }
@@ -236,19 +268,17 @@ class RevokeAssociationTest extends TestCase
         if ($id !== null) $data += ['id' => $id];
         if ($height !== null) $data += ['height' => $height];
 
-        $transaction = new RevokeAssociation('3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh', 46, hash('sha256', 'foo'));
+        $transaction = new RevokeAssociation('3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh', 42, Binary::hash('sha256', 'foo'));
         $transaction->id = $id;
+        $transaction->version = 1;
         $transaction->sender = '3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM';
         $transaction->senderPublicKey = '7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7';
         $transaction->fee = 100000000;
         $transaction->timestamp = 1610154732000;
-        $transaction->party = '3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh';
-        $transaction->associationType = 42;
-        $transaction->hash = encode(hash('sha256', 'foo', true), 'base58');
         $transaction->proofs[] = '4NrsjbkkWyH4K57jf9MQ5Ya9ccvXtCg2BQV2LsHMMacZZojbcRgesB1MruVQtCaZdvFSswwju5zCxisG3ZaQ2LKF';
         $transaction->height = $height;
 
-        $this->assertEquals($data, $transaction->jsonSerialize());
+        $this->assertEqualsAsJson($data, $transaction);
     }
 
     public function testBroadcast()
@@ -266,16 +296,5 @@ class RevokeAssociationTest extends TestCase
         $ret = $transaction->broadcastTo($node);
 
         $this->assertSame($broadcastedTransaction, $ret);
-    }
-
-
-    /**
-     * @dataProvider encodedHashProvider
-     */
-    public function testGetHash(string $hash, string $encoding)
-    {
-        $transaction = new RevokeAssociation('3N9ChkxWXqgdWLLErWFrSwjqARB6NtYsvZh', 46, hash('sha256', 'foo'));
-
-        $this->assertEquals($hash, $transaction->getHash($encoding));
     }
 }

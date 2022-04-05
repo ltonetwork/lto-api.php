@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace LTO\Transaction\Pack;
 
-use LTO\Transaction\CancelSponsor;
+use LTO\Transaction\Lease;
 use function LTO\decode;
 
 /**
- * Callable to get binary for a cancel sponsor transaction v1.
+ * Callable to get binary for a lease transaction v3.
  */
-class CancelSponsorV1
+class LeaseV3
 {
     /**
      * Get binary (to sign) for transaction.
      */
-    public function __invoke(CancelSponsor $tx): string
+    public function __invoke(Lease $tx): string
     {
         if ($tx->senderPublicKey === null) {
             throw new \BadMethodCallException("Sender public key not set");
@@ -26,14 +26,16 @@ class CancelSponsorV1
         }
 
         return pack(
-            'CCaa32a26JJ',
-            CancelSponsor::TYPE,
+            'CCaJCa32Ja26J',
+            Lease::TYPE,
             $tx->version,
             $tx->getNetwork(),
-            decode($tx->senderPublicKey, 'base58'),
-            decode($tx->recipient, 'base58'),
             $tx->timestamp,
-            $tx->fee
+            1, // key type 'ed25519'
+            decode($tx->senderPublicKey, 'base58'),
+            $tx->fee,
+            decode($tx->recipient, 'base58'),
+            $tx->amount
         );
     }
 }

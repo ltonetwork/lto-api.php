@@ -9,6 +9,7 @@ build:
     analysis:
       environment:
         php: 7.4
+        mysql: false
         postgresql: false
         redis: false
         mongodb: false
@@ -20,4 +21,3 @@ build:
                 file: phpstan-checkstyle.xml
                 format: 'general-checkstyle'
             - php-scrutinizer-run
-

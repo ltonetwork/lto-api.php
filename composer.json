@@ -5,8 +5,8 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "LegalThings",
-            "email": "info@legalthings.io"
+            "name": "LTO Network",
+            "email": "info@ltonetwork.com"
         },
         {
             "name": "Arnold Daniels",
@@ -24,7 +24,7 @@
         "bin/lto-sign"
     ],
     "require": {
-        "php": ">=7.2.0",
+        "php": ">=7.4.0",
         "ext-json": "*",
         "ext-sodium": "*",
         "legalthings/base58-compat": "^0.1.0",

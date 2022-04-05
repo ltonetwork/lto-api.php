@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace LTO\Tests;
 
+use LTO\Account;
 use LTO\AccountFactory;
+use LTO\Binary;
 use LTO\Transaction;
 use LTO\Transaction\Transfer;
 use PHPUnit\Framework\TestCase;
@@ -24,6 +26,24 @@ class TransactionTest extends TestCase
         $this->account = (new AccountFactory('T'))->seed(self::ACCOUNT_SEED);
     }
 
+    /**
+     * Create a number of accounts.
+     *
+     * @param int $count  Number of accounts to create
+     * @return Account[]
+     */
+    protected function getAccounts(int $count): array
+    {
+        $accountFactory = new AccountFactory('T');
+        $accounts = [];
+
+        for ($nonce = 0; $nonce < $count; $nonce++) {
+            $accounts[] = $accountFactory->seed(self::ACCOUNT_SEED, $nonce);
+        }
+
+        return $accounts;
+    }
+
     public function testSignSetTimestamp()
     {
         $transaction = (new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000))
@@ -35,30 +55,49 @@ class TransactionTest extends TestCase
 
     public function testMultiSig()
     {
-        $accountFactory = new AccountFactory('T');
-        $account0 = $accountFactory->seed(self::ACCOUNT_SEED, 0);
-        $account1 = $accountFactory->seed(self::ACCOUNT_SEED, 1);
-        $account2 = $accountFactory->seed(self::ACCOUNT_SEED, 2);
+        [$account0, $account1, $account2] = $this->getAccounts(3);
 
-        $transaction = new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
-        $transaction->timestamp = (new \DateTime('2018-03-01T00:00:00+00:00'))->getTimestamp();
-
-        $transaction
+        $transaction = (new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000))
             ->signWith($account0)
             ->signWith($account1)
             ->signWith($account2);
 
-        $this->assertEquals('3MtHYnCkd3oFZr21yb2vEdngcSGXvuNNCq2', $transaction->sender);
-        $this->assertEquals('4EcSxUkMxqxBEBUBL2oKz3ARVsbyRJTivWpNrYQGdguz', $transaction->senderPublicKey);
+        $this->assertEquals($account0->getAddress(), $transaction->sender);
+        $this->assertEquals($account0->getPublicSignKey(), $transaction->senderPublicKey);
 
         $this->assertCount(3, $transaction->proofs);
-        $this->assertEquals('fn8c7LUg6pTEkrK9C69E8fhhkdv4jeFrB8qWKfMf51rv79p21DoytK2vH8cJKFVSWE5V2tTrXcFtxbAyg2PXbHo', $transaction->proofs[0]);
-        $this->assertEquals('4TjN2rncEDRWfmWiYpku3HVuwkPwV4VkLjWL9C7t1cL3yho6ksPRxv2RNiuFM9Mr8oH891TigNiBQF3KAmNbYYPN', $transaction->proofs[1]);
-        $this->assertEquals('2ngdvNhkTMkNK3hvhUcU9gqcJB2sRbZD7av9GygzhCk1xQuJ38gPnpNPjksedUqsrprr5Lnrj1JxE5WcCNzrc4y4', $transaction->proofs[2]);
+        $this->assertTrue($account0->verify($transaction->toBinary(), Binary::fromBase58($transaction->proofs[0])));
+        $this->assertTrue($account1->verify($transaction->toBinary(), Binary::fromBase58($transaction->proofs[1])));
+        $this->assertTrue($account2->verify($transaction->toBinary(), Binary::fromBase58($transaction->proofs[2])));
+    }
 
-        $this->assertTrue($account0->verify($transaction->proofs[0], $transaction->toBinary()));
-        $this->assertTrue($account1->verify($transaction->proofs[1], $transaction->toBinary()));
-        $this->assertTrue($account2->verify($transaction->proofs[2], $transaction->toBinary()));
+    public function testSponsor()
+    {
+        [$sender, $sponsor] = $this->getAccounts(3);
+
+        $transaction = (new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000))
+            ->signWith($sender)
+            ->sponsorWith($sponsor);
+
+        $this->assertEquals($sender->getAddress(), $transaction->sender);
+        $this->assertEquals($sender->getPublicSignKey(), $transaction->senderPublicKey);
+
+        $this->assertEquals($sponsor->getAddress(), $transaction->sponsor);
+        $this->assertEquals($sponsor->getPublicSignKey(), $transaction->sponsorPublicKey);
+
+        $this->assertCount(2, $transaction->proofs);
+        $this->assertTrue($sender->verify($transaction->toBinary(), Binary::fromBase58($transaction->proofs[0])));
+        $this->assertTrue($sponsor->verify($transaction->toBinary(), Binary::fromBase58($transaction->proofs[1])));
+    }
+
+    public function testSponsorUnsignedTransaction()
+    {
+        $transaction = new Transfer('3N3Cn2pYtqzj7N9pviSesNe8KG9Cmb718Y1', 10000);
+
+        $this->expectException(\BadMethodCallException::class);
+        $this->expectExceptionMessage("Transaction isn't signed");
+
+        $transaction->sponsorWith($this->account);
     }
 
     public function testFromDataWithoutType()

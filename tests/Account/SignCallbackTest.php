@@ -4,6 +4,7 @@ namespace LTO\Tests\Account;
 
 use LTO\Account;
 use LTO\Account\SignCallback;
+use LTO\Binary;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -26,6 +27,8 @@ class SignCallbackTest extends TestCase
      */
     public function test(?string $hashAlgo)
     {
+        $signature = new Binary('__mock_signature__');
+
         $message = $hashAlgo === null ? 'hello' : hash($hashAlgo, 'hello', true);
 
         $account = $this->createMock(Account::class);
@@ -37,7 +40,7 @@ class SignCallbackTest extends TestCase
             ->willReturn('GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY');
         $account->expects($this->once())->method('sign')
             ->with($message)
-            ->willReturn('__mock_signature__'); // Would normally return the signature
+            ->willReturn($signature);
 
         $algo = 'ed25519' . ($hashAlgo !== null ? '-' . $hashAlgo : '');
 

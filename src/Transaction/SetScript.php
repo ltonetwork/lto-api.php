@@ -4,28 +4,29 @@ declare(strict_types=1);
 
 namespace LTO\Transaction;
 
+use LTO\Transaction;
+
 /**
  * Transaction to create a smart account by setting a script.
  *
  * Note: the script needs to be compiled before it's used.
  * This can be done by the public node via endpoint `/utils/script/compile`.
  */
-class SetScript extends \LTO\Transaction
+class SetScript extends Transaction
 {
-    /** Minimum transaction fee */
-    public const MINIMUM_FEE = 500000000;
+    /** Default transaction fee */
+    public const DEFAULT_FEE = 500000000;
 
     /** Transaction type */
     public const TYPE = 13;
 
     /** Transaction version */
-    public const DEFAULT_VERSION = 1;
+    public const DEFAULT_VERSION = 3;
 
     /**
      * Base64 encoded script
-     * @var string
      */
-    public $script;
+    public ?string $script;
 
     /**
      * Class constructor.
@@ -35,7 +36,7 @@ class SetScript extends \LTO\Transaction
     public function __construct(?string $compiledScript)
     {
         $this->version = self::DEFAULT_VERSION;
-        $this->fee = self::MINIMUM_FEE;
+        $this->fee = self::DEFAULT_FEE;
 
         $this->script = $compiledScript !== null
             ? preg_replace('/^(base64:)?/', 'base64:', $compiledScript)
@@ -50,6 +51,9 @@ class SetScript extends \LTO\Transaction
         switch ($this->version) {
             case 1:
                 $pack = new Pack\SetScriptV1();
+                break;
+            case 3:
+                $pack = new Pack\SetScriptV3();
                 break;
             default:
                 throw new \UnexpectedValueException("Unsupported set script tx version {$this->version}");
@@ -71,7 +75,7 @@ class SetScript extends \LTO\Transaction
      */
     public static function fromData(array $data)
     {
-        static::assertNoMissingKeys($data, ['id', 'height', 'script']);
+        static::assertNoMissingKeys($data, ['script']);
         static::assertType($data, static::TYPE);
 
         return static::createFromData($data);

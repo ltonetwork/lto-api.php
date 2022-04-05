@@ -23,8 +23,8 @@ abstract class Transaction implements \JsonSerializable
         15 => Transaction\Anchor::class,
         16 => Transaction\Association::class,
         17 => Transaction\RevokeAssociation::class,
-        18 => Transaction\Sponsor::class,
-        19 => Transaction\CancelSponsor::class,
+        18 => Transaction\Sponsorship::class,
+        19 => Transaction\CancelSponsorship::class,
     ];
 
 
@@ -37,6 +37,9 @@ abstract class Transaction implements \JsonSerializable
     /** @var string|null */
     public $sender = null;
 
+    /** @var string */
+    public $senderKeyType = 'ed25519';
+
     /** @var string|null */
     public $senderPublicKey = null;
 
@@ -45,6 +48,15 @@ abstract class Transaction implements \JsonSerializable
 
     /** @var int */
     public $fee;
+
+    /** @var string|null */
+    public $sponsor = null;
+
+    /** @var string */
+    public $sponsorKeyType = 'ed25519';
+
+    /** @var string|null */
+    public $sponsorPublicKey = null;
 
     /** @var string[] */
     public $proofs = [];
@@ -65,7 +77,7 @@ abstract class Transaction implements \JsonSerializable
      */
     public function getId(): string
     {
-        return $this->id ?? blake2b($this->toBinary());
+        return $this->id ?? base58_encode(blake2b($this->toBinary()));
     }
 
     /**
@@ -86,7 +98,29 @@ abstract class Transaction implements \JsonSerializable
             $this->timestamp = time() * 1000;
         }
 
-        $this->proofs[] = $account->sign($this->toBinary());
+        $this->proofs[] = $account->sign($this->toBinary())->base58();
+
+        return $this;
+    }
+
+    /**
+     * Sponsor this transaction by co-signing it.
+     *
+     * @param Account $account
+     * @return $this
+     * @throws \BadMethodCallException if transaction isn't signed
+     * @throws \RuntimeException if account secret sign key is not set
+     */
+    public function sponsorWith(Account $account): self
+    {
+        if (!$this->isSigned()) {
+            throw new \BadMethodCallException("Transaction isn't signed");
+        }
+
+        $this->sponsor = $account->getAddress();
+        $this->sponsorPublicKey = $account->getPublicSignKey();
+
+        $this->proofs[] = $account->sign($this->toBinary())->base58();
 
         return $this;
     }
@@ -132,13 +166,10 @@ abstract class Transaction implements \JsonSerializable
      */
     public function jsonSerialize(): array
     {
-        $data = ['type' => static::TYPE] + get_public_properties($this);
+        $data = ['type' => static::TYPE] + array_filter(get_public_properties($this), fn($val) => $val !== null);
 
-        if ($data['id'] === null) {
-            unset($data['id']);
-        }
-        if ($data['height'] === null) {
-            unset($data['height']);
+        if (!isset($data['sponsor'])) {
+            unset($data['sponsorKeyType'], $data['sponsorPublicKey']);
         }
 
         return $data;
@@ -149,8 +180,14 @@ abstract class Transaction implements \JsonSerializable
      *
      * @throws \InvalidArgumentException
      */
-    protected static function assertNoMissingKeys(array $data, array $optionalKeys = ['id', 'height']): void
+    protected static function assertNoMissingKeys(array $data, array $optionalKeys = []): void
     {
+        $optionalKeys = array_merge($optionalKeys, ['id', 'height', 'senderKeyType', 'sponsorKeyType']);
+
+        if (!isset($data['sponsor']) && !isset($data['sponsorPublicKey'])) {
+            $optionalKeys = array_merge($optionalKeys, ['sponsor', 'sponsorPublicKey']);
+        }
+
         $requiredKeys = array_diff(array_keys(get_class_vars(get_called_class())), $optionalKeys);
         $missingKeys = array_diff($requiredKeys, array_keys($data));
 

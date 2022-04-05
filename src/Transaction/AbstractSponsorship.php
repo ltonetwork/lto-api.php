@@ -8,21 +8,17 @@ use LTO\Transaction;
 use function LTO\is_valid_address;
 
 /**
- * LTO transaction to stop sponsoring an account.
+ * LTO transaction to sponsor an account.
  */
-class CancelSponsor extends Transaction
+abstract class AbstractSponsorship extends Transaction
 {
-    /** Minimum transaction fee */
-    public const MINIMUM_FEE = 500000000;
-
-    /** Transaction type */
-    public const TYPE = 19;
+    /** Default transaction fee */
+    public const DEFAULT_FEE = 0;
 
     /** Transaction version */
-    public const DEFAULT_VERSION  = 1;
+    public const DEFAULT_VERSION = 3;
 
-    /** @var string */
-    public $recipient;
+    public string $recipient;
 
 
     /**
@@ -36,8 +32,8 @@ class CancelSponsor extends Transaction
             throw new \InvalidArgumentException("Invalid recipient address; is it base58 encoded?");
         }
 
-        $this->version = self::DEFAULT_VERSION;
-        $this->fee = self::MINIMUM_FEE;
+        $this->version = static::DEFAULT_VERSION;
+        $this->fee = static::DEFAULT_FEE;
 
         $this->recipient = $recipient;
     }
@@ -49,10 +45,14 @@ class CancelSponsor extends Transaction
     {
         switch ($this->version) {
             case 1:
-                $pack = new Pack\CancelSponsorV1();
+                $pack = new Pack\SponsorshipV1();
+                break;
+            case 3:
+                $pack = new Pack\SponsorshipV3();
                 break;
             default:
-                throw new \UnexpectedValueException("Unsupported cancel sponsor tx version {$this->version}");
+                $txType = $this instanceof CancelSponsorship ? "cancel sponsorship" : "sponsorship";
+                throw new \UnexpectedValueException("Unsupported $txType tx version $this->version");
         }
 
         return $pack($this);

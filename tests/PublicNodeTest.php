@@ -15,11 +15,14 @@ use PHPUnit\Framework\TestCase;
  */
 class PublicNodeTest extends TestCase
 {
+    use CustomAsserts;
+
     protected const TX_DATA = [
         'id' => '7cCeL1qwd9i6u8NgMNsQjBPxVhrME2BbfZMT1DF9p4Yi',
         'type' => 4,
         'version' => 2,
         'sender' => '3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM',
+        'senderKeyType' => 'ed25519',
         'senderPublicKey' => '7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7',
         'fee' => 100000000,
         'timestamp' => 1609773456000,
@@ -126,7 +129,7 @@ class PublicNodeTest extends TestCase
         $transaction = $this->node->getTransaction("7cCeL1qwd9i6u8NgMNsQjBPxVhrME2BbfZMT1DF9p4Yi");
 
         $this->assertInstanceOf(Transfer::class, $transaction);
-        $this->assertEquals(self::TX_DATA, $transaction->jsonSerialize());
+        $this->assertEqualsAsJson(self::TX_DATA, $transaction);
     }
 
     public function testGetUnconfirmed()
@@ -148,7 +151,7 @@ class PublicNodeTest extends TestCase
 
         $this->assertContainsOnlyInstancesOf(Transfer::class, $transactions);
         $this->assertCount(1, $transactions);
-        $this->assertEquals($data, $transactions[0]->jsonSerialize());
+        $this->assertEqualsAsJson($data, $transactions[0]);
     }
 
     public function testBroadcast()
@@ -176,7 +179,7 @@ class PublicNodeTest extends TestCase
         $broadcastedTx = $this->node->broadcast($transaction);
 
         $this->assertInstanceOf(Transfer::class, $broadcastedTx);
-        $this->assertEquals(self::TX_DATA, $broadcastedTx->jsonSerialize());
+        $this->assertEqualsAsJson(self::TX_DATA, $broadcastedTx);
     }
 
     public function testBroadcastUnsignedTransaction()

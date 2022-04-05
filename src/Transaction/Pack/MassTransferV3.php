@@ -8,9 +8,9 @@ use LTO\Transaction\MassTransfer;
 use function LTO\decode;
 
 /**
- * Callable to get binary for a mass transfer transaction v1.
+ * Callable to get binary for a mass transfer transaction v3.
  */
-class MassTransferV1
+class MassTransferV3
 {
     /**
      * Get binary (to sign) for transaction.
@@ -26,10 +26,14 @@ class MassTransferV1
         }
 
         $packed = pack(
-            'CCa32n',
+            'CCaJCa32Jn',
             MassTransfer::TYPE,
             $tx->version,
+            $tx->getNetwork(),
+            $tx->timestamp,
+            1, // key type 'ed25519'
             decode($tx->senderPublicKey, 'base58'),
+            $tx->fee,
             count($tx->transfers)
         );
 
@@ -42,11 +46,9 @@ class MassTransferV1
         }
 
         $packed .= pack(
-            'JJna*',
-            $tx->timestamp,
-            $tx->fee,
+            'na*',
             $tx->attachment->length(),
-            $tx->attachment->raw()
+            $tx->attachment->raw(),
         );
 
         return $packed;
