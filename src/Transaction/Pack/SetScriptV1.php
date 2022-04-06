@@ -25,20 +25,27 @@ class SetScriptV1
             throw new \BadMethodCallException("Timestamp not set");
         }
 
-        $binaryScript = $tx->script !== null
-            ? decode(preg_replace('/^base64:/', '', $tx->script), 'base64')
-            : '';
-
-        return pack(
-            'CCaa26na*JJ',
+        $packed = pack(
+            'CCaa26',
             SetScript::TYPE,
             $tx->version,
             $tx->getNetwork(),
-            decode($tx->senderPublicKey, 'base58'),
-            strlen($binaryScript),
-            $binaryScript,
-            $tx->fee,
-            $tx->timestamp
+            decode($tx->senderPublicKey, 'base58')
         );
+
+        if ($tx->script !== null) {
+            $binaryScript = decode(preg_replace('/^base64:/', '', $tx->script), 'base64');
+            $packed .= pack('Cna*', 1, strlen($binaryScript), $binaryScript);
+        } else {
+            $packed .= pack('C', 0);
+        }
+
+        $packed .= pack(
+            'JJ',
+            $tx->timestamp,
+            $tx->fee
+        );
+
+        return $packed;
     }
 }

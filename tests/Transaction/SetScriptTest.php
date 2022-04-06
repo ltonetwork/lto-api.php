@@ -55,7 +55,7 @@ class SetScriptTest extends TestCase
     public function versionProvider()
     {
         return [
-            'v1' => [1, 'AXpww6CJY6yBsG6xT92SvVtXwS2hhxgBhw3bCpNdsJBjn4NkL1MNbnkJZtwTMH5vMxBQ8g9i3LaR7oacQ99ruCywFvmYRoK2hBeeLN5krmvheZLvmXzhyb7HdgFLa3pj76KPMW4KvB9BaQYhSgzQBT1XH2mUfLYKzvedwn3kBnDNkAS7VUxb2cvYhGa2DiJUM8s'],
+            'v1' => [1, 'j54dTjvtQHLzxqfHkNRPR8WTZFUWfnjxFfYRyA6Vu7SKCttPBQG2zk7c594Kihsa2hrJb9Cr7AKrtmHcycsntv29YgX2dbXn5bhWNF2ZcjLQ486qy6FTixt3sk1RqjAPeJPRRA3rNq2NGutSApvjuyW5yS2Wp5SLD57dXNY695tiHUHNM6mZHewYibo5FXAd8fF5'],
             'v3' => [3, '2bXLHWotshX1ZvrzMgQoZ75J6XWVv3TdHnaGgQKcxdW4PriTbzgDwWvuWJupe9iu2tKwvbDSs5kGNiXwf15iHFiz9P4MREur12foF2EBHHcxEscQeeYAd1KU14dVKFwCei66QstfcwArNaeg779pAQj4aCdFDx8L2F3ZLSNJ9r83mowFh14ajKffnUdNvk4SncpebCNnP8nv4'],
         ];
     }
@@ -63,7 +63,7 @@ class SetScriptTest extends TestCase
     public function versionNoScriptProvider()
     {
         return [
-            'v1' => [1, '7Gbb1pUGXRS7R5w5cKFxpXjetznguZgSc9U9txVVQuhjjAxzkpUEzzsf94p4p31H'],
+            'v1' => [1, '2RNtCy4uufAKDhzZmFZPch3QzYfu67VsfKggdEw2uYRdsqxAa3CdQnAGycuJbqH'],
             'v3' => [3, '23rTaytvD2Ed4ZACzp9AXY6yV42jgZkFowuWwvhUPQNim58EYLyckU3GkLAyYKTy5C2iBjSBJw'],
         ];
     }
