@@ -1,9 +1,10 @@
-<?php /** @noinspection PhpComposerExtensionStubsInspection */
+<?php
 
 declare(strict_types=1);
 
 namespace LTO;
 
+use JsonException;
 use LTO\Transaction\SetScript;
 
 /**
@@ -11,21 +12,14 @@ use LTO\Transaction\SetScript;
  */
 class PublicNode
 {
-    /** @var string */
-    protected $url;
-
-    /** @var string|null */
-    protected $apiKey;
+    protected string $url;
+    protected ?string $apiKey;
 
     /**
      * Constructor.
      */
     public function __construct(string $url, ?string $apiKey = null)
     {
-        if (!function_exists('curl_init')) {
-            throw new \Exception("Curl extension not available"); // @codeCoverageIgnore
-        }
-
         $this->url = $url;
         $this->apiKey = $apiKey;
     }
@@ -86,15 +80,11 @@ class PublicNode
      */
     public function compile(string $script): SetScript
     {
-        $info = $this->curlExec([
-            CURLOPT_URL => rtrim($this->url, '/') . '/utils/script/compile',
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_HTTPHEADER => $this->headers([
-                'Content-Type: text/plain',
-                'Accept: application/json',
-            ]),
-            CURLOPT_POSTFIELDS => $script,
-        ]);
+        $info = $this->post(
+            '/utils/script/compile',
+            $script,
+            ['Content-Type' => 'text/plain'],
+        );
 
         return new SetScript($info['script']);
     }
@@ -120,114 +110,161 @@ class PublicNode
      * Send a HTTP GET request to the node.
      *
      * @param string $path
+     * @param array  $headers
      * @return mixed
      * @throws BadResponseException
      */
-    public function get(string $path)
+    public function get(string $path, array $headers = [])
     {
-        return $this->curlExec([
-            CURLOPT_URL => rtrim($this->url, '/') . $path,
-            CURLOPT_HTTPHEADER => $this->headers([
-                'Accept: application/json',
-            ])
-        ]);
+        return $this->request('GET', $path, $headers);
     }
 
     /**
      * Send a HTTP POST request to the node.
      *
      * @param string $path
-     * @param mixed  $data  Will be serialized to JSON
+     * @param mixed  $data       Will be serialized to JSON
+     * @param array  $headers
      * @return mixed
      * @throws BadResponseException
      */
-    public function post(string $path, $data)
+    public function post(string $path, $data, array $headers = [])
     {
-        return $this->curlExec([
-            CURLOPT_URL => rtrim($this->url, '/') . $path,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_HTTPHEADER => $this->headers([
-                'Content-Type: application/json',
-                'Accept: application/json',
-            ]),
-            CURLOPT_POSTFIELDS => json_encode($data),
-        ]);
+        $headers += ['Content-Type' => 'application/json'];
+        $content = $headers['Content-Type'] === 'application/json' ? json_encode($data) : $data;
+
+        return $this->request(
+            'POST',
+            $path,
+            $headers,
+            $content
+        );
     }
 
     /**
      * Send a HTTP DELETE request to the node.
      *
      * @param string $path
+     * @param array  $headers
      * @return mixed
      * @throws BadResponseException
      */
-    public function delete(string $path)
+    public function delete(string $path, array $headers = [])
     {
-        return $this->curlExec([
-            CURLOPT_URL => rtrim($this->url, '/') . $path,
-            CURLOPT_CUSTOMREQUEST => 'DELETE',
-            CURLOPT_HTTPHEADER => $this->headers([
-                'Accept: application/json',
-            ]),
-        ]);
+        return $this->request('DELETE', $path, $headers);
     }
 
+
     /**
-     * Add / modify the headers.
+     * Turn an associative array of headers into a list.
      *
      * @param array $headers
      * @return array
      */
-    protected function headers(array $headers):array
+    protected function headerList(array $headers): array
     {
-        if ($this->apiKey !== null) {
-            $headers[] = 'X-Api-Key: ' . $this->apiKey;
+        $list = [];
+
+        foreach ($headers as $name => $value) {
+            if ($value === null) continue;
+            $list[] = "$name: $value";
         }
 
-        return $headers;
+        return $list;
     }
 
     /**
-     * Execute curl request.
+     * Check if the response headers contain `Content-Type: application/json`.
+     *
+     * @param array $responseHeaders
+     * @return bool
+     */
+    protected function isJsonResponse(array $responseHeaders)
+    {
+        foreach ($responseHeaders as $header) {
+            if (preg_match('~content-type:\s*application/json~i', $header)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Use `file_get_contents` to do an HTTP request.
      * @codeCoverageIgnore
      *
-     * @param array<int,mixed> $opts  Options for curl_setopt
-     * @return mixed
-     * @throws BadResponseException
+     * @param string $url
+     * @param array $options
+     * @return array
      */
-    protected function curlExec(array $opts)
+    protected function doHttpRequest(string $url, array $options)
     {
-        $curl = curl_init();
+        $options['ignore_errors'] = true;
 
-        curl_setopt_array($curl, $opts);
-        curl_setopt($curl, CURLOPT_HEADER, true);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        $body = @file_get_contents($url, false, stream_context_create(['http' => $options]));
 
-        $response = curl_exec($curl);
-
-        if ($response === false) {
-            throw new BadResponseException("Failed to send HTTP request to node");
+        if ($body === false) {
+            $err = error_get_last();
+            throw new BadResponseException($err['message']);
         }
 
-        [$headers, $body] = explode("\r\n\r\n", $response, 2);
+        /**
+         * @var array $http_response_header
+         * @see https://www.php.net/manual/en/reserved.variables.httpresponseheader.php
+         */
 
-        $status = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
-        if ($status !== 200) {
-            throw new BadResponseException("Node responded with {$status}: $body");
+        return ['header' => $http_response_header ?? [], 'content' => $body];
+    }
+
+    /**
+     * Do an http request.
+     * In case of a JSON response, decode the response body.
+     *
+     * @param string $method
+     * @param string $path
+     * @param array $headers
+     * @param string|null $content
+     * @return mixed
+     * @throw BadResponseException
+     */
+    protected function request(string $method, string $path, array $headers, ?string $content = null)
+    {
+        $headers += ['Accept' => 'application/json'];
+
+        if (isset($this->apiKey)) {
+            $headers += ['X-Api-Key' => $this->apiKey];
         }
 
-        if (preg_match('~content-type:\s*application/json~i', $headers)) {
-            $data = json_decode($body, true);
-            if (json_last_error() > 0) {
-                throw new BadResponseException("Invalid JSON response: " . json_last_error_msg());
+        $url = rtrim($this->url, '/') . ($path[0] === '/' ? '' : '/') . $path;
+
+        $options = [
+            'method' => $method,
+            'header' => join("\r\n", $this->headerList($headers)),
+            'content' => $content,
+        ];
+
+        ['header' => $responseHeaders, 'content' => $body] = $this->doHttpRequest($url, $options);
+
+        $statusLine = $responseHeaders[0];
+        $status = preg_match('{HTTP/\S*\s(\d{3})}', $statusLine, $match) ? (int)$match[1] : 999;
+
+        if ($status >= 300) {
+            throw new BadResponseException("$method $url responded with $statusLine", new NodeError($body));
+        }
+
+        if ($this->isJsonResponse($responseHeaders)) {
+            try {
+                return json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+            } catch (JsonException $exception) {
+                throw new BadResponseException("Invalid JSON response for $method $url", $exception);
             }
-        } elseif (in_array('Accept: application/json', $opts[CURLOPT_HTTPHEADER], true)) {
-            throw new BadResponseException("Node did not responded with JSON.");
-        } else {
-            $data = $body;
         }
 
+        if (isset($headers['Accept']) && $headers['Accept'] === 'application/json') {
+            throw new BadResponseException("$method $url did not responded with JSON.");
+        }
 
-        return $data;
+        return $body;
     }
 }

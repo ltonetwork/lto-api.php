@@ -41,7 +41,7 @@ class PublicNodeTest extends TestCase
     public function setUp(): void
     {
         $this->node = $this->getMockBuilder(PublicNode::class)
-            ->onlyMethods(['curlExec'])
+            ->onlyMethods(['doHttpRequest'])
             ->setConstructorArgs(['http://example.com', 'secret'])
             ->getMock();
     }
@@ -54,17 +54,27 @@ class PublicNodeTest extends TestCase
 
     public function testGetRequest()
     {
-        $this->node->expects($this->once())->method('curlExec')
-            ->with([
-                CURLOPT_URL => 'http://example.com/addresses',
-                CURLOPT_HTTPHEADER => [
-                    'Accept: application/json',
-                    'X-Api-Key: secret',
+        $this->node->expects($this->once())->method('doHttpRequest')
+            ->with(
+                'http://example.com/wallet/addresses',
+                [
+                    'method' => 'GET',
+                    'header' => join("\r\n", [
+                        'Accept: application/json',
+                        'X-Api-Key: secret',
+                    ]),
+                    'content' => null,
                 ],
-            ])
-            ->willReturn(["3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM"]);
+            )
+            ->willReturn([
+                'header' => [
+                    "HTTP/1.1 200 Success",
+                    "Content-Type: application/json"
+                ],
+                'content' => json_encode(["3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM"])
+            ]);
 
-        $result = $this->node->get('/addresses');
+        $result = $this->node->get('/wallet/addresses');
 
         $this->assertEquals(["3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM"], $result);
     }
@@ -77,18 +87,26 @@ class PublicNodeTest extends TestCase
             "publickey" => "7gghhSwKRvshZwwh6sG97mzo1qoFtHEQK7iM4vGcnEt7",
         ];
 
-        $this->node->expects($this->once())->method('curlExec')
-            ->with([
-                CURLOPT_URL => 'http://example.com/addresses/verify/3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM',
-                CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_HTTPHEADER => [
-                    'Content-Type: application/json',
-                    'Accept: application/json',
-                    'X-Api-Key: secret',
+        $this->node->expects($this->once())->method('doHttpRequest')
+            ->with(
+                'http://example.com/addresses/verify/3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM',
+                [
+                    'method' => 'POST',
+                    'header' => join("\r\n", [
+                        'Content-Type: application/json',
+                        'Accept: application/json',
+                        'X-Api-Key: secret',
+                    ]),
+                    'content' => json_encode($data),
                 ],
-                CURLOPT_POSTFIELDS => json_encode($data),
-            ])
-            ->willReturn(42);
+            )
+            ->willReturn([
+                'header' => [
+                    "HTTP/1.1 200 Success",
+                    "Content-Type: application/json"
+                ],
+                'content' => json_encode(42)
+            ]);
 
         $result = $this->node->post('/addresses/verify/3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM', $data);
 
@@ -97,16 +115,25 @@ class PublicNodeTest extends TestCase
 
     public function testDeleteRequest()
     {
-        $this->node->expects($this->once())->method('curlExec')
-            ->with([
-                CURLOPT_URL => 'http://example.com/addresses/3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM',
-                CURLOPT_CUSTOMREQUEST => 'DELETE',
-                CURLOPT_HTTPHEADER => [
-                    'Accept: application/json',
-                    'X-Api-Key: secret',
+        $this->node->expects($this->once())->method('doHttpRequest')
+            ->with(
+                'http://example.com/addresses/3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM',
+                [
+                    'method' => 'DELETE',
+                    'header' => join("\r\n", [
+                        'Accept: application/json',
+                        'X-Api-Key: secret',
+                    ]),
+                    'content' => null,
                 ],
-            ])
-            ->willReturn(42);
+            )
+            ->willReturn([
+                'header' => [
+                    "HTTP/1.1 200 Success",
+                    "Content-Type: application/json"
+                ],
+                'content' => json_encode(42)
+            ]);
 
         $result = $this->node->delete('/addresses/3NBcx7AQqDopBj3WfwCVARNYuZyt1L9xEVM');
 
@@ -116,15 +143,25 @@ class PublicNodeTest extends TestCase
 
     public function testGetTransaction()
     {
-        $this->node->expects($this->once())->method('curlExec')
-            ->with([
-                CURLOPT_URL => 'http://example.com/transactions/info/7cCeL1qwd9i6u8NgMNsQjBPxVhrME2BbfZMT1DF9p4Yi',
-                CURLOPT_HTTPHEADER => [
-                    'Accept: application/json',
-                    'X-Api-Key: secret',
+        $this->node->expects($this->once())->method('doHttpRequest')
+            ->with(
+                'http://example.com/transactions/info/7cCeL1qwd9i6u8NgMNsQjBPxVhrME2BbfZMT1DF9p4Yi',
+                [
+                    'method' => 'GET',
+                    'header' => join("\r\n", [
+                        'Accept: application/json',
+                        'X-Api-Key: secret',
+                    ]),
+                    'content' => null,
+                ]
+            )
+            ->willReturn([
+                'header' => [
+                    "HTTP/1.1 200 Success",
+                    "Content-Type: application/json"
                 ],
-            ])
-            ->willReturn(self::TX_DATA);
+                'content' => json_encode(self::TX_DATA),
+            ]);
 
         $transaction = $this->node->getTransaction("7cCeL1qwd9i6u8NgMNsQjBPxVhrME2BbfZMT1DF9p4Yi");
 
@@ -137,15 +174,25 @@ class PublicNodeTest extends TestCase
         $data = self::TX_DATA;
         unset($data['height']);
 
-        $this->node->expects($this->once())->method('curlExec')
-            ->with([
-                CURLOPT_URL => 'http://example.com/transactions/unconfirmed',
-                CURLOPT_HTTPHEADER => [
-                    'Accept: application/json',
-                    'X-Api-Key: secret',
+        $this->node->expects($this->once())->method('doHttpRequest')
+            ->with(
+                'http://example.com/transactions/unconfirmed',
+                [
+                    'method' => 'GET',
+                    'header' => join("\r\n", [
+                        'Accept: application/json',
+                        'X-Api-Key: secret',
+                    ]),
+                    'content' => null,
                 ],
-            ])
-            ->willReturn([$data]);
+            )
+            ->willReturn([
+                'header' => [
+                    "HTTP/1.1 200 Success",
+                    "Content-Type: application/json"
+                ],
+                'content' => json_encode([$data]),
+            ]);
 
         $transactions = $this->node->getUnconfirmed();
 
@@ -163,18 +210,26 @@ class PublicNodeTest extends TestCase
         $transaction->expects($this->once())->method('isSigned')->willReturn(true);
         $transaction->expects($this->once())->method('jsonSerialize')->willReturn($data);
 
-        $this->node->expects($this->once())->method('curlExec')
-            ->with([
-                CURLOPT_URL => 'http://example.com/transactions/broadcast',
-                CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_HTTPHEADER => [
-                    'Content-Type: application/json',
-                    'Accept: application/json',
-                    'X-Api-Key: secret',
+        $this->node->expects($this->once())->method('doHttpRequest')
+            ->with(
+                'http://example.com/transactions/broadcast',
+                [
+                    'method' => 'POST',
+                    'header' => join("\r\n", [
+                        'Content-Type: application/json',
+                        'Accept: application/json',
+                        'X-Api-Key: secret',
+                    ]),
+                    'content' => json_encode($data)
+                ]
+            )
+            ->willReturn([
+                'header' => [
+                    "HTTP/1.1 200 Success",
+                    "Content-Type: application/json"
                 ],
-                CURLOPT_POSTFIELDS => json_encode($data),
-            ])
-            ->willReturn(self::TX_DATA);
+                'content' => json_encode(self::TX_DATA),
+            ]);
 
         $broadcastedTx = $this->node->broadcast($transaction);
 
@@ -188,7 +243,7 @@ class PublicNodeTest extends TestCase
         $transaction->expects($this->once())->method('isSigned')->willReturn(false);
         $transaction->expects($this->never())->method('jsonSerialize');
 
-        $this->node->expects($this->never())->method('curlExec');
+        $this->node->expects($this->never())->method('doHttpRequest');
 
         $this->expectException(\BadMethodCallException::class);
         $this->expectExceptionMessage("Transaction is not signed");
@@ -201,21 +256,29 @@ class PublicNodeTest extends TestCase
         $script = "sigVerify(tx.bodyBytes, tx.proofs[0], tx.senderPublicKey)";
         $compiledScript = "base64:AQkAAfQAAAADCAUAAAACdHgAAAAJYm9keUJ5dGVzCQABkQAAAAIIBQAAAAJ0eAAAAAZwcm9vZnMAAAAAAAAAAAAIBQAAAAJ0eAAAAA9zZW5kZXJQdWJsaWNLZXmmsz2x";
 
-        $this->node->expects($this->once())->method('curlExec')
-            ->with([
-                CURLOPT_URL => 'http://example.com/utils/script/compile',
-                CURLOPT_HTTPHEADER => [
-                    'Content-Type: text/plain',
-                    'Accept: application/json',
-                    'X-Api-Key: secret',
-                ],
-                CURLOPT_POSTFIELDS => $script,
-                CURLOPT_CUSTOMREQUEST => 'POST',
-            ])
+        $this->node->expects($this->once())->method('doHttpRequest')
+            ->with(
+                'http://example.com/utils/script/compile',
+                [
+                    'method' => 'POST',
+                    'header' => join("\r\n", [
+                        'Content-Type: text/plain',
+                        'Accept: application/json',
+                        'X-Api-Key: secret',
+                    ]),
+                    'content' => $script,
+                ]
+            )
             ->willReturn([
-                "script" => $compiledScript,
-                "complexity" => 115,
-                "extraFee" => 100000000,
+                'header' => [
+                    "HTTP/1.1 200 Success",
+                    "Content-Type: application/json"
+                ],
+                'content' => json_encode([
+                    "script" => $compiledScript,
+                    "complexity" => 115,
+                    "extraFee" => 100000000,
+                ]),
             ]);
 
         $setScriptTx = $this->node->compile($script);
