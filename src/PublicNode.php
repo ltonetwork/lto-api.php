@@ -130,11 +130,14 @@ class PublicNode
      */
     public function post(string $path, $data, array $headers = [])
     {
+        $headers += ['Content-Type' => 'application/json'];
+        $content = $headers['Content-Type'] === 'application/json' ? json_encode($data) : $data;
+
         return $this->request(
             'POST',
             $path,
-            $headers + ['Content-Type' => 'application/json'],
-            json_encode($data)
+            $headers,
+            $content
         );
     }
 
@@ -188,6 +191,33 @@ class PublicNode
     }
 
     /**
+     * Use `file_get_contents` to do an HTTP request.
+     * @codeCoverageIgnore
+     *
+     * @param string $url
+     * @param array $options
+     * @return array
+     */
+    protected function doHttpRequest(string $url, array $options)
+    {
+        $options['ignore_errors'] = true;
+
+        $body = @file_get_contents($url, false, stream_context_create(['http' => $options]));
+
+        if ($body === false) {
+            $err = error_get_last();
+            throw new BadResponseException($err['message']);
+        }
+
+        /**
+         * @var array $http_response_header
+         * @see https://www.php.net/manual/en/reserved.variables.httpresponseheader.php
+         */
+
+        return ['header' => $http_response_header ?? [], 'content' => $body];
+    }
+
+    /**
      * Do an http request.
      * In case of a JSON response, decode the response body.
      *
@@ -203,33 +233,27 @@ class PublicNode
         $headers += ['Accept' => 'application/json'];
 
         if (isset($this->apiKey)) {
-            $headers += ['X-Api-Key: ' . $this->apiKey];
+            $headers += ['X-Api-Key' => $this->apiKey];
         }
 
         $url = rtrim($this->url, '/') . ($path[0] === '/' ? '' : '/') . $path;
 
-        $context = stream_context_create(['http' => [
+        $options = [
             'method' => $method,
             'header' => join("\r\n", $this->headerList($headers)),
             'content' => $content,
-            'ignore_errors' => true,
-        ]]);
+        ];
 
-        $body = file_get_contents($url, false, $context);
+        ['header' => $responseHeaders, 'content' => $body] = $this->doHttpRequest($url, $options);
 
-        /**
-         * @var array $http_response_header
-         * @see https://www.php.net/manual/en/reserved.variables.httpresponseheader.php
-         */
-        $statusLine = $http_response_header[0];
-        preg_match('{HTTP/\S*\s(\d{3})}', $statusLine, $match);
-        $status = (int)$match[1];
+        $statusLine = $responseHeaders[0];
+        $status = preg_match('{HTTP/\S*\s(\d{3})}', $statusLine, $match) ? (int)$match[1] : 999;
 
         if ($status >= 300) {
             throw new BadResponseException("$method $url responded with $statusLine", new NodeError($body));
         }
 
-        if ($this->isJsonResponse($http_response_header)) {
+        if ($this->isJsonResponse($responseHeaders)) {
             try {
                 return json_decode($body, true, 512, JSON_THROW_ON_ERROR);
             } catch (JsonException $exception) {
