@@ -9,4 +9,12 @@ namespace LTO;
  */
 class BadResponseException extends \RuntimeException
 {
+    /**
+     * @param string          $message
+     * @param \Throwable|null $cause
+     */
+    public function __construct(string $message, ?\Throwable $cause = null)
+    {
+        parent::__construct($message, 0, $cause);
+    }
 }
