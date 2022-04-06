@@ -1,41 +1,25 @@
 <?php
 
-namespace LTO\Tests;
+namespace LTO\Tests\Account\ECDSA;
 
-use LTO\Cryptography;
-use PHPUnit\Framework\TestCase;
-use PHPUnit\Framework\Constraint\IsEqual as IsEqualConstraint;
 use LTO\Account;
 use LTO\AccountFactory;
+use LTO\Tests\CustomAsserts;
+use PHPUnit\Framework\Constraint\IsEqual as IsEqualConstraint;
+use PHPUnit\Framework\TestCase;
+use function base58_decode;
+use function base58_encode;
 
 /**
  * @covers \LTO\AccountFactory
- * @covers \LTO\Cryptography\ED25519
+ * @covers \LTO\Cryptography\ECDSA
  */
 class AccountFactoryTest extends TestCase
 {
-    /**
-     * @var string
-     */
-    public $seedText = "manage manual recall harvest series desert melt police rose hollow moral pledge kitten"
-            . " position add";
+    use CustomAsserts;
 
-    /**
-     * Asserts variable is equals to Base58 encoded string.
-     *
-     * @param mixed  $encoded
-     * @param mixed  $actual
-     * @param string $message
-     */
-    public static function assertBase58Equals($encoded, $actual, $message = '')
-    {
-        $value = is_string($actual) ? base58_encode($actual) : $actual;
-        
-        $constraint = new IsEqualConstraint($encoded);
+    protected string $seedText = "test";
 
-        static::assertThat($value, $constraint, $message);
-    }
-    
     
     /**
      * @see https://specs.livecontracts.io/cryptography.html#asymmetric-encryption
@@ -118,31 +102,6 @@ class AccountFactoryTest extends TestCase
             ]
         ];
     }
-    
-    /**
-     * @dataProvider convertSignToEncryptProvider
-     * 
-     * @param object $expected
-     * @param object $sign
-     */
-    public function testConvertSignToEncrypt($expected, $sign)
-    {
-        $this->markTestSkipped("Is done in Cryptography class");
-
-        foreach ($sign as &$value) {
-            $value = base58_decode($value);
-        }
-        
-        $factory = new AccountFactory('L');
-
-        $encrypt = $factory->convertSignToEncrypt($sign);
-        
-        foreach ($encrypt as &$value) {
-            $value = base58_encode($value);
-        }
-        
-        $this->assertEquals($expected, $encrypt);
-    }
 
     public function seedProvider()
     {
@@ -166,16 +125,16 @@ class AccountFactoryTest extends TestCase
         
         $this->assertInstanceOf(Account::class, $account);
         
-        $this->assertBase58Equals(
+        $this->assertEqualsBase58(
             "4zsR9xoFpxfnNwLcY4hdRUarwf5xWtLj6FpKGDFBgscPxecPj2qgRNx4kJsFCpe9YDxBRNoeBWTh2SDAdwTySomS",
             $account->sign->secretkey
         );
-        $this->assertBase58Equals("GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY", $account->sign->publickey);
+        $this->assertEqualsBase58("GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY", $account->sign->publickey);
 
-        $this->assertBase58Equals("4q7HKMbwbLcG58iFV3pz4vkRnPTwbrY9Q5JrwnwLEZCC", $account->encrypt->secretkey);
-        $this->assertBase58Equals("6fDod1xcVj4Zezwyy3tdPGHkuDyMq8bDHQouyp5BjXsX", $account->encrypt->publickey);
+        $this->assertEqualsBase58("4q7HKMbwbLcG58iFV3pz4vkRnPTwbrY9Q5JrwnwLEZCC", $account->encrypt->secretkey);
+        $this->assertEqualsBase58("6fDod1xcVj4Zezwyy3tdPGHkuDyMq8bDHQouyp5BjXsX", $account->encrypt->publickey);
 
-        $this->assertBase58Equals($expectedAddress, $account->address);
+        $this->assertEqualsBase58($expectedAddress, $account->address);
     }
 
 
@@ -228,24 +187,24 @@ class AccountFactoryTest extends TestCase
 
         if ($hasSign) {
             $this->assertIsObject($account->sign);
-            $this->assertBase58Equals(
+            $this->assertEqualsBase58(
                 "4zsR9xoFpxfnNwLcY4hdRUarwf5xWtLj6FpKGDFBgscPxecPj2qgRNx4kJsFCpe9YDxBRNoeBWTh2SDAdwTySomS",
                 $account->sign->secretkey);
-            $this->assertBase58Equals("GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY", $account->sign->publickey);
+            $this->assertEqualsBase58("GjSacB6a5DFNEHjDSmn724QsrRStKYzkahPH67wyrhAY", $account->sign->publickey);
         } else {
             $this->assertNull($account->sign);
         }
         
         if ($hasEncrypt) {
             $this->assertIsObject($account->encrypt);
-            $this->assertBase58Equals("4q7HKMbwbLcG58iFV3pz4vkRnPTwbrY9Q5JrwnwLEZCC", $account->encrypt->secretkey);
-            $this->assertBase58Equals("6fDod1xcVj4Zezwyy3tdPGHkuDyMq8bDHQouyp5BjXsX", $account->encrypt->publickey);
+            $this->assertEqualsBase58("4q7HKMbwbLcG58iFV3pz4vkRnPTwbrY9Q5JrwnwLEZCC", $account->encrypt->secretkey);
+            $this->assertEqualsBase58("6fDod1xcVj4Zezwyy3tdPGHkuDyMq8bDHQouyp5BjXsX", $account->encrypt->publickey);
         } else {
             $this->assertNull($account->encrypt);
         }
 
         if ($hasAddress) {
-            $this->assertBase58Equals("3JmCa4jLVv7Yn2XkCnBUGsa7WNFVEMxAfWe", $account->address);
+            $this->assertEqualsBase58("3JmCa4jLVv7Yn2XkCnBUGsa7WNFVEMxAfWe", $account->address);
         }
     }
     
@@ -417,17 +376,17 @@ class AccountFactoryTest extends TestCase
         if (isset($signkey)) {
             $this->assertObjectNotHasAttribute('secretkey', $account->sign);
             $this->assertObjectHasAttribute('publickey', $account->sign);
-            $this->assertBase58Equals("FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y", $account->sign->publickey);
+            $this->assertEqualsBase58("FkU1XyfrCftc4pQKXCrrDyRLSnifX1SMvmx1CYiiyB3Y", $account->sign->publickey);
         } else {
             $this->assertNull($account->sign);
         }
         
         $this->assertObjectNotHasAttribute('secretkey', $account->encrypt);
         $this->assertObjectHasAttribute('publickey', $account->encrypt);
-        $this->assertBase58Equals("BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6", $account->encrypt->publickey);
+        $this->assertEqualsBase58("BVv1ZuE3gKFa6krwWJQwEmrLYUESuUabNCXgYTmCoBt6", $account->encrypt->publickey);
 
         if (isset($signkey)) {
-            $this->assertBase58Equals("3JoXfhxrA8Mvw7CvQowiNPTAzvgNYYXcn5q", $account->address);
+            $this->assertEqualsBase58("3JoXfhxrA8Mvw7CvQowiNPTAzvgNYYXcn5q", $account->address);
         } else {
             $this->assertNull($account->address);
         }

@@ -1,14 +1,15 @@
 <?php
 
-namespace LTO\Tests;
+namespace LTO\Tests\Account\ED25519;
 
+use LTO\Account;
 use LTO\Binary;
 use LTO\Cryptography\ED25519;
 use LTO\Event;
 use LTO\EventChain;
-use LTO\Account;
 use LTO\Transaction;
 use PHPUnit\Framework\TestCase;
+use function base58_decode;
 use function LTO\sha256;
 use function sodium_crypto_generichash as blake2b;
 
@@ -18,10 +19,7 @@ use function sodium_crypto_generichash as blake2b;
  */
 class AccountTest extends TestCase
 {
-    /**
-     * @var Account
-     */
-    public $account;
+    protected Account $account;
     
     public function setUp(): void
     {
